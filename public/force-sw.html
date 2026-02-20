@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Force Service Worker Registration</title>
+    <style>
+        body { font-family: Arial; padding: 20px; line-height: 1.6; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Force Service Worker Registration</h1>
+    
+    <button onclick="forceRegister()">🚀 Force Register Now</button>
+    <button onclick="checkStatus()">🔍 Check Status</button>
+    <button onclick="unregisterAll()">🗑️ Unregister All</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(msg, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = msg;
+            output.appendChild(p);
+            console.log(msg);
+        }
+        
+        async function unregisterAll() {
+            output.innerHTML = '';
+            log('🗑️ Unregistering all service workers...');
+            
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let reg of registrations) {
+                await reg.unregister();
+                log(`✅ Unregistered: ${reg.scope}`, 'success');
+            }
+            
+            if (registrations.length === 0) {
+                log('ℹ️ No service workers found');
+            }
+        }
+        
+        async function checkStatus() {
+            output.innerHTML = '';
+            log('🔍 Checking service worker status...');
+            
+            log(`Protocol: ${window.location.protocol}`);
+            log(`Hostname: ${window.location.hostname}`);
+            log(`Is localhost: ${window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'}`);
+            log(`SW Supported: ${'serviceWorker' in navigator}`, 'success');
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    log(`Found ${registrations.length} registration(s):`);
+                    
+                    for (let reg of registrations) {
+                        log(`- Scope: ${reg.scope}`, 'success');
+                        log(`  State: ${reg.active ? 'active' : 'inactive'}`);
+                        log(`  Waiting: ${!!reg.waiting}`);
+                    }
+                } catch (err) {
+                    log(`❌ Error checking: ${err.message}`, 'error');
+                }
+            }
+        }
+        
+        async function forceRegister() {
+            output.innerHTML = '';
+            log('🚀 Force registering service worker...');
+            
+            try {
+                // Try multiple times with delays
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    log(`Attempt ${attempt}...`);
+                    
+                    // Create a completely new service worker file content
+                    const swContent = `
+                        const CACHE_NAME = 'force-cache-v1';
+                        self.addEventListener('install', (e) => {
+                            console.log('SW: Install');
+                            self.skipWaiting();
+                        });
+                        self.addEventListener('activate', (e) => {
+                            console.log('SW: Activate');
+                            e.waitUntil(clients.claim());
+                        });
+                        self.addEventListener('fetch', (e) => {
+                            e.respondWith(fetch(e.request));
+                        });
+                    `;
+                    
+                    // Try to register
+                    const registration = await navigator.serviceWorker.register('/sw.js', {
+                        scope: '/'
+                    });
+                    
+                    log(`✅ Registration successful!`, 'success');
+                    log(`Scope: ${registration.scope}`);
+                    log(`State: ${registration.active ? 'active' : 'installing'}`);
+                    
+                    if (registration.installing) {
+                        registration.installing.addEventListener('statechange', (e) => {
+                            log(`State changed to: ${e.target.state}`);
+                        });
+                    }
+                    
+                    break; // Success, exit loop
+                }
+            } catch (err) {
+                log(`❌ Registration failed: ${err.message}`, 'error');
+                log(`Error name: ${err.name}`);
+                log(`Error code: ${err.code}`);
+                
+                // Suggest next steps
+                log('\n💡 Troubleshooting steps:');
+                log('1. Close ALL Chrome windows completely');
+                log('2. Open Task Manager and kill all Chrome processes');
+                log('3. Open Chrome with: chrome://restart');
+                log('4. Try incognito mode (if it works there, clear normal profile)');
+                log('5. Try Firefox as a test');
+            }
+        }
+        
+        // Auto-run check on page load
+        checkStatus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><title>SW Verification</title></head>
+<body>
+  <h1>Service Worker Verification</h1>
+  <div id="status"></div>
+  <script>
+    async function verify() {
+      const status = document.getElementById('status');
+      
+      status.innerHTML += `<p>SW supported: ${'serviceWorker' in navigator}</p>`;
+      
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        status.innerHTML += `<p>Registrations: ${regs.length}</p>`;
+        
+        for (let reg of regs) {
+          status.innerHTML += `<p>Scope: ${reg.scope}</p>`;
+          status.innerHTML += `<p>Active: ${!!reg.active}</p>`;
+        }
+        
+        const cacheKeys = await caches.keys();
+        status.innerHTML += `<p>Caches: ${cacheKeys.join(', ')}</p>`;
+      }
+    }
+    
+    verify();
+  </script>
+</body>
+</html>

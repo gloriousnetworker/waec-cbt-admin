@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - WAEC CBT</title>
+  <style>
+    body {
+      font-family: 'Playfair Display', serif;
+      background-color: #F9FAFB;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: white;
+      border-radius: 1rem;
+      padding: 2rem;
+      max-width: 28rem;
+      width: 100%;
+      text-align: center;
+      border: 1px solid #E8E8E8;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #1E1E1E;
+      margin-bottom: 0.75rem;
+    }
+    p {
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      color: #626060;
+      margin-bottom: 2rem;
+    }
+    .button {
+      display: block;
+      width: 100%;
+      padding: 0.875rem;
+      background-color: #039994;
+      color: white;
+      border: none;
+      border-radius: 0.75rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 0.75rem;
+      text-decoration: none;
+    }
+    .button:hover {
+      background-color: #028a85;
+    }
+    .button-outline {
+      background-color: white;
+      color: #039994;
+      border: 2px solid #039994;
+    }
+    .button-outline:hover {
+      background-color: #F0F9F8;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="font-size: 4rem; margin-bottom: 1.5rem;">📡</div>
+    <h1>You're Offline</h1>
+    <p>You can still access pages you've visited before. Try going to Dashboard.</p>
+    <a href="/dashboard" class="button">Go to Dashboard</a>
+    <button onclick="window.location.reload()" class="button button-outline">Try Again</button>
+  </div>
+</body>
+</html>
