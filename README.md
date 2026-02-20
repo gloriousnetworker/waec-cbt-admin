@@ -1,45 +1,54 @@
-NYSC CDS Attendance Portal
+WAEC CBT Admin Dashboard - School Administrator
 
-A comprehensive digital attendance management system for National Youth Service Corps (NYSC) Community Development Service (CDS) groups in Nigeria.
-Live Demo
+A comprehensive school administration dashboard for managing students, tracking performance, and monitoring exams in the WAEC CBT simulation platform.
 
-🌐 Live Application: https://nysc-corpers-cds-attendance-app.vercel.app/
+Live Demo: https://waec-cbt-admin.vercel.app/
 Features
 🎯 Core Features
 
-    Digital Attendance Tracking: Mark and monitor CDS attendance digitally
+    Student Management: Register, edit, and manage student accounts
 
-    User Authentication: Secure login/signup for corps members
+    Performance Tracking: Monitor individual student progress and scores
 
-    Profile Management: Complete NYSC profile with all required details
+    Exam Results: View and analyze exam results across all subjects
 
-    Attendance Calendar: Visual monthly calendar with attendance status
+    Support Tickets: Communicate directly with super admin via ticketing system
 
-    CDS Dues Management: Track and pay CDS group dues
+    School Administration: Manage your school's presence in the system
 
-    Schedule Management: View upcoming CDS activities and meetings
+📊 Administrative Features
 
-    Reports Generation: Generate attendance and performance reports
+    Student Registration: Add new students with auto-generated login credentials
 
-    Multi-step Registration: User-friendly 3-step signup process with email verification
+    Bulk Registration: Register multiple students at once
 
-📱 User Features
+    Class Management: Organize students by JSS/SS classes
 
-    Dashboard Overview: Quick stats and recent activities
+    Subject Assignment: Assign subjects to students (Mathematics and English auto-assigned)
 
-    Attendance History: Complete attendance record with visual indicators
+    Performance Analytics: Subject-wise performance breakdown
 
-    Profile Customization: Update personal and NYSC information
+    Result Reports: Generate class and individual student reports
 
-    Payment Integration: Manage CDS dues payments
+    Support System: Create and track support tickets to super admin
 
-    Calendar Integration: Sync CDS schedule with personal calendar
+    Profile Settings: Manage school and admin profile information
 
-    Report Export: Download reports in PDF, Excel, and CSV formats
+📱 Dashboard Sections
 
-    Notification System: Email, SMS, and push notifications
+    Home: Overview of school statistics and recent activities
 
-    Responsive Design: Works on desktop, tablet, and mobile devices
+    Students: Complete student management interface
+
+    Performance: Detailed student performance analytics
+
+    Results: Exam results viewer with filtering
+
+    Support: Support ticket management system
+
+    Settings: School and admin configuration
+
+    Help: Resources and documentation
 
 Tech Stack
 Frontend
@@ -48,11 +57,9 @@ Frontend
 
     React - UI library
 
+    Framer Motion - Animation library
+
     Tailwind CSS - Utility-first CSS framework
-
-    GSAP - Animation library for smooth transitions
-
-    Font Awesome - Icons
 
 Key Dependencies
 
@@ -60,13 +67,11 @@ Key Dependencies
 
     react: ^18.0.0
 
-    react-dom: ^18.0.0
+    framer-motion: ^10.0.0
 
-    gsap: ^3.12.0
+    react-hot-toast: ^2.4.0
 
     next/image: Built-in image optimization
-
-    next/link: Client-side navigation
 
 Installation
 Prerequisites
@@ -78,22 +83,19 @@ Prerequisites
 Setup Instructions
 
     Clone the repository
+    bash
 
-bash
+git clone https://github.com/yourusername/waec-cbt-admin.git
+cd waec-cbt-admin
 
-git clone https://github.com/gloriousnetworker/nysc-corpers-cds-attendance-app.git
-cd nysc-attendance-app
-
-    Install dependencies
-
+Install dependencies
 bash
 
 npm install
 # or
 yarn install
 
-    Run the development server
-
+Run the development server
 bash
 
 npm run dev
@@ -106,301 +108,280 @@ yarn dev
 Project Structure
 text
 
-nysc-attendance-app/
+waec-cbt-admin/
 ├── app/
-│   ├── login/              # Login page
-│   ├── signup/            # Signup page (3-step process)
-│   ├── corpers-dashboard/ # Main dashboard
-│   └── page.jsx           # Landing page
+│   ├── layout.jsx           # Root layout with AuthProvider
+│   ├── page.jsx             # Landing page with splash screen
+│   ├── login/               # Admin login page
+│   ├── dashboard/           # Admin dashboard
+│   │   └── page.jsx         # Main dashboard with sections
+│   └── student-registration/ # Student registration page
+│       └── page.jsx         # Registration form
 ├── components/
-│   ├── dashboard/         # Dashboard components
-│   │   ├── DashboardNavbar.jsx
-│   │   ├── DashboardSidebar.jsx
-│   │   ├── DashboardContent.jsx
-│   │   └── sections/      # Dashboard sections
-│   │       ├── OverviewSection.jsx
-│   │       ├── AttendanceSection.jsx
-│   │       ├── ProfileSection.jsx
-│   │       ├── DuesSection.jsx
-│   │       ├── ScheduleSection.jsx
-│   │       ├── ReportsSection.jsx
-│   │       ├── SettingsSection.jsx
-│   │       └── HelpSection.jsx
-│   ├── Navbar.jsx         # Main navigation
-│   └── Footer.jsx         # Site footer
+│   ├── dashboard-components/
+│   │   ├── Navbar.jsx       # Dashboard navigation
+│   │   └── Sidebar.jsx      # Dashboard sidebar menu
+│   ├── dashboard-content/
+│   │   ├── Home.jsx         # Dashboard home/overview
+│   │   ├── Students.jsx     # Student management
+│   │   ├── Performance.jsx  # Performance analytics
+│   │   ├── Results.jsx      # Exam results viewer
+│   │   ├── Support.jsx      # Support ticket system
+│   │   ├── Settings.jsx     # Admin settings
+│   │   └── Help.jsx         # Help resources
+│   ├── SupportChat.jsx      # Floating support chat
+│   ├── SplashScreen.jsx     # App loading screen
+│   └── ProtectedRoute.jsx   # Route protection HOC
+├── context/
+│   └── AuthContext.jsx      # Authentication context
 ├── public/
-│   ├── images/            # Static images
-│   │   └── nysc-logo.png  # NYSC logo
-│   └── videos/            # Video files
-├── styles/               # Global styles
+│   ├── icons/               # PWA icons
+│   ├── logo.png             # School logo placeholder
+│   └── manifest.json        # PWA manifest
+├── styles/
+│   ├── globals.css          # Global styles
+│   └── styles.js            # Component styles
 └── package.json
 
 Usage Guide
-For Corps Members
+For School Administrators
+Getting Started
 
-    Registration
+    Access the App
 
-        Visit the signup page
+        Visit the live URL or open locally
 
-        Complete 3-step registration process:
-
-            Step 1: Basic information (name, email, phone)
-
-            Step 2: NYSC details (state code, serving state, CDS group)
-
-            Step 3: Email verification
-
-        Verify email with 6-digit code
+        Splash screen appears with loading progress
 
     Login
 
-        Use email/state code and password
+        Use credentials provided by Mega Tech Solutions
 
-        Demo login available for quick testing
+        Demo credentials available for testing:
 
-    Dashboard Navigation
+            Email: admin@kogistatecollege.edu.ng
 
-        Overview: View stats and quick actions
+            Password: admin123
 
-        Attendance: Mark and view attendance
+Student Management
 
-        Profile: Update personal information
+    Register a New Student
 
-        CDS Dues: Manage payments
+        Navigate to Students section
 
-        Schedule: View upcoming activities
+        Click "Add New Student"
 
-        Reports: Generate attendance reports
+        Fill in required fields:
 
-        Settings: Configure preferences
+            First Name, Last Name (required)
 
-        Help: Access support resources
+            Middle Name (optional)
 
-    Marking Attendance
+            NIN (optional - can be used for login)
 
-        Navigate to Attendance section
+            Phone Number (optional)
 
-        Click "Mark Today's Attendance"
+            Date of Birth (optional)
 
-        Attendance recorded instantly
+            Class (JSS1-3 or SS1-3)
 
-For Administrators
+        Default password is set to 123456
 
-(Note: Admin features to be implemented)
+        System auto-generates:
 
-    Monitor attendance across CDS groups
+            Login ID: firstname.lastname (with numbers if duplicate)
 
-    Generate group reports
+            Email: firstname.lastname@kogistatecollege.edu.ng
 
-    Manage user accounts
+        Student can also login using NIN
 
-    Configure system settings
+    Edit Student Information
 
-Features in Detail
-🎨 Landing Page
+        Click "Edit" on any student row
 
-    Engaging hero section with NYSC video
+        Update necessary information
 
-    Information about NYSC and CDS
+        Changes are saved automatically
 
-    Call-to-action buttons for login/signup
+    Delete Student
 
-    Responsive design with smooth animations
+        Click "Delete" on any student row
 
-🔐 Authentication System
+        Confirm deletion in modal
 
-    Secure login with email/state code
+        Student removed from system
 
-    3-step signup with verification
+Performance Tracking
 
-    Password protection
+    View Student Performance
 
-    Session management with localStorage
+        Navigate to Students section
 
-📊 Dashboard Features
+        Click "View" on any student
 
-    Real-time Stats: Attendance rate, days present, total days
+        Performance dashboard shows:
 
-    Interactive Calendar: Visual attendance tracking
+            Subject-wise average scores
 
-    Profile Management: Full CRUD operations for user data
+            Recent exam history
 
-    Payment System: Track and pay CDS dues
+            Performance insights (strengths/weaknesses)
 
-    Schedule View: Upcoming CDS activities
+            Overall statistics
 
-    Report Generation: Customizable reports in multiple formats
+    Add Subjects to Student
 
-    Settings: Customizable preferences and privacy controls
+        In Performance view, click "Add Subject"
 
-📱 Mobile Responsive
+        Enter subject name
 
-    Fully responsive design
+        Subject added to student's profile
 
-    Mobile-optimized navigation
+        Mathematics and English cannot be deleted
 
-    Touch-friendly interface
+    Delete Subjects
 
-    Progressive Web App capabilities
+        Hover over subject card
 
-API Endpoints
+        Click "Delete" (except Mathematics/English)
 
-(Note: Current implementation uses localStorage for demo. Backend integration pending)
-Planned Endpoints
-text
+        Confirm deletion
 
-POST   /api/auth/login          # User login
-POST   /api/auth/signup         # User registration
-POST   /api/auth/verify         # Email verification
-GET    /api/user/profile        # Get user profile
-PUT    /api/user/profile        # Update profile
-POST   /api/attendance/mark     # Mark attendance
-GET    /api/attendance          # Get attendance records
-POST   /api/payments            # Process payment
-GET    /api/reports             # Generate reports
+Exam Results
 
-Environment Variables
+    View Results
 
-Create a .env.local file in the root directory:
-env
+        Navigate to Results section
 
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
-# Add more variables as needed for production
+        Filter by class or subject
 
-Deployment
-Vercel Deployment
+        View all exam results with scores and grades
 
-    Push code to GitHub repository
+        Click "View Details" to see student performance
 
-    Import project in Vercel dashboard
+    Grade Calculation
 
-    Configure build settings:
+        A: 75% and above
 
-        Build Command: npm run build
+        B: 60% - 74%
 
-        Output Directory: .next
+        C: 50% - 59%
 
-    Deploy
+        D: 40% - 49%
 
-Other Platforms
+        F: Below 40%
 
-The app can be deployed on any platform supporting Next.js:
+Support System
 
-    Netlify
+    Create Support Ticket
 
-    AWS Amplify
+        Navigate to Support section
 
-    Railway
+        Click "Create New Ticket"
 
-    Heroku
+        Fill in subject, category, priority, and description
 
-Testing
+        Ticket sent to Mega Tech Solutions super admin
+
+    View Tickets
+
+        All tickets displayed with status (open, in-progress, closed)
+
+        Click any ticket to view conversation
+
+        Reply to super admin messages
+
+    Support Chat
+
+        Floating chat button available
+
+        Real-time communication with super admin
+
+        View chat history and responses
+
+Student Login Credentials
+
+When registering students, the system generates:
+
+    Login ID: firstname.lastname (e.g., john.doe)
+
+    Email: firstname.lastname@kogistatecollege.edu.ng
+
+    Password: 123456 (default, can be changed)
+
+    Alternative Login: NIN + password (if NIN provided)
+
+Duplicate prevention:
+
+    If john.doe exists, system creates john.doe001, john.doe002, etc.
+
+PWA Features
+
+The app is a Progressive Web Application with:
+
+    Installable: Add to home screen on mobile devices
+
+    Offline Support: Access previously loaded content offline
+
+    Fast Loading: Optimized for quick startup
+
+    Responsive Design: Works on all screen sizes
+
+To install:
+
+    Mobile: Open in Chrome/Safari → Share menu → Add to Home Screen
+
+    Desktop: Click install icon in address bar
+
 Demo Credentials
 
-For testing purposes, use:
+For testing purposes:
 
-    Email/State Code: Any value
+    Email: admin@kogistatecollege.edu.ng
 
-    Password: Any value
+    Password: admin123
 
-    Demo Login: Click "Quick Demo Login" button
+Alternative demo:
 
-Test Scenarios
+    Email: principal@kogistatecollege.edu.ng
 
-    User registration flow
-
-    Attendance marking
-
-    Profile updates
-
-    Report generation
-
-    Mobile responsiveness
-
-Contributing
-
-We welcome contributions! Please follow these steps:
-
-    Fork the repository
-
-    Create a feature branch (git checkout -b feature/AmazingFeature)
-
-    Commit your changes (git commit -m 'Add some AmazingFeature')
-
-    Push to the branch (git push origin feature/AmazingFeature)
-
-    Open a Pull Request
-
-Development Guidelines
-
-    Follow React/Next.js best practices
-
-    Use functional components with hooks
-
-    Maintain consistent code style
-
-    Add comments for complex logic
-
-    Test thoroughly before submitting
+    Password: admin123
 
 Roadmap
 Phase 1 (Completed)
 
-    Landing page design
+    Student registration and management
 
-    User authentication
+    Performance tracking
 
-    Basic dashboard
+    Exam results viewer
 
-    Attendance tracking
-
-    Profile management
+    Basic support system
 
 Phase 2 (In Progress)
 
-    Backend API integration
+    Bulk student upload (CSV)
 
-    Database setup
+    Class-wide reports
 
-    Admin dashboard
+    SMS notifications
 
-    Payment gateway integration
-
-    Email/SMS notifications
+    Parent/guardian portal
 
 Phase 3 (Planned)
 
-    Mobile app development
+    Exam scheduling
 
-    Advanced analytics
+    Automated result computation
 
-    CDS group management
+    Integration with school management systems
 
-    Certificate generation
-
-    API documentation
+    Mobile app version
 
 Support
 
-For support, email: support@nysc-attendance.ng or use the in-app help section.
-License
+For technical support, use the in-app support ticket system or contact Mega Tech Solutions directly.
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-Acknowledgments
+Built for Kogi State Ministry of Education in alliance with Mega Tech Solutions.
 
-    National Youth Service Corps (NYSC)
-
-    All contributing developers
-
-    Open source community
-
-    Nigerian corps members for inspiration
-
-Contact
-
-Project Link: https://github.com/gloriousnetworker/nysc-corpers-cds-attendance-app.git
-
-Live Demo: https://nysc-corpers-cds-attendance-app.vercel.app/
-
-Built with ❤️ for Nigerian Youth Service Corps Members
+© 2026 Mega Tech Solutions. All rights reserved.
