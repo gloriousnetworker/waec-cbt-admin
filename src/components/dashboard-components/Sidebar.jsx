@@ -1,3 +1,4 @@
+// components/sidebar/DashboardSidebar.jsx
 'use client';
 
 import { useAuth } from '../../context/AuthContext';

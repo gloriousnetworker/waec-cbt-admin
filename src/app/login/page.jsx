@@ -1,3 +1,4 @@
+// login/page.jsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -16,20 +17,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, authChecked } = useAuth()
   const videoRef = useRef(null)
   const currentYear = new Date().getFullYear()
-
-  const demoCredentials = [
-    { email: 'admin@kogistatecollege.edu.ng', password: 'admin123' },
-    { email: 'principal@kogistatecollege.edu.ng', password: 'admin123' }
-  ]
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard')
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && authChecked && isAuthenticated) {
+      router.replace('/dashboard')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, authChecked, router, mounted])
 
   useEffect(() => {
     if (loading && videoRef.current) {
@@ -37,41 +38,44 @@ export default function LoginPage() {
     }
   }, [loading])
 
-  const handleDemoLogin = (email, password) => {
-    setIdentifier(email)
-    setPassword(password)
-    handleLogin(email, password)
-  }
-
-  const handleLogin = async (email, pass) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!identifier || !password) {
+      toast.error('Please enter your admin credentials')
+      return
+    }
     setLoading(true)
-    const loginToast = toast.loading('Logging in...')
-
+    const loginToast = toast.loading('Accessing Admin Portal...')
+    
     try {
-      const result = await login(email || identifier, pass || password)
+      const result = await login(identifier, password)
       
-      if (result.success) {
-        toast.success('Login successful! Redirecting...', { id: loginToast })
+      if (result.requiresTwoFactor) {
+        toast.dismiss(loginToast)
+        if (result.userId && result.tempToken) {
+          router.push(`/login/verify-2fa?userId=${result.userId}&tkn=${result.tempToken}`)
+        } else {
+          toast.error('Invalid 2FA response from server')
+          setLoading(false)
+        }
+      } else if (result.success) {
+        toast.success('Welcome back, Admin!', { id: loginToast })
         setTimeout(() => {
-          router.push('/dashboard')
+          router.replace('/dashboard')
         }, 1500)
       } else {
-        toast.error(result.message || 'Login failed', { id: loginToast })
+        toast.error(result.message || 'Invalid admin credentials', { id: loginToast })
         setLoading(false)
       }
     } catch (error) {
-      toast.error('An error occurred. Please try again.', { id: loginToast })
+      console.error('Login error:', error)
+      toast.error(error.message || 'Authentication failed. Please try again.', { id: loginToast })
       setLoading(false)
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!identifier || !password) {
-      toast.error('Please enter credentials or use demo accounts')
-      return
-    }
-    handleLogin(identifier, password)
+  const handleForgotPassword = () => {
+    toast.error('Please contact your system administrator to reset your password')
   }
 
   return (
@@ -125,11 +129,11 @@ export default function LoginPage() {
             <div>
               <label className="block mb-1 text-[12px] leading-[100%] tracking-[-0.02em] font-[500] text-[#1E1E1E] font-playfair">Email Address</label>
               <input
-                type="text"
+                type="email"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full px-3 py-2 border-b-2 border-gray-300 text-[13px] leading-[100%] tracking-[-0.02em] font-[500] text-[#1E1E1E] font-playfair focus:outline-none focus:border-[#2563EB] transition-colors bg-transparent placeholder-[#B0B0B0]"
-                placeholder="admin@school.edu.ng"
+                placeholder="admin@kogistatecollege.edu.ng"
                 disabled={loading}
               />
             </div>
@@ -168,7 +172,8 @@ export default function LoginPage() {
                 <span className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair">Remember me</span>
               </label>
               <button 
-                type="button" 
+                type="button"
+                onClick={handleForgotPassword}
                 className="text-[11px] leading-[100%] font-[500] text-[#2563EB] hover:underline font-playfair"
                 disabled={loading}
               >
@@ -194,35 +199,6 @@ export default function LoginPage() {
               <div className="flex-1 h-px bg-gray-300"></div>
               <span className="px-3 text-[11px] leading-[100%] font-[500] text-[#626060] font-playfair">OR</span>
               <div className="flex-1 h-px bg-gray-300"></div>
-            </div>
-
-            <div className="space-y-2 mb-4">
-              <h3 className="text-[13px] leading-[120%] font-[600] tracking-[-0.02em] text-[#1E1E1E] mb-2 font-playfair">Demo Admin Accounts</h3>
-              
-              {demoCredentials.map((cred, index) => (
-                <motion.button
-                  key={index}
-                  whileHover={{ scale: loading ? 1 : 1.01 }}
-                  whileTap={{ scale: loading ? 1 : 0.99 }}
-                  onClick={() => handleDemoLogin(cred.email, cred.password)}
-                  disabled={loading}
-                  className="w-full px-3 py-2 border-2 border-[#2563EB] text-left rounded-md hover:bg-[#2563EB]/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mb-0.5">{cred.email}</div>
-                      <div className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair">Password: {cred.password}</div>
-                    </div>
-                    <div className="text-[#2563EB] text-[16px]">→</div>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-
-            <div className="mt-4 px-3 py-2 bg-[#EFF6FF] border-l-4 border-[#2563EB] rounded-r-md mb-4">
-              <p className="text-[10px] leading-[140%] font-[400] text-[#1E3A8A] font-playfair">
-                <strong>Note:</strong> These are demo admin accounts. For full access, please contact the system administrator.
-              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-4">
@@ -257,6 +233,12 @@ export default function LoginPage() {
           </motion.div>
         </motion.div>
       </div>
+
+      <style jsx global>{`
+        input::placeholder {
+          color: #B0B0B0 !important;
+        }
+      `}</style>
     </>
   )
 }

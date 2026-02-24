@@ -1,8 +1,9 @@
+// components/navbar/DashboardNavbar.jsx
 'use client';
 
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   navbarContainer,
@@ -47,9 +48,35 @@ import {
   modalButtonDanger
 } from '../../styles/styles';
 
+const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
+
 export default function DashboardNavbar({ activeSection, setActiveSection, onMenuClick, onSupportClick }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [liveUser, setLiveUser] = useState(null);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/auth/me`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLiveUser(data.user);
+        }
+      } catch {}
+    };
+    fetchMe();
+  }, []);
+
+  const displayUser = liveUser || user;
+
+  const getInitials = (name) => {
+    if (!name) return 'AD';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   const handleLogout = () => {
     logout();
@@ -91,7 +118,7 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
                 </div>
                 <div>
                   <h1 className={navbarLogoText}>Admin Portal</h1>
-                  <p className={navbarLogoSubtext}>{user?.school || 'Kogi State College of Education'}</p>
+                  <p className={navbarLogoSubtext}>{displayUser?.school || 'Kogi State College of Education'}</p>
                 </div>
               </div>
             </div>
@@ -137,24 +164,20 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
               <div className={navbarProfile}>
                 <button className={navbarProfileButton}>
                   <div className={navbarProfileAvatar}>
-                    <Image 
-                      src="/logo.png" 
-                      alt="Profile" 
-                      width={36} 
-                      height={36}
-                      className="object-cover"
-                    />
+                    <div className="w-9 h-9 rounded-full bg-[#10b981] flex items-center justify-center text-white text-[14px] leading-[100%] font-[600]">
+                      {getInitials(displayUser?.name)}
+                    </div>
                   </div>
                   <div className={navbarProfileInfo}>
-                    <p className={navbarProfileName}>{user?.name || 'Admin'}</p>
-                    <p className={navbarProfileId}>{user?.role || 'Administrator'}</p>
+                    <p className={navbarProfileName}>{displayUser?.name || 'Admin'}</p>
+                    <p className={navbarProfileId}>{displayUser?.role || 'Administrator'}</p>
                   </div>
                 </button>
                 
                 <div className={navbarDropdown}>
                   <div className={navbarDropdownHeader}>
-                    <p className={navbarDropdownHeaderName}>{user?.name}</p>
-                    <p className={navbarDropdownHeaderEmail}>{user?.email}</p>
+                    <p className={navbarDropdownHeaderName}>{displayUser?.name}</p>
+                    <p className={navbarDropdownHeaderEmail}>{displayUser?.email}</p>
                   </div>
                   <div className={navbarDropdownMenu}>
                     <button 

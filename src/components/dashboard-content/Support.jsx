@@ -9,21 +9,6 @@ import {
   examsHeader,
   examsTitle,
   examsSubtitle,
-  examsTabsGrid,
-  examsTabButton,
-  examsTabButtonActive,
-  examsTabButtonInactive,
-  examsSubjectsGrid,
-  examsSubjectCard,
-  examsSubjectCardInner,
-  examsSubjectHeader,
-  examsSubjectIcon,
-  examsSubjectName,
-  examsSubjectStats,
-  examsSubjectStatRow,
-  examsSubjectStatLabel,
-  examsSubjectStatValue,
-  examsSubjectButton,
   modalOverlay,
   modalContainer,
   modalTitle,
@@ -34,11 +19,12 @@ import {
   buttonPrimary
 } from '../styles';
 
-export default function Support({ setActiveSection, onOpenChat }) {
-  const { user } = useAuth();
+export default function Support({ setActiveSection }) {
+  const { user, fetchWithAuth } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     subject: '',
     category: 'technical',
@@ -47,51 +33,25 @@ export default function Support({ setActiveSection, onOpenChat }) {
   });
 
   useEffect(() => {
-    const storedTickets = localStorage.getItem('support_tickets');
-    if (storedTickets) {
-      setTickets(JSON.parse(storedTickets));
-    } else {
-      const demoTickets = [
-        {
-          id: 'TKT001',
-          subject: 'Cannot add new students',
-          category: 'technical',
-          priority: 'high',
-          status: 'open',
-          createdAt: '2024-01-15T10:30:00',
-          messages: [
-            { sender: 'admin', message: 'Getting error when adding students', timestamp: '2024-01-15T10:30:00' },
-            { sender: 'support', message: 'Checking this issue now', timestamp: '2024-01-15T11:15:00' }
-          ]
-        },
-        {
-          id: 'TKT002',
-          subject: 'Student results not showing',
-          category: 'bug',
-          priority: 'medium',
-          status: 'in-progress',
-          createdAt: '2024-01-14T09:00:00',
-          messages: [
-            { sender: 'admin', message: 'Some results are missing', timestamp: '2024-01-14T09:00:00' }
-          ]
-        },
-        {
-          id: 'TKT003',
-          subject: 'Need more student accounts',
-          category: 'feature',
-          priority: 'low',
-          status: 'closed',
-          createdAt: '2024-01-13T14:20:00',
-          messages: [
-            { sender: 'admin', message: 'Can we increase the limit?', timestamp: '2024-01-13T14:20:00' },
-            { sender: 'support', message: 'Limit increased to 500 students', timestamp: '2024-01-13T15:30:00' }
-          ]
-        }
-      ];
-      setTickets(demoTickets);
-      localStorage.setItem('support_tickets', JSON.stringify(demoTickets));
-    }
+    fetchTickets();
   }, []);
+
+  const fetchTickets = async () => {
+    try {
+      const response = await fetchWithAuth('/admin/tickets');
+
+      if (!response || !response.ok) {
+        throw new Error('Failed to fetch tickets');
+      }
+
+      const data = await response.json();
+      setTickets(data.tickets || []);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     setFormData({
@@ -100,30 +60,32 @@ export default function Support({ setActiveSection, onOpenChat }) {
     });
   };
 
-  const generateTicketId = () => {
-    const prefix = 'TKT';
-    const number = String(tickets.length + 1).padStart(3, '0');
-    return `${prefix}${number}`;
-  };
+  const handleCreateTicket = async () => {
+    if (!formData.subject || !formData.description) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
 
-  const handleCreateTicket = () => {
-    const newTicket = {
-      id: generateTicketId(),
-      ...formData,
-      status: 'open',
-      createdAt: new Date().toISOString(),
-      messages: [
-        { sender: 'admin', message: formData.description, timestamp: new Date().toISOString() }
-      ]
-    };
-    
-    const updatedTickets = [newTicket, ...tickets];
-    setTickets(updatedTickets);
-    localStorage.setItem('support_tickets', JSON.stringify(updatedTickets));
-    
-    setShowCreateModal(false);
-    setFormData({ subject: '', category: 'technical', priority: 'medium', description: '' });
-    toast.success('Support ticket created successfully!');
+    try {
+      const response = await fetchWithAuth('/admin/tickets', {
+        method: 'POST',
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create ticket');
+      }
+
+      setTickets([data.ticket, ...tickets]);
+      toast.success('Support ticket created successfully!');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setShowCreateModal(false);
+      setFormData({ subject: '', category: 'technical', priority: 'medium', description: '' });
+    }
   };
 
   const getStatusColor = (status) => {
@@ -143,6 +105,21 @@ export default function Support({ setActiveSection, onOpenChat }) {
       default: return 'text-[#626060]';
     }
   };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp || !timestamp._seconds) return 'N/A';
+    return new Date(timestamp._seconds * 1000).toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className={examsContainer}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-[18px] text-[#626060]">Loading tickets...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={examsContainer}>
@@ -179,7 +156,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                   </span>
                 </div>
                 <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                  Ticket #{ticket.id} • Created {new Date(ticket.createdAt).toLocaleDateString()}
+                  Ticket #{ticket.id} • Created {formatDate(ticket.createdAt)}
                 </p>
               </div>
               <div className="text-right">
@@ -191,8 +168,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
 
             <div className="flex items-center gap-4 text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
               <span>📁 {ticket.category}</span>
-              <span>💬 {ticket.messages.length} messages</span>
-              <span>⏱️ Last updated {new Date(ticket.messages[ticket.messages.length - 1].timestamp).toLocaleDateString()}</span>
+              <span>💬 {ticket.messages?.length || 0} messages</span>
             </div>
           </motion.div>
         ))}
@@ -215,7 +191,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
               <h3 className={modalTitle}>Create Support Ticket</h3>
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subject</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subject *</label>
                   <input
                     type="text"
                     name="subject"
@@ -223,6 +199,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
                     placeholder="Brief description of the issue"
+                    required
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -256,7 +233,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                   </div>
                 </div>
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Description</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Description *</label>
                   <textarea
                     name="description"
                     value={formData.description}
@@ -264,6 +241,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                     rows="4"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
                     placeholder="Please provide detailed information about your issue..."
+                    required
                   />
                 </div>
               </div>
@@ -280,80 +258,6 @@ export default function Support({ setActiveSection, onOpenChat }) {
                 >
                   Create Ticket
                 </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {selectedTicket && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={modalOverlay}
-            onClick={() => setSelectedTicket(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-3xl w-full mx-4 max-h-[80vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className={modalTitle}>{selectedTicket.subject}</h3>
-                  <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                    Ticket #{selectedTicket.id} • Created {new Date(selectedTicket.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-[11px] leading-[100%] font-[500] ${getStatusColor(selectedTicket.status)}`}>
-                  {selectedTicket.status}
-                </span>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                {selectedTicket.messages.map((msg, index) => (
-                  <div key={index} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] p-4 rounded-lg ${
-                      msg.sender === 'admin' 
-                        ? 'bg-[#2563EB] text-white' 
-                        : 'bg-gray-100 text-[#1E1E1E]'
-                    }`}>
-                      <p className="text-[13px] leading-[140%] font-[500] font-playfair mb-1">{msg.message}</p>
-                      <p className={`text-[9px] leading-[100%] font-[400] ${
-                        msg.sender === 'admin' ? 'text-white/70' : 'text-[#626060]'
-                      } font-playfair`}>
-                        {new Date(msg.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="border-t border-gray-200 pt-4">
-                <textarea
-                  placeholder="Type your reply..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair mb-3"
-                  rows="2"
-                />
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setSelectedTicket(null)}
-                    className={modalButtonSecondary}
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => {
-                      toast.success('Reply sent!');
-                      setSelectedTicket(null);
-                    }}
-                    className={modalButtonDanger}
-                  >
-                    Send Reply
-                  </button>
-                </div>
               </div>
             </motion.div>
           </motion.div>

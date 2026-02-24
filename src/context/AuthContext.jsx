@@ -1,32 +1,11 @@
+// context/AuthContext.jsx
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
-
-const DEMO_ADMINS = [
-  {
-    id: 'admin001',
-    email: 'admin@kogistatecollege.edu.ng',
-    name: 'Dr. Michael Adebayo',
-    role: 'Administrator',
-    school: 'Kogi State College of Education',
-    studentId: 'ADMIN001',
-    avatar: '/images/avatar1.png',
-    subjects: ['All Subjects']
-  },
-  {
-    id: 'admin002',
-    email: 'principal@kogistatecollege.edu.ng',
-    name: 'Prof. Sarah Okafor',
-    role: 'Principal',
-    school: 'Kogi State College of Education',
-    studentId: 'ADMIN002',
-    avatar: '/images/avatar2.png',
-    subjects: ['All Subjects']
-  }
-];
+const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -34,62 +13,191 @@ export function AuthProvider({ children }) {
   const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const savedUser = localStorage.getItem('school_admin');
-        if (savedUser) {
-          setUser(JSON.parse(savedUser));
-        }
-      } catch (error) {
-        console.error('Error loading auth state:', error);
-        localStorage.removeItem('school_admin');
-      } finally {
-        setAuthChecked(true);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  const login = useCallback(async (identifier, password) => {
-    setLoading(true);
-    
+  const checkAuth = useCallback(async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const admin = DEMO_ADMINS.find(u => 
-        u.email.toLowerCase() === identifier.toLowerCase() && 
-        password === 'admin123'
-      );
+      const response = await fetch(`${BASE_URL}/api/auth/me`, {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store'
+      });
 
-      if (admin) {
-        setUser(admin);
-        localStorage.setItem('school_admin', JSON.stringify(admin));
-        return { success: true, data: admin };
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        return true;
       } else {
-        return { success: false, message: 'Invalid credentials' };
+        setUser(null);
+        return false;
       }
     } catch (error) {
+      console.error('Auth check error:', error);
+      setUser(null);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      await checkAuth();
+      setAuthChecked(true);
+    };
+    
+    initAuth();
+  }, [checkAuth]);
+
+  const login = useCallback(async (email, password) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.requiresTwoFactor || data.message === '2FA required') {
+          return {
+            requiresTwoFactor: true,
+            userId: data.userId,
+            tempToken: data.tempToken,
+            message: data.message
+          };
+        } else if (data.user && data.tokens) {
+          setUser(data.user);
+          return { 
+            success: true, 
+            user: data.user,
+            tokens: data.tokens
+          };
+        }
+      }
+      
+      return { 
+        success: false, 
+        message: data.message || 'Invalid credentials' 
+      };
+    } catch (error) {
       console.error('Login error:', error);
-      return { success: false, message: 'Network error' };
+      return { 
+        success: false, 
+        message: 'Network error. Please try again.' 
+      };
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    localStorage.removeItem('school_admin');
-    toast.success('Logged out successfully');
-    router.push('/login');
+  const verifyTwoFactor = useCallback(async (userId, token, tempToken) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/api/auth/verify-2fa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ userId, token, tempToken }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.user && data.tokens) {
+        setUser(data.user);
+        return { 
+          success: true, 
+          user: data.user,
+          tokens: data.tokens
+        };
+      }
+      
+      return { 
+        success: false, 
+        message: data.message || 'Invalid verification code' 
+      };
+    } catch (error) {
+      console.error('2FA verification error:', error);
+      return { 
+        success: false, 
+        message: 'Network error. Please try again.' 
+      };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch(`${BASE_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      toast.success('Logged out successfully');
+      router.push('/login');
+    }
   }, [router]);
 
+  const fetchWithAuth = useCallback(async (endpoint, options = {}) => {
+    const url = endpoint.startsWith('http') 
+      ? endpoint 
+      : `${BASE_URL}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+
+    const maxRetries = 1;
+    let retryCount = 0;
+
+    const executeFetch = async () => {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {}),
+          },
+        });
+
+        if (response.status === 401 && retryCount < maxRetries) {
+          retryCount++;
+          
+          const refreshResponse = await fetch(`${BASE_URL}/api/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+
+          if (refreshResponse.ok) {
+            const refreshed = await checkAuth();
+            if (refreshed) {
+              return executeFetch();
+            }
+          }
+          
+          setUser(null);
+          router.push('/login');
+          toast.error('Session expired. Please login again.');
+          return null;
+        }
+
+        return response;
+      } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
+      }
+    };
+
+    return executeFetch();
+  }, [router, checkAuth]);
+
+  const refreshUser = useCallback(async () => {
+    return checkAuth();
+  }, [checkAuth]);
+
   const updateUser = useCallback((updatedData) => {
-    const newUser = { ...user, ...updatedData };
-    setUser(newUser);
-    localStorage.setItem('school_admin', JSON.stringify(newUser));
-  }, [user]);
+    setUser(prev => ({ ...prev, ...updatedData }));
+  }, []);
 
   return (
     <AuthContext.Provider value={{
@@ -97,9 +205,12 @@ export function AuthProvider({ children }) {
       login,
       logout,
       updateUser,
+      refreshUser,
+      verifyTwoFactor,
+      fetchWithAuth,
       isAuthenticated: !!user,
       loading,
-      authChecked
+      authChecked,
     }}>
       {children}
     </AuthContext.Provider>
@@ -112,4 +223,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

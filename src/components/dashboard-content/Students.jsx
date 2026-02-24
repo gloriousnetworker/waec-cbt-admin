@@ -21,70 +21,70 @@ import {
 
 export default function Students({ setActiveSection }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, fetchWithAuth } = useAuth();
   const [students, setStudents] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedStudents = localStorage.getItem('school_students');
-    if (storedStudents) {
-      setStudents(JSON.parse(storedStudents));
-    } else {
-      const demoStudents = [
-        {
-          id: 'STU/2024/0001',
-          firstName: 'John',
-          lastName: 'Doe',
-          middleName: 'James',
-          email: 'john.doe@kogistatecollege.edu.ng',
-          loginId: 'john.doe',
-          nin: '12345678901',
-          phone: '08012345678',
-          dateOfBirth: '2005-05-15',
-          class: 'SS3',
-          subjects: ['Mathematics', 'English', 'Physics'],
-          examsTaken: 12,
-          avgScore: 78,
-          lastActive: '2024-01-15',
-          registeredAt: '2023-09-10'
-        },
-        {
-          id: 'STU/2024/0002',
-          firstName: 'Jane',
-          lastName: 'Smith',
-          middleName: '',
-          email: 'jane.smith@kogistatecollege.edu.ng',
-          loginId: 'jane.smith',
-          nin: '23456789012',
-          phone: '08023456789',
-          dateOfBirth: '2006-08-22',
-          class: 'SS2',
-          subjects: ['Mathematics', 'English', 'Biology', 'Chemistry'],
-          examsTaken: 10,
-          avgScore: 85,
-          lastActive: '2024-01-15',
-          registeredAt: '2023-09-15'
-        }
-      ];
-      setStudents(demoStudents);
-      localStorage.setItem('school_students', JSON.stringify(demoStudents));
-    }
+    fetchStudents();
   }, []);
 
-  const handleDeleteStudent = () => {
-    const updatedStudents = students.filter(s => s.id !== selectedStudent.id);
-    setStudents(updatedStudents);
-    localStorage.setItem('school_students', JSON.stringify(updatedStudents));
-    setShowDeleteModal(false);
-    setSelectedStudent(null);
-    toast.success('Student deleted successfully!');
+  const fetchStudents = async () => {
+    try {
+      const response = await fetchWithAuth('/admin/students');
+      
+      if (!response || !response.ok) {
+        throw new Error('Failed to fetch students');
+      }
+      
+      const data = await response.json();
+      setStudents(data.students || []);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleViewStudent = (student) => {
-    localStorage.setItem('selected_student', JSON.stringify(student));
-    setActiveSection('performance');
+  const handleDeleteStudent = async () => {
+    try {
+      const response = await fetchWithAuth(`/admin/students/${selectedStudent.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response || !response.ok) {
+        throw new Error('Failed to delete student');
+      }
+
+      setStudents(students.filter(s => s.id !== selectedStudent.id));
+      toast.success('Student deleted successfully!');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setShowDeleteModal(false);
+      setSelectedStudent(null);
+    }
+  };
+
+  const handleViewStudent = async (student) => {
+    try {
+      const response = await fetchWithAuth(`/admin/students/${student.id}`);
+
+      if (!response || !response.ok) {
+        throw new Error('Failed to fetch student details');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('selected_student', JSON.stringify(data.student));
+      localStorage.setItem('student_performance', JSON.stringify(data.performance));
+      localStorage.setItem('student_exams', JSON.stringify(data.exams));
+      setActiveSection('performance');
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const handleEditStudent = (student) => {
@@ -93,9 +93,9 @@ export default function Students({ setActiveSection }) {
   };
 
   const filteredStudents = students.filter(s => 
-    `${s.firstName} ${s.lastName} ${s.middleName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.loginId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${s.firstName} ${s.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (s.loginId && s.loginId.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (s.nin && s.nin.toLowerCase().includes(searchTerm.toLowerCase())) ||
     s.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -104,6 +104,21 @@ export default function Students({ setActiveSection }) {
     if (!student || !student.firstName || !student.lastName) return 'ST';
     return `${student.firstName[0] || ''}${student.lastName[0] || ''}`;
   };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp || !timestamp._seconds) return 'N/A';
+    return new Date(timestamp._seconds * 1000).toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className={examsContainer}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-[18px] text-[#626060]">Loading students...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={examsContainer}>
@@ -137,9 +152,8 @@ export default function Students({ setActiveSection }) {
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Student</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Login ID / NIN</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Class</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Exams Taken</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Avg Score</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Last Active</th>
+              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Status</th>
+              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Registered</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Actions</th>
             </tr>
           </thead>
@@ -153,7 +167,7 @@ export default function Students({ setActiveSection }) {
                     </div>
                     <div>
                       <div className="font-[600] text-[13px] leading-[100%] text-[#1E1E1E] font-playfair">
-                        {student.firstName} {student.middleName} {student.lastName}
+                        {student.firstName} {student.lastName}
                       </div>
                       <div className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mt-1">
                         {student.email}
@@ -171,18 +185,15 @@ export default function Students({ setActiveSection }) {
                   <span className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{student.class}</span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{student.examsTaken || 0}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`text-[13px] leading-[100%] font-[600] ${
-                    (student.avgScore || 0) >= 75 ? 'text-[#10B981]' : (student.avgScore || 0) >= 50 ? 'text-[#F59E0B]' : 'text-[#DC2626]'
-                  } font-playfair`}>
-                    {student.avgScore || 0}%
+                  <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${
+                    student.status === 'active' ? 'bg-[#D1FAE5] text-[#10B981]' : 'bg-[#FEE2E2] text-[#DC2626]'
+                  }`}>
+                    {student.status}
                   </span>
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                    {student.lastActive || 'N/A'}
+                    {formatDate(student.createdAt)}
                   </span>
                 </td>
                 <td className="px-6 py-4">

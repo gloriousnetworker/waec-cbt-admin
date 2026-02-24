@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../../context/AuthContext';
 
 const containerClass = "min-h-screen bg-gradient-to-br from-[#F9FAFB] to-[#F3F4F6] py-12 px-4";
 const innerClass = "max-w-5xl mx-auto";
@@ -25,6 +26,7 @@ const requiredStarClass = "text-[#DC2626] ml-1 text-lg";
 function StudentRegistrationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, fetchWithAuth } = useAuth();
   const isEdit = searchParams.get('edit') === 'true';
   const [formData, setFormData] = useState({
     firstName: '',
@@ -36,6 +38,7 @@ function StudentRegistrationContent() {
     class: '',
     password: '123456'
   });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isEdit) {
@@ -56,41 +59,6 @@ function StudentRegistrationContent() {
     }
   }, [isEdit]);
 
-  const generateLoginId = (firstName, lastName) => {
-    if (!firstName || !lastName) return '';
-    const base = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/\s+/g, '');
-    const students = JSON.parse(localStorage.getItem('school_students') || '[]');
-    
-    const similar = students.filter(s => 
-      s.loginId?.startsWith(base) || 
-      s.email?.startsWith(`${firstName.toLowerCase()}.${lastName.toLowerCase()}`)
-    );
-    
-    if (similar.length === 0) return base;
-    
-    let counter = 1;
-    let newLoginId = `${base}${counter.toString().padStart(3, '0')}`;
-    
-    while (students.some(s => s.loginId === newLoginId)) {
-      counter++;
-      newLoginId = `${base}${counter.toString().padStart(3, '0')}`;
-    }
-    
-    return newLoginId;
-  };
-
-  const generateEmail = (loginId) => {
-    if (!loginId) return '';
-    return `${loginId}@kogistatecollege.edu.ng`;
-  };
-
-  const generateStudentId = () => {
-    const year = new Date().getFullYear();
-    const students = JSON.parse(localStorage.getItem('school_students') || '[]');
-    const count = students.length + 1;
-    return `STU/${year}/${count.toString().padStart(4, '0')}`;
-  };
-
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -98,61 +66,37 @@ function StudentRegistrationContent() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!formData.firstName || !formData.lastName || !formData.class) {
       toast.error('Please fill in all required fields');
       return;
     }
-    
-    const existingStudents = JSON.parse(localStorage.getItem('school_students') || '[]');
-    
-    if (!isEdit) {
-      const loginId = generateLoginId(formData.firstName, formData.lastName);
-      const email = generateEmail(loginId);
-      
-      const duplicate = existingStudents.find(s => 
-        (s.nin && s.nin === formData.nin) || 
-        s.email === email
-      );
-      
-      if (duplicate) {
-        toast.error('A student with this NIN or email already exists!');
-        return;
-      }
-    }
-    
-    const loginId = generateLoginId(formData.firstName, formData.lastName);
-    const email = generateEmail(loginId);
-    
-    const studentData = {
-      id: isEdit ? JSON.parse(localStorage.getItem('edit_student')).id : generateStudentId(),
-      ...formData,
-      email,
-      loginId,
-      subjects: ['Mathematics', 'English'],
-      registeredAt: isEdit ? JSON.parse(localStorage.getItem('edit_student')).registeredAt : new Date().toISOString(),
-      lastActive: isEdit ? JSON.parse(localStorage.getItem('edit_student')).lastActive : new Date().toISOString().split('T')[0],
-      examsTaken: isEdit ? JSON.parse(localStorage.getItem('edit_student')).examsTaken || 0 : 0,
-      avgScore: isEdit ? JSON.parse(localStorage.getItem('edit_student')).avgScore || 0 : 0
-    };
 
-    let updatedStudents;
-    if (isEdit) {
-      updatedStudents = existingStudents.map(s => 
-        s.id === studentData.id ? studentData : s
-      );
-      toast.success('Student updated successfully!');
-    } else {
-      updatedStudents = [...existingStudents, studentData];
+    setLoading(true);
+
+    try {
+      const response = await fetchWithAuth('/admin/students', {
+        method: 'POST',
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          class: formData.class,
+          nin: formData.nin || undefined,
+          phone: formData.phone || undefined,
+          dateOfBirth: formData.dateOfBirth || undefined
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to register student');
+      }
+
       toast.success('Student registered successfully!');
-    }
-    
-    localStorage.setItem('school_students', JSON.stringify(updatedStudents));
-    localStorage.removeItem('edit_student');
-    
-    if (!isEdit) {
+      
       setFormData({
         firstName: '',
         lastName: '',
@@ -163,8 +107,10 @@ function StudentRegistrationContent() {
         class: '',
         password: '123456'
       });
-    } else {
-      router.push('/dashboard/students');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -181,9 +127,6 @@ function StudentRegistrationContent() {
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const loginId = generateLoginId(formData.firstName, formData.lastName);
-  const email = generateEmail(loginId);
 
   return (
     <div className={containerClass}>
@@ -315,43 +258,15 @@ function StudentRegistrationContent() {
                 type="text"
                 name="password"
                 value={formData.password}
-                onChange={handleInputChange}
                 className={inputClass}
                 placeholder="123456"
+                disabled
               />
               <p className="text-[13px] leading-[140%] font-[400] text-[#6B7280] font-playfair mt-2">
                 Student can change this after first login
               </p>
             </div>
           </div>
-
-          {!isEdit && formData.firstName && formData.lastName && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={previewCardClass}
-            >
-              <h3 className="text-[20px] leading-[120%] font-[600] mb-4 font-playfair">Login Credentials Preview</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-[14px] leading-[100%] font-[400] text-white/80 mb-2 font-playfair">Login ID</p>
-                  <p className="text-[18px] leading-[100%] font-[600] font-playfair">{loginId}</p>
-                </div>
-                <div>
-                  <p className="text-[14px] leading-[100%] font-[400] text-white/80 mb-2 font-playfair">Email Address</p>
-                  <p className="text-[18px] leading-[100%] font-[600] font-playfair">{email}</p>
-                </div>
-                <div>
-                  <p className="text-[14px] leading-[100%] font-[400] text-white/80 mb-2 font-playfair">Password</p>
-                  <p className="text-[18px] leading-[100%] font-[600] font-playfair">{formData.password}</p>
-                </div>
-                <div>
-                  <p className="text-[14px] leading-[100%] font-[400] text-white/80 mb-2 font-playfair">Alternative Login</p>
-                  <p className="text-[18px] leading-[100%] font-[600] font-playfair">NIN + Password</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
           <div className="flex justify-end gap-4 mt-10">
             <button
@@ -373,8 +288,9 @@ function StudentRegistrationContent() {
             <button
               type="submit"
               className={primaryButtonClass}
+              disabled={loading}
             >
-              {isEdit ? 'Update Student' : 'Register Student'}
+              {loading ? 'Registering...' : (isEdit ? 'Update Student' : 'Register Student')}
             </button>
           </div>
 

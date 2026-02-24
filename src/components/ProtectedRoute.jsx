@@ -1,3 +1,4 @@
+// components/ProtectedRoute.jsx
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,17 +11,15 @@ export default function ProtectedRoute({ children }) {
   const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    // Only redirect if auth is checked and user is not authenticated
     if (authChecked && !isAuthenticated && !redirecting) {
       setRedirecting(true);
-      router.push('/login');
+      router.replace('/login');
     }
   }, [isAuthenticated, authChecked, router, redirecting]);
 
-  // Show loading state while checking authentication
   if (!authChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#065f46]/10 to-[#10b981]/10">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -29,7 +28,7 @@ export default function ProtectedRoute({ children }) {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"
+            className="w-16 h-16 border-4 border-[#10b981] border-t-transparent rounded-full mx-auto mb-4"
           />
           <p className="text-gray-600">Checking authentication...</p>
         </motion.div>
@@ -37,11 +36,9 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // If not authenticated (should have redirected by now), show nothing
   if (!isAuthenticated) {
     return null;
   }
 
-  // If authenticated, show the protected content
   return children;
 }

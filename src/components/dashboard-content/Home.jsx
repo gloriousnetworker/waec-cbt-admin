@@ -26,7 +26,6 @@ import {
   homeActivityIcon,
   homeActivitySubject,
   homeActivityTime,
-  homeActivityScore,
   homeActivityContinue,
   homeSubjectGrid,
   homeSubjectButton,
@@ -49,7 +48,7 @@ import {
 } from '../styles';
 
 export default function DashboardHome({ setActiveSection }) {
-  const { user } = useAuth();
+  const { user, fetchWithAuth } = useAuth();
   const [stats, setStats] = useState({
     totalStudents: 0,
     activeToday: 0,
@@ -58,39 +57,49 @@ export default function DashboardHome({ setActiveSection }) {
     completedExams: 0,
     passRate: 0
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedStudents = localStorage.getItem('school_students');
-    const students = storedStudents ? JSON.parse(storedStudents) : [];
-    
-    const total = students.length;
-    const active = students.filter(s => s.lastActive === new Date().toDateString()).length;
-    const exams = students.reduce((acc, s) => acc + (s.examsTaken || 0), 0);
-    const avg = students.reduce((acc, s) => acc + (s.avgScore || 0), 0) / (total || 1);
-    const pass = students.filter(s => (s.avgScore || 0) >= 50).length;
-    
-    setStats({
-      totalStudents: total,
-      activeToday: active,
-      avgPerformance: Math.round(avg),
-      pendingTickets: 3,
-      completedExams: exams,
-      passRate: total ? Math.round((pass / total) * 100) : 0
-    });
+    fetchDashboardData();
   }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const [studentsRes, ticketsRes] = await Promise.all([
+        fetchWithAuth('/admin/students'),
+        fetchWithAuth('/admin/tickets')
+      ]);
+
+      const studentsData = await studentsRes.json();
+      const ticketsData = await ticketsRes.json();
+
+      const students = studentsData.students || [];
+      const tickets = ticketsData.tickets || [];
+      
+      const total = students.length;
+      const active = students.filter(s => s.status === 'active').length;
+      const pendingTickets = tickets.filter(t => t.status === 'open' || t.status === 'in-progress').length;
+      
+      setStats({
+        totalStudents: total,
+        activeToday: active,
+        avgPerformance: 0,
+        pendingTickets: pendingTickets,
+        completedExams: 0,
+        passRate: 0
+      });
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const quickActions = [
     { title: 'Add New Student', icon: '👤', color: 'border-[#2563EB] text-[#2563EB] hover:bg-[#EFF6FF]', action: () => setActiveSection('students') },
     { title: 'View Performance', icon: '📊', color: 'border-[#10B981] text-[#10B981] hover:bg-[#D1FAE5]', action: () => setActiveSection('performance') },
     { title: 'Support Tickets', icon: '🎫', color: 'border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#EDE9FE]', action: () => setActiveSection('support') },
     { title: 'Generate Reports', icon: '📑', color: 'border-[#F59E0B] text-[#F59E0B] hover:bg-[#FEF3C7]', action: () => setActiveSection('results') },
-  ];
-
-  const recentActivities = [
-    { action: 'New student registered', student: 'John Doe', time: '5 mins ago', icon: '👤' },
-    { action: 'Exam completed', student: 'Jane Smith', score: '85%', time: '1 hour ago', icon: '📝' },
-    { action: 'Support ticket created', ticket: 'Login issue', time: '2 hours ago', icon: '🎫' },
-    { action: 'Performance report generated', time: '5 hours ago', icon: '📊' },
   ];
 
   return (
@@ -146,36 +155,6 @@ export default function DashboardHome({ setActiveSection }) {
 
       <div className={homeContentGrid}>
         <div className={homeCard}>
-          <h2 className={homeCardTitle}>Recent Activity</h2>
-          <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
-              <div key={index} className={homeActivityItem}>
-                <div className={homeActivityLeft}>
-                  <div className={`${homeActivityIcon} bg-[#EFF6FF] text-[#2563EB]`}>
-                    {activity.icon}
-                  </div>
-                  <div>
-                    <p className={homeActivitySubject}>
-                      {activity.action}
-                      {activity.student && <span className="font-[600]"> {activity.student}</span>}
-                      {activity.score && <span className="text-[#10B981] ml-1">{activity.score}</span>}
-                    </p>
-                    <p className={homeActivityTime}>{activity.time}</p>
-                  </div>
-                </div>
-                <button className={homeActivityContinue}>View →</button>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={() => setActiveSection('performance')}
-            className={homeViewAllButton}
-          >
-            View All Activity
-          </button>
-        </div>
-
-        <div className={homeCard}>
           <h2 className={homeCardTitle}>Quick Access</h2>
           <div className={homeSubjectGrid}>
             <button
@@ -210,7 +189,7 @@ export default function DashboardHome({ setActiveSection }) {
                 <span className={homeSubjectIcon}>🎫</span>
                 <div>
                   <div className={homeSubjectName}>Support Tickets</div>
-                  <div className={homeSubjectCount}>3 pending</div>
+                  <div className={homeSubjectCount}>{stats.pendingTickets} pending</div>
                 </div>
               </div>
             </button>

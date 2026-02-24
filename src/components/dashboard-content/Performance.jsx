@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 import {
   examsContainer,
   examsHeader,
@@ -27,148 +28,60 @@ import {
 } from '../styles';
 
 export default function Performance({ setActiveSection }) {
+  const { user, fetchWithAuth } = useAuth();
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentPerformance, setStudentPerformance] = useState(null);
+  const [studentExams, setStudentExams] = useState([]);
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
   const [showDeleteSubjectModal, setShowDeleteSubjectModal] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [newSubject, setNewSubject] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const storedStudent = localStorage.getItem('selected_student');
+    const storedPerformance = localStorage.getItem('student_performance');
+    const storedExams = localStorage.getItem('student_exams');
+    
     if (storedStudent) {
-      const student = JSON.parse(storedStudent);
-      setSelectedStudent(student);
-      
-      const examHistory = JSON.parse(localStorage.getItem(`exam_history_${student.id}`)) || [];
-      
-      const subjects = student.subjects.map(subject => {
-        const subjectExams = examHistory.filter(e => e.subject === subject);
-        const avgScore = subjectExams.length > 0 
-          ? Math.round(subjectExams.reduce((acc, e) => acc + e.score, 0) / subjectExams.length)
-          : 0;
-        const bestScore = subjectExams.length > 0 
-          ? Math.max(...subjectExams.map(e => e.score))
-          : 0;
-        const totalExams = subjectExams.length;
-        
-        return {
-          name: subject,
-          avgScore,
-          bestScore,
-          totalExams,
-          recentScores: subjectExams.slice(-5).map(e => e.score)
-        };
-      });
-
-      const totalExams = examHistory.length;
-      const overallAvg = totalExams > 0 
-        ? Math.round(examHistory.reduce((acc, e) => acc + e.score, 0) / totalExams)
-        : 0;
-      const bestOverall = totalExams > 0 
-        ? Math.max(...examHistory.map(e => e.score))
-        : 0;
-      const passCount = examHistory.filter(e => e.score >= 50).length;
-      const passRate = totalExams > 0 ? Math.round((passCount / totalExams) * 100) : 0;
-
-      const recentExams = examHistory.slice(-10).reverse();
-
-      setStudentPerformance({
-        subjects,
-        overallAvg,
-        bestOverall,
-        totalExams,
-        passRate,
-        recentExams
-      });
+      setSelectedStudent(JSON.parse(storedStudent));
+      setStudentPerformance(storedPerformance ? JSON.parse(storedPerformance) : null);
+      setStudentExams(storedExams ? JSON.parse(storedExams) : []);
     }
   }, []);
 
-  const handleAddSubject = () => {
+  const handleAddSubject = async () => {
     if (!newSubject.trim()) {
       toast.error('Please enter a subject name');
       return;
     }
 
-    const updatedSubjects = [...selectedStudent.subjects, newSubject];
-    const updatedStudent = { ...selectedStudent, subjects: updatedSubjects };
-    
-    const students = JSON.parse(localStorage.getItem('school_students') || '[]');
-    const updatedStudents = students.map(s => 
-      s.id === selectedStudent.id ? updatedStudent : s
-    );
-    
-    localStorage.setItem('school_students', JSON.stringify(updatedStudents));
-    localStorage.setItem('selected_student', JSON.stringify(updatedStudent));
-    setSelectedStudent(updatedStudent);
-    
-    const examHistory = JSON.parse(localStorage.getItem(`exam_history_${selectedStudent.id}`)) || [];
-    const subjects = updatedSubjects.map(subject => {
-      const subjectExams = examHistory.filter(e => e.subject === subject);
-      const avgScore = subjectExams.length > 0 
-        ? Math.round(subjectExams.reduce((acc, e) => acc + e.score, 0) / subjectExams.length)
-        : 0;
-      return {
-        name: subject,
-        avgScore,
-        bestScore: subjectExams.length > 0 ? Math.max(...subjectExams.map(e => e.score)) : 0,
-        totalExams: subjectExams.length,
-        recentScores: subjectExams.slice(-5).map(e => e.score)
-      };
-    });
-    
-    setStudentPerformance(prev => ({
-      ...prev,
-      subjects
-    }));
-    
-    setShowAddSubjectModal(false);
-    setNewSubject('');
-    toast.success('Subject added successfully!');
-  };
+    setLoading(true);
 
-  const handleDeleteSubject = () => {
-    if (selectedSubject === 'Mathematics' || selectedSubject === 'English') {
-      toast.error('Mathematics and English cannot be deleted');
-      setShowDeleteSubjectModal(false);
-      return;
+    try {
+      const response = await fetchWithAuth(`/admin/students/${selectedStudent.id}/subjects`, {
+        method: 'POST',
+        body: JSON.stringify({ subject: newSubject })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to add subject');
+      }
+
+      const updatedStudent = { ...selectedStudent, subjects: data.subjects };
+      setSelectedStudent(updatedStudent);
+      localStorage.setItem('selected_student', JSON.stringify(updatedStudent));
+      
+      toast.success('Subject added successfully!');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+      setShowAddSubjectModal(false);
+      setNewSubject('');
     }
-
-    const updatedSubjects = selectedStudent.subjects.filter(s => s !== selectedSubject);
-    const updatedStudent = { ...selectedStudent, subjects: updatedSubjects };
-    
-    const students = JSON.parse(localStorage.getItem('school_students') || '[]');
-    const updatedStudents = students.map(s => 
-      s.id === selectedStudent.id ? updatedStudent : s
-    );
-    
-    localStorage.setItem('school_students', JSON.stringify(updatedStudents));
-    localStorage.setItem('selected_student', JSON.stringify(updatedStudent));
-    setSelectedStudent(updatedStudent);
-    
-    const examHistory = JSON.parse(localStorage.getItem(`exam_history_${selectedStudent.id}`)) || [];
-    const subjects = updatedSubjects.map(subject => {
-      const subjectExams = examHistory.filter(e => e.subject === subject);
-      const avgScore = subjectExams.length > 0 
-        ? Math.round(subjectExams.reduce((acc, e) => acc + e.score, 0) / subjectExams.length)
-        : 0;
-      return {
-        name: subject,
-        avgScore,
-        bestScore: subjectExams.length > 0 ? Math.max(...subjectExams.map(e => e.score)) : 0,
-        totalExams: subjectExams.length,
-        recentScores: subjectExams.slice(-5).map(e => e.score)
-      };
-    });
-    
-    setStudentPerformance(prev => ({
-      ...prev,
-      subjects
-    }));
-    
-    setShowDeleteSubjectModal(false);
-    setSelectedSubject(null);
-    toast.success('Subject deleted successfully!');
   };
 
   if (!selectedStudent || !studentPerformance) {
@@ -195,6 +108,23 @@ export default function Performance({ setActiveSection }) {
     );
   }
 
+  const subjects = selectedStudent.subjects?.map(subject => {
+    const subjectExams = studentExams.filter(e => e.subject === subject);
+    const avgScore = subjectExams.length > 0 
+      ? Math.round(subjectExams.reduce((acc, e) => acc + e.score, 0) / subjectExams.length)
+      : 0;
+    const bestScore = subjectExams.length > 0 
+      ? Math.max(...subjectExams.map(e => e.score))
+      : 0;
+    
+    return {
+      name: subject,
+      avgScore,
+      bestScore,
+      totalExams: subjectExams.length
+    };
+  }) || [];
+
   return (
     <div className={examsContainer}>
       <div className={examsHeader}>
@@ -214,7 +144,7 @@ export default function Performance({ setActiveSection }) {
             </div>
             <div>
               <p className="text-[18px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
-                {selectedStudent.firstName} {selectedStudent.middleName} {selectedStudent.lastName}
+                {selectedStudent.firstName} {selectedStudent.lastName}
               </p>
               <p className="text-[13px] leading-[100%] font-[400] text-[#626060] font-playfair mt-1">
                 {selectedStudent.class} • {selectedStudent.loginId} • {selectedStudent.email}
@@ -232,12 +162,9 @@ export default function Performance({ setActiveSection }) {
 
       <div className={homeStatsGrid}>
         {[
-          { label: 'Total Exams', value: studentPerformance.totalExams, icon: '📚' },
-          { label: 'Average Score', value: `${studentPerformance.overallAvg}%`, icon: '📈' },
-          { label: 'Best Score', value: `${studentPerformance.bestOverall}%`, icon: '🏆' },
-          { label: 'Pass Rate', value: `${studentPerformance.passRate}%`, icon: '✅' },
-          { label: 'Subjects', value: studentPerformance.subjects.length, icon: '📖' },
-          { label: 'Current Grade', value: studentPerformance.overallAvg >= 75 ? 'A' : studentPerformance.overallAvg >= 60 ? 'B' : studentPerformance.overallAvg >= 50 ? 'C' : 'D', icon: '🎯' },
+          { label: 'Total Exams', value: studentPerformance.totalExams || 0, icon: '📚' },
+          { label: 'Average Score', value: `${studentPerformance.averageScore || 0}%`, icon: '📈' },
+          { label: 'Subjects', value: subjects.length, icon: '📖' },
         ].map((stat, index) => (
           <motion.div
             key={stat.label}
@@ -248,13 +175,7 @@ export default function Performance({ setActiveSection }) {
           >
             <div className={homeStatCardTop}>
               <span className={homeStatCardIcon}>{stat.icon}</span>
-              <span className={`${homeStatCardValue} ${
-                stat.label === 'Average Score' || stat.label === 'Best Score' || stat.label === 'Pass Rate'
-                  ? parseInt(stat.value) >= 75 ? 'text-[#10B981]' : parseInt(stat.value) >= 50 ? 'text-[#F59E0B]' : 'text-[#DC2626]'
-                  : ''
-              }`}>
-                {stat.value}
-              </span>
+              <span className={homeStatCardValue}>{stat.value}</span>
             </div>
             <p className={homeStatCardLabel}>{stat.label}</p>
           </motion.div>
@@ -267,23 +188,10 @@ export default function Performance({ setActiveSection }) {
             <h2 className={homeCardTitle}>Subject Performance</h2>
           </div>
           <div className="space-y-4">
-            {studentPerformance.subjects.map((subject) => (
-              <div key={subject.name} className="p-4 bg-[#F9FAFB] rounded-lg relative group">
+            {subjects.map((subject) => (
+              <div key={subject.name} className="p-4 bg-[#F9FAFB] rounded-lg">
                 <div className="flex justify-between items-center mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">{subject.name}</span>
-                    {subject.name !== 'Mathematics' && subject.name !== 'English' && (
-                      <button
-                        onClick={() => {
-                          setSelectedSubject(subject.name);
-                          setShowDeleteSubjectModal(true);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-[#DC2626] text-[12px] hover:underline transition-opacity"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
+                  <span className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">{subject.name}</span>
                   <span className={`text-[14px] leading-[100%] font-[600] ${
                     subject.avgScore >= 75 ? 'text-[#10B981]' : subject.avgScore >= 50 ? 'text-[#F59E0B]' : 'text-[#DC2626]'
                   } font-playfair`}>
@@ -302,100 +210,8 @@ export default function Performance({ setActiveSection }) {
                     style={{ width: `${subject.avgScore}%` }}
                   />
                 </div>
-                {subject.recentScores.length > 0 && (
-                  <div className="mt-2 flex gap-1">
-                    {subject.recentScores.map((score, i) => (
-                      <div key={i} className="flex-1 text-center">
-                        <div className={`text-[9px] leading-[100%] font-[400] ${
-                          score >= 75 ? 'text-[#10B981]' : score >= 50 ? 'text-[#F59E0B]' : 'text-[#DC2626]'
-                        } font-playfair`}>
-                          {score}%
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
-          </div>
-        </div>
-
-        <div className={homeCard}>
-          <h2 className={homeCardTitle}>Recent Exam History</h2>
-          <div className="space-y-3">
-            {studentPerformance.recentExams.map((exam, index) => (
-              <div key={index} className="p-3 border border-gray-100 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{exam.subject}</span>
-                  <span className={`text-[13px] leading-[100%] font-[600] ${
-                    exam.score >= 75 ? 'text-[#10B981]' : exam.score >= 50 ? 'text-[#F59E0B]' : 'text-[#DC2626]'
-                  } font-playfair`}>
-                    {exam.score}%
-                  </span>
-                </div>
-                <div className="flex justify-between text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                  <span>{exam.date}</span>
-                  <span>{exam.duration}</span>
-                </div>
-                <div className="mt-2 h-1 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${
-                      exam.score >= 75 ? 'bg-[#10B981]' : exam.score >= 50 ? 'bg-[#F59E0B]' : 'bg-[#DC2626]'
-                    }`}
-                    style={{ width: `${exam.score}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-            {studentPerformance.recentExams.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-[13px] leading-[140%] font-[400] text-[#626060] font-playfair">
-                  No exams taken yet
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] mb-4 font-playfair">Performance Insights</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 bg-[#EFF6FF] rounded-lg">
-            <div className="text-[24px] mb-2">📈</div>
-            <h3 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">Strengths</h3>
-            <ul className="space-y-1">
-              {studentPerformance.subjects
-                .filter(s => s.avgScore >= 70)
-                .map(s => (
-                  <li key={s.name} className="text-[12px] leading-[100%] font-[400] text-[#2563EB] font-playfair">
-                    • {s.name} ({s.avgScore}%)
-                  </li>
-                ))}
-              {studentPerformance.subjects.filter(s => s.avgScore >= 70).length === 0 && (
-                <li className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                  No strengths identified yet
-                </li>
-              )}
-            </ul>
-          </div>
-          <div className="p-4 bg-[#FEF2F2] rounded-lg">
-            <div className="text-[24px] mb-2">📉</div>
-            <h3 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">Areas for Improvement</h3>
-            <ul className="space-y-1">
-              {studentPerformance.subjects
-                .filter(s => s.avgScore < 50)
-                .map(s => (
-                  <li key={s.name} className="text-[12px] leading-[100%] font-[400] text-[#DC2626] font-playfair">
-                    • {s.name} ({s.avgScore}%)
-                  </li>
-                ))}
-              {studentPerformance.subjects.filter(s => s.avgScore < 50).length === 0 && (
-                <li className="text-[12px] leading-[100%] font-[400] text-[#10B981] font-playfair">
-                  All subjects above 50%! Great job!
-                </li>
-              )}
-            </ul>
           </div>
         </div>
       </div>
@@ -434,43 +250,9 @@ export default function Performance({ setActiveSection }) {
                 <button
                   onClick={handleAddSubject}
                   className="px-6 py-3 bg-[#2563EB] text-white rounded-lg hover:bg-[#1D4ED8] transition-colors font-playfair text-[14px] leading-[100%] font-[600]"
+                  disabled={loading}
                 >
-                  Add Subject
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {showDeleteSubjectModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={modalOverlay}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className={modalContainer}
-            >
-              <h3 className={modalTitle}>Delete Subject</h3>
-              <p className={modalText}>
-                Are you sure you want to delete {selectedSubject}? This will remove all exam history for this subject.
-              </p>
-              <div className={modalActions}>
-                <button
-                  onClick={() => setShowDeleteSubjectModal(false)}
-                  className={modalButtonSecondary}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteSubject}
-                  className={modalButtonDanger}
-                >
-                  Delete
+                  {loading ? 'Adding...' : 'Add Subject'}
                 </button>
               </div>
             </motion.div>
