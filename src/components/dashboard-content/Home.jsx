@@ -1,5 +1,5 @@
+// components/dashboard-content/Home.jsx
 'use client';
-
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -21,19 +21,12 @@ import {
   homeContentGrid,
   homeCard,
   homeCardTitle,
-  homeActivityItem,
-  homeActivityLeft,
-  homeActivityIcon,
-  homeActivitySubject,
-  homeActivityTime,
-  homeActivityContinue,
   homeSubjectGrid,
   homeSubjectButton,
   homeSubjectInner,
   homeSubjectIcon,
   homeSubjectName,
   homeSubjectCount,
-  homeViewAllButton,
   homeBanner,
   homeBannerContent,
   homeBannerTitle,
@@ -51,7 +44,10 @@ export default function DashboardHome({ setActiveSection }) {
   const { user, fetchWithAuth } = useAuth();
   const [stats, setStats] = useState({
     totalStudents: 0,
-    activeToday: 0,
+    activeStudents: 0,
+    totalSubjects: 0,
+    totalQuestions: 0,
+    totalExams: 0,
     avgPerformance: 0,
     pendingTickets: 0,
     completedExams: 0,
@@ -60,36 +56,26 @@ export default function DashboardHome({ setActiveSection }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardStats();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardStats = async () => {
     try {
-      const [studentsRes, ticketsRes] = await Promise.all([
-        fetchWithAuth('/admin/students'),
-        fetchWithAuth('/admin/tickets')
-      ]);
-
-      const studentsData = await studentsRes.json();
-      const ticketsData = await ticketsRes.json();
-
-      const students = studentsData.students || [];
-      const tickets = ticketsData.tickets || [];
-      
-      const total = students.length;
-      const active = students.filter(s => s.status === 'active').length;
-      const pendingTickets = tickets.filter(t => t.status === 'open' || t.status === 'in-progress').length;
-      
+      const response = await fetchWithAuth('/admin/dashboard/stats');
+      const data = await response.json();
       setStats({
-        totalStudents: total,
-        activeToday: active,
-        avgPerformance: 0,
-        pendingTickets: pendingTickets,
-        completedExams: 0,
-        passRate: 0
+        totalStudents: data.stats?.totalStudents || 0,
+        activeStudents: data.stats?.activeStudents || 0,
+        totalSubjects: data.stats?.totalSubjects || 0,
+        totalQuestions: data.stats?.totalQuestions || 0,
+        totalExams: data.stats?.totalExams || 0,
+        avgPerformance: Math.round(data.stats?.averageScore || 0),
+        pendingTickets: data.stats?.openTickets || 0,
+        completedExams: data.stats?.totalExams || 0,
+        passRate: Math.round(data.stats?.passRate || 0)
       });
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      console.error('Failed to fetch dashboard stats:', error);
     } finally {
       setLoading(false);
     }
@@ -97,9 +83,9 @@ export default function DashboardHome({ setActiveSection }) {
 
   const quickActions = [
     { title: 'Add New Student', icon: '👤', color: 'border-[#2563EB] text-[#2563EB] hover:bg-[#EFF6FF]', action: () => setActiveSection('students') },
-    { title: 'View Performance', icon: '📊', color: 'border-[#10B981] text-[#10B981] hover:bg-[#D1FAE5]', action: () => setActiveSection('performance') },
-    { title: 'Support Tickets', icon: '🎫', color: 'border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#EDE9FE]', action: () => setActiveSection('support') },
-    { title: 'Generate Reports', icon: '📑', color: 'border-[#F59E0B] text-[#F59E0B] hover:bg-[#FEF3C7]', action: () => setActiveSection('results') },
+    { title: 'Create Subject', icon: '📚', color: 'border-[#10B981] text-[#10B981] hover:bg-[#D1FAE5]', action: () => setActiveSection('subjects') },
+    { title: 'Add Questions', icon: '❓', color: 'border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#EDE9FE]', action: () => setActiveSection('questions') },
+    { title: 'Support Tickets', icon: '🎫', color: 'border-[#F59E0B] text-[#F59E0B] hover:bg-[#FEF3C7]', action: () => setActiveSection('support') },
   ];
 
   return (
@@ -109,33 +95,53 @@ export default function DashboardHome({ setActiveSection }) {
           Welcome back, {user?.name || 'Admin'}! 👋
         </h1>
         <p className={homeSubtitle}>
-          {stats.totalStudents} students enrolled • {stats.pendingTickets} pending support tickets
+          {stats.totalStudents} students • {stats.totalSubjects} subjects • {stats.pendingTickets} pending tickets
         </p>
       </div>
 
       <div className={homeStatsGrid}>
-        {[
-          { label: 'Total Students', value: stats.totalStudents, icon: '👥' },
-          { label: 'Active Today', value: stats.activeToday, icon: '⚡' },
-          { label: 'Avg Performance', value: `${stats.avgPerformance}%`, icon: '📈' },
-          { label: 'Pending Tickets', value: stats.pendingTickets, icon: '🎫' },
-          { label: 'Exams Taken', value: stats.completedExams, icon: '📚' },
-          { label: 'Pass Rate', value: `${stats.passRate}%`, icon: '✅' },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: index * 0.1 }}
-            className={homeStatCard}
-          >
-            <div className={homeStatCardTop}>
-              <span className={homeStatCardIcon}>{stat.icon}</span>
-              <span className={homeStatCardValue}>{stat.value}</span>
-            </div>
-            <p className={homeStatCardLabel}>{stat.label}</p>
-          </motion.div>
-        ))}
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className={homeStatCard}>
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>👥</span>
+            <span className={homeStatCardValue}>{stats.totalStudents}</span>
+          </div>
+          <p className={homeStatCardLabel}>Total Students</p>
+        </motion.div>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className={homeStatCard}>
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>⚡</span>
+            <span className={homeStatCardValue}>{stats.activeStudents}</span>
+          </div>
+          <p className={homeStatCardLabel}>Active Students</p>
+        </motion.div>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className={homeStatCard}>
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>📚</span>
+            <span className={homeStatCardValue}>{stats.totalSubjects}</span>
+          </div>
+          <p className={homeStatCardLabel}>Subjects</p>
+        </motion.div>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className={homeStatCard}>
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>❓</span>
+            <span className={homeStatCardValue}>{stats.totalQuestions}</span>
+          </div>
+          <p className={homeStatCardLabel}>Questions</p>
+        </motion.div>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className={homeStatCard}>
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>📊</span>
+            <span className={homeStatCardValue}>{stats.avgPerformance}%</span>
+          </div>
+          <p className={homeStatCardLabel}>Avg Performance</p>
+        </motion.div>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className={homeStatCard}>
+          <div className={homeStatCardTop}>
+            <span className={homeStatCardIcon}>🎫</span>
+            <span className={homeStatCardValue}>{stats.pendingTickets}</span>
+          </div>
+          <p className={homeStatCardLabel}>Pending Tickets</p>
+        </motion.div>
       </div>
 
       <div className={homeActionsGrid}>
@@ -157,10 +163,7 @@ export default function DashboardHome({ setActiveSection }) {
         <div className={homeCard}>
           <h2 className={homeCardTitle}>Quick Access</h2>
           <div className={homeSubjectGrid}>
-            <button
-              onClick={() => setActiveSection('students')}
-              className={homeSubjectButton}
-            >
+            <button onClick={() => setActiveSection('students')} className={homeSubjectButton}>
               <div className={homeSubjectInner}>
                 <span className={homeSubjectIcon}>👥</span>
                 <div>
@@ -169,39 +172,30 @@ export default function DashboardHome({ setActiveSection }) {
                 </div>
               </div>
             </button>
-            <button
-              onClick={() => setActiveSection('results')}
-              className={homeSubjectButton}
-            >
+            <button onClick={() => setActiveSection('subjects')} className={homeSubjectButton}>
+              <div className={homeSubjectInner}>
+                <span className={homeSubjectIcon}>📚</span>
+                <div>
+                  <div className={homeSubjectName}>Subjects</div>
+                  <div className={homeSubjectCount}>Manage subjects</div>
+                </div>
+              </div>
+            </button>
+            <button onClick={() => setActiveSection('questions')} className={homeSubjectButton}>
+              <div className={homeSubjectInner}>
+                <span className={homeSubjectIcon}>❓</span>
+                <div>
+                  <div className={homeSubjectName}>Question Bank</div>
+                  <div className={homeSubjectCount}>Add questions</div>
+                </div>
+              </div>
+            </button>
+            <button onClick={() => setActiveSection('results')} className={homeSubjectButton}>
               <div className={homeSubjectInner}>
                 <span className={homeSubjectIcon}>📊</span>
                 <div>
                   <div className={homeSubjectName}>Exam Results</div>
-                  <div className={homeSubjectCount}>View reports</div>
-                </div>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveSection('support')}
-              className={homeSubjectButton}
-            >
-              <div className={homeSubjectInner}>
-                <span className={homeSubjectIcon}>🎫</span>
-                <div>
-                  <div className={homeSubjectName}>Support Tickets</div>
-                  <div className={homeSubjectCount}>{stats.pendingTickets} pending</div>
-                </div>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveSection('settings')}
-              className={homeSubjectButton}
-            >
-              <div className={homeSubjectInner}>
-                <span className={homeSubjectIcon}>⚙️</span>
-                <div>
-                  <div className={homeSubjectName}>Settings</div>
-                  <div className={homeSubjectCount}>Configure school</div>
+                  <div className={homeSubjectCount}>View performance</div>
                 </div>
               </div>
             </button>
@@ -218,16 +212,10 @@ export default function DashboardHome({ setActiveSection }) {
             </p>
           </div>
           <div className={homeBannerActions}>
-            <button
-              onClick={() => setActiveSection('support')}
-              className={homeBannerButtonPrimary}
-            >
+            <button onClick={() => setActiveSection('support')} className={homeBannerButtonPrimary}>
               Create Support Ticket
             </button>
-            <button
-              onClick={() => window.open('mailto:support@megatechsolutions.org')}
-              className={homeBannerButtonSecondary}
-            >
+            <button onClick={() => window.open('mailto:support@megatechsolutions.org')} className={homeBannerButtonSecondary}>
               Email Support
             </button>
           </div>

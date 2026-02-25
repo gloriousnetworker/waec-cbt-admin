@@ -1,4 +1,4 @@
-// components/settings/Settings.jsx
+// components/dashboard-content/Settings.jsx
 'use client';
 
 import { useState, useEffect } from 'react'
@@ -113,7 +113,7 @@ function SettingsContent() {
     const toastId = toast.loading('Changing password...')
     
     try {
-      const response = await fetchWithAuth('/auth/change-password', {
+      const response = await fetchWithAuth('/admin/change-password', {
         method: 'POST',
         body: JSON.stringify({
           currentPassword: passwordData.current,

@@ -1,3 +1,4 @@
+// app/dashboard/page.jsx
 'use client';
 
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -9,6 +10,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useSearchParams } from 'next/navigation';
 import DashboardHome from '../../components/dashboard-content/Home';
 import Students from '../../components/dashboard-content/Students';
+import Subjects from '../../components/dashboard-content/Subjects';
+import Questions from '../../components/dashboard-content/Questions';
 import Performance from '../../components/dashboard-content/Performance';
 import Results from '../../components/dashboard-content/Results';
 import Support from '../../components/dashboard-content/Support';
@@ -65,6 +68,8 @@ function DashboardContent() {
     switch (activeSection) {
       case 'home': return <DashboardHome setActiveSection={handleNavigation} />;
       case 'students': return <Students setActiveSection={handleNavigation} />;
+      case 'subjects': return <Subjects setActiveSection={handleNavigation} />;
+      case 'questions': return <Questions setActiveSection={handleNavigation} />;
       case 'performance': return <Performance setActiveSection={handleNavigation} />;
       case 'results': return <Results setActiveSection={handleNavigation} />;
       case 'support': return <Support setActiveSection={handleNavigation} onOpenChat={() => setShowSupportChat(true)} />;

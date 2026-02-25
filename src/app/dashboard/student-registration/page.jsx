@@ -1,3 +1,4 @@
+// app/dashboard/student-registration/page.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -26,8 +27,9 @@ const requiredStarClass = "text-[#DC2626] ml-1 text-lg";
 function StudentRegistrationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, fetchWithAuth } = useAuth();
+  const { fetchWithAuth } = useAuth();
   const isEdit = searchParams.get('edit') === 'true';
+  const [studentId, setStudentId] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -39,12 +41,14 @@ function StudentRegistrationContent() {
     password: '123456'
   });
   const [loading, setLoading] = useState(false);
+  const [generatedCredentials, setGeneratedCredentials] = useState(null);
 
   useEffect(() => {
     if (isEdit) {
       const editStudent = localStorage.getItem('edit_student');
       if (editStudent) {
         const student = JSON.parse(editStudent);
+        setStudentId(student.id);
         setFormData({
           firstName: student.firstName || '',
           lastName: student.lastName || '',
@@ -77,36 +81,52 @@ function StudentRegistrationContent() {
     setLoading(true);
 
     try {
-      const response = await fetchWithAuth('/admin/students', {
-        method: 'POST',
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          class: formData.class,
-          nin: formData.nin || undefined,
-          phone: formData.phone || undefined,
-          dateOfBirth: formData.dateOfBirth || undefined
-        })
+      const url = isEdit ? `/admin/students/${studentId}` : '/admin/students';
+      const method = isEdit ? 'PUT' : 'POST';
+      
+      const body = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        class: formData.class
+      };
+
+      if (formData.middleName) body.middleName = formData.middleName;
+      if (formData.nin) body.nin = formData.nin;
+      if (formData.phone) body.phone = formData.phone;
+      if (formData.dateOfBirth) body.dateOfBirth = formData.dateOfBirth;
+
+      const response = await fetchWithAuth(url, {
+        method,
+        body: JSON.stringify(body)
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to register student');
+        throw new Error(data.message || `Failed to ${isEdit ? 'update' : 'register'} student`);
       }
 
-      toast.success('Student registered successfully!');
-      
-      setFormData({
-        firstName: '',
-        lastName: '',
-        middleName: '',
-        nin: '',
-        phone: '',
-        dateOfBirth: '',
-        class: '',
-        password: '123456'
-      });
+      if (isEdit) {
+        toast.success('Student updated successfully!');
+        localStorage.removeItem('edit_student');
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1500);
+      } else {
+        toast.success('Student registered successfully!');
+        setGeneratedCredentials(data.credentials);
+        
+        setFormData({
+          firstName: '',
+          lastName: '',
+          middleName: '',
+          nin: '',
+          phone: '',
+          dateOfBirth: '',
+          class: '',
+          password: '123456'
+        });
+      }
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -125,6 +145,7 @@ function StudentRegistrationContent() {
       class: '',
       password: '123456'
     });
+    setGeneratedCredentials(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -138,7 +159,7 @@ function StudentRegistrationContent() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Students
+          Back to Dashboard
         </button>
 
         <div className={headerClass}>
@@ -147,6 +168,23 @@ function StudentRegistrationContent() {
             {isEdit ? 'Update student information in the system' : 'Register a new student for the CBT examination system'}
           </p>
         </div>
+
+        {generatedCredentials && !isEdit && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-6 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl text-white"
+          >
+            <h3 className="text-[20px] leading-[120%] font-[700] mb-4">Student Registered Successfully! 🎉</h3>
+            <div className="space-y-2">
+              <p><strong>Login ID:</strong> {generatedCredentials.loginId}</p>
+              <p><strong>Email:</strong> {generatedCredentials.email}</p>
+              {generatedCredentials.nin && <p><strong>NIN:</strong> {generatedCredentials.nin}</p>}
+              <p><strong>Default Password:</strong> <span className="font-mono bg-white/20 px-2 py-1 rounded">{generatedCredentials.password}</span></p>
+            </div>
+            <p className="text-sm mt-4 opacity-90">Student can change password after first login</p>
+          </motion.div>
+        )}
 
         <motion.form
           initial={{ opacity: 0, y: 20 }}
@@ -290,7 +328,7 @@ function StudentRegistrationContent() {
               className={primaryButtonClass}
               disabled={loading}
             >
-              {loading ? 'Registering...' : (isEdit ? 'Update Student' : 'Register Student')}
+              {loading ? (isEdit ? 'Updating...' : 'Registering...') : (isEdit ? 'Update Student' : 'Register Student')}
             </button>
           </div>
 
