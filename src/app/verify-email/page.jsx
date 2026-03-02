@@ -161,7 +161,6 @@ function VerifyEmailLoading() {
   )
 }
 
-// Main page component with Suspense boundary
 export default function VerifyEmailPage() {
   return (
     <Suspense fallback={<VerifyEmailLoading />}>
