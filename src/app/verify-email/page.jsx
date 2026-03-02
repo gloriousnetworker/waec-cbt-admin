@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 
-export default function VerifyEmailPage() {
+// Main component that uses useSearchParams
+function VerifyEmailContent() {
   const [verifying, setVerifying] = useState(true)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -32,7 +33,6 @@ export default function VerifyEmailPage() {
           setSuccess(true)
           toast.success('Email verified successfully!')
           
-          // Redirect to login after 3 seconds
           setTimeout(() => {
             router.push('/login')
           }, 3000)
@@ -146,5 +146,26 @@ export default function VerifyEmailPage() {
         </p>
       </motion.div>
     </div>
+  )
+}
+
+// Loading fallback for Suspense
+function VerifyEmailLoading() {
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-[#626060] font-playfair">Loading verification page...</p>
+      </div>
+    </div>
+  )
+}
+
+// Main page component with Suspense boundary
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<VerifyEmailLoading />}>
+      <VerifyEmailContent />
+    </Suspense>
   )
 }
