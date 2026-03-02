@@ -1,7 +1,7 @@
-// login/page.jsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
@@ -189,6 +189,20 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </motion.form>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25, duration: 0.4 }}
+            className="text-center mb-4"
+          >
+            <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">
+              Don't have an account?{' '}
+              <Link href="/register" className="text-[#2563EB] font-[600] hover:underline">
+                Register your school
+              </Link>
+            </p>
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}

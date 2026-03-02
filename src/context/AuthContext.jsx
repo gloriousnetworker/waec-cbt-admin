@@ -1,4 +1,3 @@
-// context/AuthContext.jsx
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -45,6 +44,75 @@ export function AuthProvider({ children }) {
     initAuth();
   }, [checkAuth]);
 
+  const register = useCallback(async (formData) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return { 
+          success: true, 
+          data,
+          message: data.message 
+        };
+      }
+      
+      return { 
+        success: false, 
+        message: data.message || 'Registration failed' 
+      };
+    } catch (error) {
+      console.error('Registration error:', error);
+      return { 
+        success: false, 
+        message: 'Network error. Please try again.' 
+      };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const verifyEmail = useCallback(async (token) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${BASE_URL}/api/auth/verify-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return { 
+          success: true, 
+          message: data.message 
+        };
+      }
+      
+      return { 
+        success: false, 
+        message: data.message || 'Verification failed' 
+      };
+    } catch (error) {
+      console.error('Email verification error:', error);
+      return { 
+        success: false, 
+        message: 'Network error. Please try again.' 
+      };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const login = useCallback(async (email, password) => {
     setLoading(true);
     try {
@@ -70,7 +138,9 @@ export function AuthProvider({ children }) {
           return { 
             success: true, 
             user: data.user,
-            tokens: data.tokens
+            tokens: data.tokens,
+            hasSubscription: data.hasSubscription,
+            subscription: data.subscription
           };
         }
       }
@@ -202,8 +272,10 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user,
+      register,
       login,
       logout,
+      verifyEmail,
       updateUser,
       refreshUser,
       verifyTwoFactor,
