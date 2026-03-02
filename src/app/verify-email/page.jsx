@@ -7,8 +7,7 @@ import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 
-// Main component that uses useSearchParams
-function VerifyEmailContent() {
+function VerifyContent() {
   const [verifying, setVerifying] = useState(true)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -50,15 +49,14 @@ function VerifyEmailContent() {
   }, [token, verifyEmail, router])
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="max-w-md w-full"
       >
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-          {/* Status Icon */}
+        <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -66,7 +64,7 @@ function VerifyEmailContent() {
             className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
           >
             {verifying ? (
-              <div className="w-24 h-24 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+              <div className="w-24 h-24 border-4 border-[#667eea] border-t-transparent rounded-full animate-spin" />
             ) : success ? (
               <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center">
                 <span className="text-5xl">✅</span>
@@ -78,33 +76,31 @@ function VerifyEmailContent() {
             )}
           </motion.div>
 
-          {/* Title */}
-          <h1 className="text-[24px] font-[700] text-[#1E1E1E] mb-3 font-playfair">
+          <h1 className="text-3xl font-bold text-gray-800 mb-3">
             {verifying ? 'Verifying Your Email...' : success ? 'Email Verified!' : 'Verification Failed'}
           </h1>
 
-          {/* Message */}
           <div className="space-y-4 mb-8">
             {verifying ? (
-              <p className="text-[14px] text-[#626060] font-playfair">
+              <p className="text-gray-600">
                 Please wait while we verify your email address.
               </p>
             ) : success ? (
               <>
-                <p className="text-[14px] text-[#626060] font-playfair">
+                <p className="text-gray-600">
                   Your email has been successfully verified!
                 </p>
-                <p className="text-[13px] text-[#626060] bg-green-50 p-3 rounded-lg font-playfair">
+                <p className="text-sm text-gray-500 bg-green-50 p-3 rounded-lg">
                   Your account is now active. You'll be redirected to the login page in 3 seconds...
                 </p>
               </>
             ) : (
               <>
-                <p className="text-[14px] text-[#626060] font-playfair">
+                <p className="text-gray-600">
                   {error || 'The verification link is invalid or has expired.'}
                 </p>
                 <div className="bg-red-50 p-4 rounded-lg">
-                  <p className="text-[13px] text-red-600 font-playfair">
+                  <p className="text-sm text-red-600">
                     Please try registering again or contact support.
                   </p>
                 </div>
@@ -112,12 +108,11 @@ function VerifyEmailContent() {
             )}
           </div>
 
-          {/* Actions */}
           <div className="space-y-3">
             {success ? (
               <Link
                 href="/login"
-                className="block w-full py-3 bg-[#2563EB] text-white text-[14px] font-[600] rounded-lg hover:bg-[#1D4ED8] transition-colors font-playfair"
+                className="block w-full py-3 bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
               >
                 Go to Login
               </Link>
@@ -125,13 +120,13 @@ function VerifyEmailContent() {
               <>
                 <Link
                   href="/register"
-                  className="block w-full py-3 bg-[#2563EB] text-white text-[14px] font-[600] rounded-lg hover:bg-[#1D4ED8] transition-colors font-playfair"
+                  className="block w-full py-3 bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
                 >
                   Register Again
                 </Link>
                 <Link
                   href="/login"
-                  className="block text-[13px] text-[#626060] hover:text-[#2563EB] transition-colors font-playfair"
+                  className="block text-sm text-gray-500 hover:text-[#667eea] transition-colors"
                 >
                   Back to Login
                 </Link>
@@ -140,8 +135,7 @@ function VerifyEmailContent() {
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="text-[8px] text-center text-[#9CA3AF] font-playfair mt-4">
+        <p className="text-xs text-center text-white/80 mt-4">
           Powered by Mega Tech Solutions © {currentYear}
         </p>
       </motion.div>
@@ -149,13 +143,12 @@ function VerifyEmailContent() {
   )
 }
 
-// Loading fallback for Suspense
-function VerifyEmailLoading() {
+function VerifyLoading() {
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#667eea] to-[#764ba2] flex items-center justify-center p-4">
       <div className="text-center">
-        <div className="w-16 h-16 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-[#626060] font-playfair">Loading verification page...</p>
+        <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-white">Loading verification page...</p>
       </div>
     </div>
   )
@@ -163,8 +156,8 @@ function VerifyEmailLoading() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<VerifyEmailLoading />}>
-      <VerifyEmailContent />
+    <Suspense fallback={<VerifyLoading />}>
+      <VerifyContent />
     </Suspense>
   )
 }
