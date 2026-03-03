@@ -48,8 +48,10 @@ export default function Subjects({ setActiveSection }) {
     setLoading(true);
     try {
       const response = await fetchWithAuth('/admin/subjects');
-      const data = await response.json();
-      setSubjects(data.subjects || []);
+      if (response.ok) {
+        const data = await response.json();
+        setSubjects(data.subjects || []);
+      }
     } catch (error) {
       toast.error('Failed to load subjects');
     } finally {
@@ -198,12 +200,12 @@ export default function Subjects({ setActiveSection }) {
             placeholder="Search subjects by name, code or class..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] font-playfair text-[13px]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] font-playfair text-[13px]"
           />
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
+          className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
         >
           + Create New Subject
         </button>
@@ -211,7 +213,7 @@ export default function Subjects({ setActiveSection }) {
 
       {loading ? (
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-[14px] text-[#626060] font-playfair">Loading subjects...</p>
         </div>
       ) : (
@@ -254,7 +256,7 @@ export default function Subjects({ setActiveSection }) {
                 <div className="flex gap-2">
                   <button
                     onClick={() => openEditModal(subject)}
-                    className="p-2 text-[#2563EB] hover:bg-[#EFF6FF] rounded-md transition-colors"
+                    className="p-2 text-[#10b981] hover:bg-[#F0FDF4] rounded-md transition-colors"
                   >
                     ✏️
                   </button>
@@ -270,7 +272,7 @@ export default function Subjects({ setActiveSection }) {
                 </div>
                 <button
                   onClick={() => handleViewQuestions(subject)}
-                  className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors text-[11px] leading-[100%] font-[500]"
+                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[11px] leading-[100%] font-[500]"
                 >
                   View Questions
                 </button>
@@ -303,7 +305,7 @@ export default function Subjects({ setActiveSection }) {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     placeholder="e.g., Mathematics"
                   />
                 </div>
@@ -315,7 +317,7 @@ export default function Subjects({ setActiveSection }) {
                       name="code"
                       value={formData.code}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                       placeholder="e.g., MTH101"
                     />
                   </div>
@@ -325,7 +327,7 @@ export default function Subjects({ setActiveSection }) {
                       name="class"
                       value={formData.class}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
                       <option value="">Select Class</option>
                       {classes.map(cls => (
@@ -341,7 +343,7 @@ export default function Subjects({ setActiveSection }) {
                       name="examType"
                       value={formData.examType}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
                       {examTypes.map(type => (
                         <option key={type} value={type}>{type}</option>
@@ -355,7 +357,7 @@ export default function Subjects({ setActiveSection }) {
                       name="duration"
                       value={formData.duration}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
                 </div>
@@ -366,7 +368,7 @@ export default function Subjects({ setActiveSection }) {
                     value={formData.description}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     placeholder="Brief description of the subject"
                   />
                 </div>
@@ -380,7 +382,7 @@ export default function Subjects({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleCreateSubject}
-                  className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Create Subject
                 </button>
@@ -411,7 +413,7 @@ export default function Subjects({ setActiveSection }) {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -422,7 +424,7 @@ export default function Subjects({ setActiveSection }) {
                       name="code"
                       value={formData.code}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
                   <div>
@@ -431,7 +433,7 @@ export default function Subjects({ setActiveSection }) {
                       name="class"
                       value={formData.class}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
                       <option value="">Select Class</option>
                       {classes.map(cls => (
@@ -447,7 +449,7 @@ export default function Subjects({ setActiveSection }) {
                       name="examType"
                       value={formData.examType}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
                       {examTypes.map(type => (
                         <option key={type} value={type}>{type}</option>
@@ -461,7 +463,7 @@ export default function Subjects({ setActiveSection }) {
                       name="duration"
                       value={formData.duration}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
                 </div>
@@ -472,7 +474,7 @@ export default function Subjects({ setActiveSection }) {
                     value={formData.description}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                   />
                 </div>
               </div>
@@ -485,7 +487,7 @@ export default function Subjects({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleUpdateSubject}
-                  className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Update Subject
                 </button>

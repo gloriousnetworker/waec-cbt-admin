@@ -63,11 +63,15 @@ export default function Questions({ setActiveSection }) {
         fetchWithAuth('/admin/subjects')
       ]);
 
-      const questionsData = await questionsRes.json();
-      const subjectsData = await subjectsRes.json();
-
-      setQuestions(questionsData.questions || []);
-      setSubjects(subjectsData.subjects || []);
+      if (questionsRes.ok) {
+        const questionsData = await questionsRes.json();
+        setQuestions(questionsData.questions || []);
+      }
+      
+      if (subjectsRes.ok) {
+        const subjectsData = await subjectsRes.json();
+        setSubjects(subjectsData.subjects || []);
+      }
     } catch (error) {
       toast.error('Failed to load questions');
     } finally {
@@ -274,13 +278,13 @@ export default function Questions({ setActiveSection }) {
               placeholder="Search questions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] font-playfair text-[13px]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] font-playfair text-[13px]"
             />
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => setShowBulkImportModal(true)}
-              className="px-4 py-2 bg-[#10B981] text-white rounded-md hover:bg-[#059669] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
+              className="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
             >
               📦 Bulk Import
             </button>
@@ -289,7 +293,7 @@ export default function Questions({ setActiveSection }) {
                 setSelectedSubject(null);
                 setShowCreateModal(true);
               }}
-              className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
+              className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
             >
               + Add Question
             </button>
@@ -300,7 +304,7 @@ export default function Questions({ setActiveSection }) {
           <select
             value={filterSubject}
             onChange={(e) => setFilterSubject(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
           >
             <option value="all">All Subjects</option>
             {subjects.map(subject => (
@@ -310,7 +314,7 @@ export default function Questions({ setActiveSection }) {
           <select
             value={filterClass}
             onChange={(e) => setFilterClass(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
           >
             <option value="all">All Classes</option>
             {classes.map(cls => (
@@ -320,7 +324,7 @@ export default function Questions({ setActiveSection }) {
           <select
             value={filterDifficulty}
             onChange={(e) => setFilterDifficulty(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
           >
             <option value="all">All Difficulties</option>
             {difficulties.map(diff => (
@@ -332,7 +336,7 @@ export default function Questions({ setActiveSection }) {
 
       {loading ? (
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-[14px] text-[#626060] font-playfair">Loading questions...</p>
         </div>
       ) : (
@@ -357,6 +361,9 @@ export default function Questions({ setActiveSection }) {
                     }`}>
                       {question.difficulty}
                     </span>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-[9px] leading-[100%] font-[500]">
+                      {question.marks} mark{question.marks > 1 ? 's' : ''}
+                    </span>
                   </div>
                   <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mb-2">
                     Subject: {subjects.find(s => s.id === question.subjectId)?.name || 'N/A'} • Class: {question.class} • Topic: {question.topic || 'General'}
@@ -380,7 +387,7 @@ export default function Questions({ setActiveSection }) {
                 <div className="flex gap-2 ml-4">
                   <button
                     onClick={() => openEditModal(question)}
-                    className="p-2 text-[#2563EB] hover:bg-[#EFF6FF] rounded-md transition-colors"
+                    className="p-2 text-[#10b981] hover:bg-[#F0FDF4] rounded-md transition-colors"
                   >
                     ✏️
                   </button>
@@ -422,7 +429,7 @@ export default function Questions({ setActiveSection }) {
                     name="subjectId"
                     value={formData.subjectId}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                   >
                     <option value="">Select Subject</option>
                     {subjects.map(subject => (
@@ -438,7 +445,7 @@ export default function Questions({ setActiveSection }) {
                     value={formData.question}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     placeholder="Enter the question text"
                   />
                 </div>
@@ -452,7 +459,7 @@ export default function Questions({ setActiveSection }) {
                         type="text"
                         value={option}
                         onChange={(e) => handleOptionChange(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                         placeholder={`Option ${String.fromCharCode(65 + index)}`}
                       />
                       <input
@@ -460,7 +467,7 @@ export default function Questions({ setActiveSection }) {
                         name="correctAnswer"
                         checked={formData.correctAnswer === index}
                         onChange={() => setFormData({ ...formData, correctAnswer: index })}
-                        className="w-4 h-4 text-[#2563EB]"
+                        className="w-4 h-4 text-[#10b981]"
                       />
                     </div>
                   ))}
@@ -473,7 +480,7 @@ export default function Questions({ setActiveSection }) {
                       name="difficulty"
                       value={formData.difficulty}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
                       {difficulties.map(diff => (
                         <option key={diff} value={diff}>{diff}</option>
@@ -488,7 +495,7 @@ export default function Questions({ setActiveSection }) {
                       value={formData.marks}
                       onChange={handleInputChange}
                       min="1"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
                 </div>
@@ -500,7 +507,7 @@ export default function Questions({ setActiveSection }) {
                     name="topic"
                     value={formData.topic}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     placeholder="e.g., Algebra, Trigonometry"
                   />
                 </div>
@@ -512,7 +519,7 @@ export default function Questions({ setActiveSection }) {
                     value={formData.explanation}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     placeholder="Explain why the correct answer is right"
                   />
                 </div>
@@ -527,7 +534,7 @@ export default function Questions({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleCreateQuestion}
-                  className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Create Question
                 </button>
@@ -559,7 +566,7 @@ export default function Questions({ setActiveSection }) {
                       const subject = subjects.find(s => s.id === e.target.value);
                       setSelectedSubject(subject);
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                   >
                     <option value="">Choose a subject</option>
                     {subjects.map(subject => (
@@ -574,7 +581,7 @@ export default function Questions({ setActiveSection }) {
                     value={bulkImportData}
                     onChange={(e) => setBulkImportData(e.target.value)}
                     rows="10"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-mono font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-mono font-playfair"
                     placeholder={JSON.stringify([
                       {
                         question: "What is 2+2?",
@@ -608,7 +615,7 @@ export default function Questions({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleBulkImport}
-                  className="px-4 py-2 bg-[#10B981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Import Questions
                 </button>
@@ -639,7 +646,7 @@ export default function Questions({ setActiveSection }) {
                     value={formData.question}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                   />
                 </div>
 
@@ -652,14 +659,14 @@ export default function Questions({ setActiveSection }) {
                         type="text"
                         value={option}
                         onChange={(e) => handleOptionChange(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                       />
                       <input
                         type="radio"
                         name="correctAnswer"
                         checked={formData.correctAnswer === index}
                         onChange={() => setFormData({ ...formData, correctAnswer: index })}
-                        className="w-4 h-4 text-[#2563EB]"
+                        className="w-4 h-4 text-[#10b981]"
                       />
                     </div>
                   ))}
@@ -672,7 +679,7 @@ export default function Questions({ setActiveSection }) {
                       name="difficulty"
                       value={formData.difficulty}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
                       {difficulties.map(diff => (
                         <option key={diff} value={diff}>{diff}</option>
@@ -687,7 +694,7 @@ export default function Questions({ setActiveSection }) {
                       value={formData.marks}
                       onChange={handleInputChange}
                       min="1"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
                 </div>
@@ -699,7 +706,7 @@ export default function Questions({ setActiveSection }) {
                     name="topic"
                     value={formData.topic}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                   />
                 </div>
 
@@ -710,7 +717,7 @@ export default function Questions({ setActiveSection }) {
                     value={formData.explanation}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                   />
                 </div>
               </div>
@@ -724,7 +731,7 @@ export default function Questions({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleUpdateQuestion}
-                  className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Update Question
                 </button>

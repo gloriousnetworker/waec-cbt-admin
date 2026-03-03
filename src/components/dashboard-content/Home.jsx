@@ -44,36 +44,42 @@ export default function DashboardHome({ setActiveSection }) {
   const { user, fetchWithAuth } = useAuth();
   const [stats, setStats] = useState({
     totalStudents: 0,
-    activeStudents: 0,
+    studentsInExamMode: 0,
+    totalExams: 0,
+    averageScore: 0,
+    openTickets: 0,
     totalSubjects: 0,
     totalQuestions: 0,
-    totalExams: 0,
-    avgPerformance: 0,
-    pendingTickets: 0,
-    completedExams: 0,
     passRate: 0
   });
+  const [recentExams, setRecentExams] = useState([]);
+  const [subjectPerformance, setSubjectPerformance] = useState({});
+  const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardStats();
+    fetchSubscriptionStatus();
   }, []);
 
   const fetchDashboardStats = async () => {
     try {
       const response = await fetchWithAuth('/admin/dashboard/stats');
-      const data = await response.json();
-      setStats({
-        totalStudents: data.stats?.totalStudents || 0,
-        activeStudents: data.stats?.activeStudents || 0,
-        totalSubjects: data.stats?.totalSubjects || 0,
-        totalQuestions: data.stats?.totalQuestions || 0,
-        totalExams: data.stats?.totalExams || 0,
-        avgPerformance: Math.round(data.stats?.averageScore || 0),
-        pendingTickets: data.stats?.openTickets || 0,
-        completedExams: data.stats?.totalExams || 0,
-        passRate: Math.round(data.stats?.passRate || 0)
-      });
+      if (response.ok) {
+        const data = await response.json();
+        setStats({
+          totalStudents: data.stats?.totalStudents || 0,
+          studentsInExamMode: data.stats?.studentsInExamMode || 0,
+          totalExams: data.stats?.totalExams || 0,
+          averageScore: Math.round(data.stats?.averageScore || 0),
+          openTickets: data.stats?.openTickets || 0,
+          totalSubjects: data.totalSubjects || 0,
+          totalQuestions: data.totalQuestions || 0,
+          passRate: Math.round(data.stats?.passRate || 0)
+        });
+        setRecentExams(data.recentExams || []);
+        setSubjectPerformance(data.subjectPerformance || {});
+      }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
     } finally {
@@ -81,12 +87,34 @@ export default function DashboardHome({ setActiveSection }) {
     }
   };
 
+  const fetchSubscriptionStatus = async () => {
+    try {
+      const response = await fetchWithAuth('/admin/subscription/status');
+      if (response.ok) {
+        const data = await response.json();
+        setSubscription(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription:', error);
+    }
+  };
+
   const quickActions = [
-    { title: 'Add New Student', icon: '👤', color: 'border-[#2563EB] text-[#2563EB] hover:bg-[#EFF6FF]', action: () => setActiveSection('students') },
-    { title: 'Create Subject', icon: '📚', color: 'border-[#10B981] text-[#10B981] hover:bg-[#D1FAE5]', action: () => setActiveSection('subjects') },
-    { title: 'Add Questions', icon: '❓', color: 'border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#EDE9FE]', action: () => setActiveSection('questions') },
-    { title: 'Support Tickets', icon: '🎫', color: 'border-[#F59E0B] text-[#F59E0B] hover:bg-[#FEF3C7]', action: () => setActiveSection('support') },
+    { title: 'Add New Student', icon: '👤', color: 'border-[#10b981] text-[#10b981] hover:bg-[#F0FDF4]', action: () => setActiveSection('students') },
+    { title: 'Create Subject', icon: '📚', color: 'border-[#10b981] text-[#10b981] hover:bg-[#F0FDF4]', action: () => setActiveSection('subjects') },
+    { title: 'Add Questions', icon: '❓', color: 'border-[#10b981] text-[#10b981] hover:bg-[#F0FDF4]', action: () => setActiveSection('questions') },
+    { title: 'Support Tickets', icon: '🎫', color: 'border-[#10b981] text-[#10b981] hover:bg-[#F0FDF4]', action: () => setActiveSection('support') },
   ];
+
+  if (loading) {
+    return (
+      <div className={homeContainer}>
+        <div className="flex items-center justify-center h-64">
+          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={homeContainer}>
@@ -95,8 +123,21 @@ export default function DashboardHome({ setActiveSection }) {
           Welcome back, {user?.name || 'Admin'}! 👋
         </h1>
         <p className={homeSubtitle}>
-          {stats.totalStudents} students • {stats.totalSubjects} subjects • {stats.pendingTickets} pending tickets
+          {stats.totalStudents} students • {stats.totalSubjects} subjects • {stats.openTickets} pending tickets
         </p>
+        {subscription?.status && !subscription.status.active && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-700 text-sm">
+              ⚠️ Your subscription is {subscription.status.status}. 
+              <button 
+                onClick={() => setActiveSection('subscription')}
+                className="ml-2 text-yellow-800 font-medium underline"
+              >
+                Renew now
+              </button>
+            </p>
+          </div>
+        )}
       </div>
 
       <div className={homeStatsGrid}>
@@ -110,37 +151,37 @@ export default function DashboardHome({ setActiveSection }) {
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
             <span className={homeStatCardIcon}>⚡</span>
-            <span className={homeStatCardValue}>{stats.activeStudents}</span>
+            <span className={homeStatCardValue}>{stats.studentsInExamMode}</span>
           </div>
-          <p className={homeStatCardLabel}>Active Students</p>
+          <p className={homeStatCardLabel}>In Exam Mode</p>
         </motion.div>
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
             <span className={homeStatCardIcon}>📚</span>
-            <span className={homeStatCardValue}>{stats.totalSubjects}</span>
+            <span className={homeStatCardValue}>{stats.totalExams}</span>
           </div>
-          <p className={homeStatCardLabel}>Subjects</p>
+          <p className={homeStatCardLabel}>Exams Taken</p>
         </motion.div>
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
-            <span className={homeStatCardIcon}>❓</span>
-            <span className={homeStatCardValue}>{stats.totalQuestions}</span>
+            <span className={homeStatCardIcon}>📊</span>
+            <span className={homeStatCardValue}>{stats.averageScore}%</span>
           </div>
-          <p className={homeStatCardLabel}>Questions</p>
+          <p className={homeStatCardLabel}>Average Score</p>
         </motion.div>
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
-            <span className={homeStatCardIcon}>📊</span>
-            <span className={homeStatCardValue}>{stats.avgPerformance}%</span>
+            <span className={homeStatCardIcon}>🎫</span>
+            <span className={homeStatCardValue}>{stats.openTickets}</span>
           </div>
-          <p className={homeStatCardLabel}>Avg Performance</p>
+          <p className={homeStatCardLabel}>Open Tickets</p>
         </motion.div>
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
-            <span className={homeStatCardIcon}>🎫</span>
-            <span className={homeStatCardValue}>{stats.pendingTickets}</span>
+            <span className={homeStatCardIcon}>✅</span>
+            <span className={homeStatCardValue}>{stats.passRate}%</span>
           </div>
-          <p className={homeStatCardLabel}>Pending Tickets</p>
+          <p className={homeStatCardLabel}>Pass Rate</p>
         </motion.div>
       </div>
 
@@ -201,6 +242,31 @@ export default function DashboardHome({ setActiveSection }) {
             </button>
           </div>
         </div>
+
+        {recentExams.length > 0 && (
+          <div className={homeCard}>
+            <h2 className={homeCardTitle}>Recent Exams</h2>
+            <div className="space-y-3">
+              {recentExams.map((exam, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="text-[13px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">{exam.subject}</p>
+                    <p className="text-[10px] leading-[100%] font-[400] text-[#626060] mt-1 font-playfair">
+                      Score: {exam.score}% • {exam.date ? new Date(exam.date).toLocaleDateString() : ''}
+                    </p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500] ${
+                    exam.score >= 70 ? 'bg-green-100 text-green-600' : 
+                    exam.score >= 50 ? 'bg-yellow-100 text-yellow-600' : 
+                    'bg-red-100 text-red-600'
+                  }`}>
+                    {exam.score}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={homeBanner}>
@@ -215,7 +281,7 @@ export default function DashboardHome({ setActiveSection }) {
             <button onClick={() => setActiveSection('support')} className={homeBannerButtonPrimary}>
               Create Support Ticket
             </button>
-            <button onClick={() => window.open('mailto:support@megatechsolutions.org')} className={homeBannerButtonSecondary}>
+            <button onClick={() => window.open('mailto:support@kogistate.edu.ng')} className={homeBannerButtonSecondary}>
               Email Support
             </button>
           </div>
@@ -235,8 +301,8 @@ export default function DashboardHome({ setActiveSection }) {
             <div className={homeBannerStatLabel}>Satisfaction</div>
           </div>
           <div className={homeBannerStatItem}>
-            <div className={homeBannerStatValue}>Mega Tech</div>
-            <div className={homeBannerStatLabel}>Solutions</div>
+            <div className={homeBannerStatValue}>Kogi State</div>
+            <div className={homeBannerStatLabel}>College</div>
           </div>
         </div>
       </div>

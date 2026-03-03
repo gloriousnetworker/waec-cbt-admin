@@ -19,7 +19,7 @@ export default function ProtectedRoute({ children }) {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#065f46]/10 to-[#10b981]/10">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#10b981]/10 to-[#059669]/10">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

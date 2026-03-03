@@ -40,8 +40,10 @@ export default function Students({ setActiveSection }) {
   const fetchStudents = async () => {
     try {
       const response = await fetchWithAuth('/admin/students');
-      const data = await response.json();
-      setStudents(data.students || []);
+      if (response.ok) {
+        const data = await response.json();
+        setStudents(data.students || []);
+      }
     } catch (error) {
       toast.error('Failed to fetch students');
     } finally {
@@ -52,8 +54,10 @@ export default function Students({ setActiveSection }) {
   const fetchSubjects = async () => {
     try {
       const response = await fetchWithAuth('/admin/subjects');
-      const data = await response.json();
-      setSubjects(data.subjects || []);
+      if (response.ok) {
+        const data = await response.json();
+        setSubjects(data.subjects || []);
+      }
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
     }
@@ -90,7 +94,7 @@ export default function Students({ setActiveSection }) {
     try {
       const response = await fetchWithAuth(`/admin/students/${selectedStudent.id}/subjects`, {
         method: 'POST',
-        body: JSON.stringify({ subject: selectedSubject })
+        body: JSON.stringify({ subjectId: selectedSubject })
       });
 
       const data = await response.json();
@@ -113,13 +117,13 @@ export default function Students({ setActiveSection }) {
     }
   };
 
-  const handleRemoveSubject = async (student, subject) => {
+  const handleRemoveSubject = async (student, subjectName) => {
     const toastId = toast.loading('Removing subject...');
     
     try {
       const response = await fetchWithAuth(`/admin/students/${student.id}/subjects`, {
         method: 'DELETE',
-        body: JSON.stringify({ subject })
+        body: JSON.stringify({ subject: subjectName })
       });
 
       const data = await response.json();
@@ -141,11 +145,15 @@ export default function Students({ setActiveSection }) {
   const handleViewStudent = async (student) => {
     try {
       const response = await fetchWithAuth(`/admin/students/${student.id}`);
-      const data = await response.json();
-      localStorage.setItem('selected_student', JSON.stringify(data.student));
-      localStorage.setItem('student_performance', JSON.stringify(data.performance));
-      localStorage.setItem('student_exams', JSON.stringify(data.exams));
-      setActiveSection('performance');
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('selected_student', JSON.stringify(data.student));
+        localStorage.setItem('student_performance', JSON.stringify(data.performance));
+        localStorage.setItem('student_exams', JSON.stringify(data.exams));
+        setActiveSection('performance');
+      } else {
+        toast.error('Failed to fetch student details');
+      }
     } catch (error) {
       toast.error('Failed to fetch student details');
     }
@@ -154,6 +162,31 @@ export default function Students({ setActiveSection }) {
   const handleEditStudent = (student) => {
     localStorage.setItem('edit_student', JSON.stringify(student));
     router.push('/dashboard/student-registration?edit=true');
+  };
+
+  const handleToggleExamMode = async (student) => {
+    const newMode = !student.examMode;
+    const toastId = toast.loading(`${newMode ? 'Enabling' : 'Disabling'} exam mode...`);
+
+    try {
+      const response = await fetchWithAuth(`/admin/students/${student.id}/exam-mode`, {
+        method: 'PATCH',
+        body: JSON.stringify({ examMode: newMode })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(`Exam mode ${newMode ? 'enabled' : 'disabled'} successfully!`, { id: toastId });
+        setStudents(students.map(s => 
+          s.id === student.id ? { ...s, examMode: data.student.examMode } : s
+        ));
+      } else {
+        const data = await response.json();
+        toast.error(data.message || 'Failed to toggle exam mode', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
   };
 
   const filteredStudents = students.filter(s => 
@@ -184,7 +217,7 @@ export default function Students({ setActiveSection }) {
     return (
       <div className={examsContainer}>
         <div className="flex items-center justify-center h-64">
-          <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
     );
@@ -204,12 +237,12 @@ export default function Students({ setActiveSection }) {
             placeholder="Search students by name, email, login ID or NIN..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] font-playfair text-[13px]"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] font-playfair text-[13px]"
           />
         </div>
         <button
           onClick={() => router.push('/dashboard/student-registration')}
-          className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
+          className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
         >
           + Add New Student
         </button>
@@ -223,6 +256,7 @@ export default function Students({ setActiveSection }) {
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Login ID / NIN</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Class</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Subjects</th>
+              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Exam Mode</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Status</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Registered</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Actions</th>
@@ -233,7 +267,7 @@ export default function Students({ setActiveSection }) {
               <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-[14px] leading-[100%] font-[600] font-playfair">
+                    <div className="w-10 h-10 rounded-full bg-[#10b981] flex items-center justify-center text-white text-[14px] leading-[100%] font-[600] font-playfair">
                       {getInitials(student)}
                     </div>
                     <div>
@@ -284,8 +318,18 @@ export default function Students({ setActiveSection }) {
                   </div>
                 </td>
                 <td className="px-6 py-4">
+                  <button
+                    onClick={() => handleToggleExamMode(student)}
+                    className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${
+                      student.examMode ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {student.examMode ? 'On' : 'Off'}
+                  </button>
+                </td>
+                <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${
-                    student.status === 'active' ? 'bg-[#D1FAE5] text-[#10B981]' : 'bg-[#FEE2E2] text-[#DC2626]'
+                    student.status === 'active' ? 'bg-[#D1FAE5] text-[#10b981]' : 'bg-[#FEE2E2] text-[#DC2626]'
                   }`}>
                     {student.status}
                   </span>
@@ -299,13 +343,13 @@ export default function Students({ setActiveSection }) {
                   <div className="flex gap-3">
                     <button
                       onClick={() => handleViewStudent(student)}
-                      className="text-[#2563EB] text-[12px] leading-[100%] font-[500] hover:underline"
+                      className="text-[#10b981] text-[12px] leading-[100%] font-[500] hover:underline"
                     >
                       View
                     </button>
                     <button
                       onClick={() => handleEditStudent(student)}
-                      className="text-[#2563EB] text-[12px] leading-[100%] font-[500] hover:underline"
+                      className="text-[#10b981] text-[12px] leading-[100%] font-[500] hover:underline"
                     >
                       Edit
                     </button>
@@ -380,11 +424,11 @@ export default function Students({ setActiveSection }) {
                 <select
                   value={selectedSubject}
                   onChange={(e) => setSelectedSubject(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                 >
                   <option value="">Select a subject</option>
                   {availableSubjects.map(subject => (
-                    <option key={subject.id} value={subject.name}>{subject.name}</option>
+                    <option key={subject.id} value={subject.id}>{subject.name}</option>
                   ))}
                 </select>
               </div>
@@ -401,7 +445,7 @@ export default function Students({ setActiveSection }) {
                 <button
                   onClick={handleAddSubject}
                   disabled={!selectedSubject || addingSubject}
-                  className={`px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors text-[13px] leading-[100%] font-[600] font-playfair ${(!selectedSubject || addingSubject) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair ${(!selectedSubject || addingSubject) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {addingSubject ? 'Adding...' : 'Add Subject'}
                 </button>

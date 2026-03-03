@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 const chatContainer = "fixed bottom-6 right-6 z-50";
 const chatWindow = "absolute bottom-20 right-0 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden";
-const chatHeader = "bg-[#2563EB] text-white p-4 flex justify-between items-center";
+const chatHeader = "bg-[#10b981] text-white p-4 flex justify-between items-center";
 const chatHeaderTitle = "text-[16px] leading-[100%] font-[600] font-playfair";
 const chatHeaderClose = "text-white hover:text-gray-200 cursor-pointer text-xl";
 const chatMessages = "h-96 overflow-y-auto p-4 space-y-4";
@@ -15,12 +15,12 @@ const chatMessage = "flex flex-col";
 const chatMessageSent = "items-end";
 const chatMessageReceived = "items-start";
 const chatBubble = "max-w-[80%] p-3 rounded-lg text-[13px] leading-[140%] font-[500] font-playfair";
-const chatBubbleSent = "bg-[#2563EB] text-white rounded-br-none";
+const chatBubbleSent = "bg-[#10b981] text-white rounded-br-none";
 const chatBubbleReceived = "bg-gray-100 text-[#1E1E1E] rounded-bl-none";
 const chatTime = "text-[9px] leading-[100%] font-[400] text-[#9CA3AF] mt-1 font-playfair";
 const chatInput = "border-t border-gray-200 p-4 flex gap-2";
-const chatInputField = "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair";
-const chatSendButton = "px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors font-playfair text-[13px] leading-[100%] font-[600]";
+const chatInputField = "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair";
+const chatSendButton = "px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors font-playfair text-[13px] leading-[100%] font-[600]";
 
 export default function SupportChat({ isOpen, onClose }) {
   const { user, fetchWithAuth } = useAuth();
@@ -46,8 +46,10 @@ export default function SupportChat({ isOpen, onClose }) {
     setLoading(true);
     try {
       const response = await fetchWithAuth('/admin/tickets');
-      const data = await response.json();
-      setTickets(data.tickets?.filter(t => t.status !== 'closed') || []);
+      if (response.ok) {
+        const data = await response.json();
+        setTickets(data.tickets?.filter(t => t.status !== 'closed') || []);
+      }
     } catch (error) {
       console.error('Failed to fetch tickets:', error);
     } finally {
@@ -58,8 +60,11 @@ export default function SupportChat({ isOpen, onClose }) {
   const fetchTicketDetails = async (ticketId) => {
     try {
       const response = await fetchWithAuth(`/admin/tickets/${ticketId}`);
-      const data = await response.json();
-      return data.ticket;
+      if (response.ok) {
+        const data = await response.json();
+        return data.ticket;
+      }
+      return null;
     } catch (error) {
       console.error('Failed to fetch ticket details:', error);
       return null;
@@ -130,7 +135,7 @@ export default function SupportChat({ isOpen, onClose }) {
   const getStatusColor = (status) => {
     switch(status) {
       case 'open': return 'bg-yellow-100 text-yellow-600';
-      case 'in-progress': return 'bg-blue-100 text-blue-600';
+      case 'in_progress': return 'bg-blue-100 text-blue-600';
       case 'closed': return 'bg-gray-100 text-gray-600';
       default: return 'bg-gray-100 text-gray-600';
     }
@@ -168,7 +173,7 @@ export default function SupportChat({ isOpen, onClose }) {
 
           {loading && view === 'list' ? (
             <div className="h-96 flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : view === 'list' ? (
             <div className="h-96 overflow-y-auto">
@@ -191,7 +196,7 @@ export default function SupportChat({ isOpen, onClose }) {
                             {ticket.subject}
                           </h4>
                           <span className={`px-1.5 py-0.5 rounded-full text-[8px] leading-[100%] font-[500] ${getStatusColor(ticket.status)}`}>
-                            {ticket.status}
+                            {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
                           </span>
                         </div>
                         <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
@@ -222,7 +227,7 @@ export default function SupportChat({ isOpen, onClose }) {
                     </p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-[8px] leading-[100%] font-[500] ${getStatusColor(selectedTicket.status)}`}>
-                    {selectedTicket.status}
+                    {selectedTicket.status === 'in_progress' ? 'In Progress' : selectedTicket.status}
                   </span>
                 </div>
               </div>

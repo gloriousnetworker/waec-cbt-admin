@@ -1,6 +1,5 @@
-// components/navbar/DashboardNavbar.jsx
+// components/dashboard-components/Navbar.jsx
 'use client';
-
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -28,7 +27,6 @@ import {
   navbarProfile,
   navbarProfileButton,
   navbarProfileAvatar,
-  navbarProfileAvatarText,
   navbarProfileInfo,
   navbarProfileName,
   navbarProfileId,
@@ -51,8 +49,9 @@ import {
 const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
 
 export default function DashboardNavbar({ activeSection, setActiveSection, onMenuClick, onSupportClick }) {
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [liveUser, setLiveUser] = useState(null);
 
   useEffect(() => {
@@ -71,6 +70,16 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
     fetchMe();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.profile-container')) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const displayUser = liveUser || user;
 
   const getInitials = (name) => {
@@ -80,15 +89,17 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
 
   const handleLogout = () => {
     logout();
+    setShowLogoutConfirm(false);
   };
 
   const navSections = [
     { id: 'home', label: 'Dashboard', icon: '🏠' },
     { id: 'students', label: 'Students', icon: '👥' },
+    { id: 'subjects', label: 'Subjects', icon: '📚' },
+    { id: 'questions', label: 'Questions', icon: '❓' },
     { id: 'performance', label: 'Performance', icon: '📊' },
-    { id: 'results', label: 'Results', icon: '📝' },
+    { id: 'results', label: 'Results', icon: '📈' },
     { id: 'support', label: 'Support', icon: '🎫' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
   return (
@@ -105,20 +116,20 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              
+
               <div className={navbarLogo}>
                 <div className={navbarLogoImage}>
-                  <Image 
-                    src="/logo.png" 
-                    alt="School Logo" 
-                    width={40} 
+                  <Image
+                    src="/logo.png"
+                    alt="School Logo"
+                    width={40}
                     height={40}
                     className="object-contain"
                   />
                 </div>
                 <div>
-                  <h1 className={navbarLogoText}>Admin Portal</h1>
-                  <p className={navbarLogoSubtext}>{displayUser?.school || 'Kogi State College of Education'}</p>
+                  <h1 className={navbarLogoText}>Kogi State College</h1>
+                  <p className={navbarLogoSubtext}>CBT Examination System</p>
                 </div>
               </div>
             </div>
@@ -150,7 +161,7 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
                 <input
                   type="search"
                   className={navbarSearchInput}
-                  placeholder="Search students..."
+                  placeholder="Search students, subjects..."
                 />
               </div>
 
@@ -161,8 +172,11 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
                 <span className={navbarNotificationBadge}></span>
               </button>
 
-              <div className={navbarProfile}>
-                <button className={navbarProfileButton}>
+              <div className="profile-container relative">
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className={navbarProfileButton}
+                >
                   <div className={navbarProfileAvatar}>
                     <div className="w-9 h-9 rounded-full bg-[#10b981] flex items-center justify-center text-white text-[14px] leading-[100%] font-[600]">
                       {getInitials(displayUser?.name)}
@@ -170,36 +184,47 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
                   </div>
                   <div className={navbarProfileInfo}>
                     <p className={navbarProfileName}>{displayUser?.name || 'Admin'}</p>
-                    <p className={navbarProfileId}>{displayUser?.role || 'Administrator'}</p>
+                    <p className={navbarProfileId}>School Administrator</p>
                   </div>
                 </button>
-                
-                <div className={navbarDropdown}>
-                  <div className={navbarDropdownHeader}>
-                    <p className={navbarDropdownHeaderName}>{displayUser?.name}</p>
-                    <p className={navbarDropdownHeaderEmail}>{displayUser?.email}</p>
+
+                {showDropdown && (
+                  <div className={navbarDropdown}>
+                    <div className={navbarDropdownHeader}>
+                      <p className={navbarDropdownHeaderName}>{displayUser?.name || 'Admin'}</p>
+                      <p className={navbarDropdownHeaderEmail}>{displayUser?.email || ''}</p>
+                    </div>
+                    <div className={navbarDropdownMenu}>
+                      <button
+                        onClick={() => {
+                          setActiveSection('settings');
+                          setShowDropdown(false);
+                        }}
+                        className={navbarDropdownItem}
+                      >
+                        Settings
+                      </button>
+                      <button
+                        onClick={() => {
+                          onSupportClick();
+                          setShowDropdown(false);
+                        }}
+                        className={navbarDropdownItem}
+                      >
+                        Support Chat
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowLogoutConfirm(true);
+                          setShowDropdown(false);
+                        }}
+                        className={navbarDropdownItemDanger}
+                      >
+                        Logout
+                      </button>
+                    </div>
                   </div>
-                  <div className={navbarDropdownMenu}>
-                    <button 
-                      onClick={() => setActiveSection('settings')}
-                      className={navbarDropdownItem}
-                    >
-                      Profile Settings
-                    </button>
-                    <button 
-                      onClick={onSupportClick}
-                      className={navbarDropdownItem}
-                    >
-                      Contact Support
-                    </button>
-                    <button
-                      onClick={() => setShowLogoutConfirm(true)}
-                      className={navbarDropdownItemDanger}
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

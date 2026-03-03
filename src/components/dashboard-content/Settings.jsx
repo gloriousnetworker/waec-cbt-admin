@@ -1,24 +1,23 @@
 // components/dashboard-content/Settings.jsx
 'use client';
-
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useAuth } from '../../context/AuthContext'
-import toast from 'react-hot-toast'
-import ProtectedRoute from '../ProtectedRoute'
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import toast from 'react-hot-toast';
+import ProtectedRoute from '../ProtectedRoute';
 
 function SettingsContent() {
-  const { user, updateUser, fetchWithAuth, refreshUser } = useAuth()
-  const [activeTab, setActiveTab] = useState('profile')
-  const [isEditing, setIsEditing] = useState(false)
-  const [showPasswordModal, setShowPasswordModal] = useState(false)
-  const [show2FAModal, setShow2FAModal] = useState(false)
-  const [showDisable2FAModal, setShowDisable2FAModal] = useState(false)
-  const [twoFASecret, setTwoFASecret] = useState('')
-  const [twoFAQRCode, setTwoFAQRCode] = useState('')
-  const [twoFAToken, setTwoFAToken] = useState(['', '', '', '', '', ''])
-  const [loading2FA, setLoading2FA] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const { user, updateUser, fetchWithAuth, refreshUser } = useAuth();
+  const [activeTab, setActiveTab] = useState('profile');
+  const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [showDisable2FAModal, setShowDisable2FAModal] = useState(false);
+  const [twoFASecret, setTwoFASecret] = useState('');
+  const [twoFAQRCode, setTwoFAQRCode] = useState('');
+  const [twoFAToken, setTwoFAToken] = useState(['', '', '', '', '', '']);
+  const [loading2FA, setLoading2FA] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const [profileData, setProfileData] = useState({
     name: '',
@@ -27,30 +26,30 @@ function SettingsContent() {
     school: '',
     phone: '+234 800 123 4567',
     address: 'Kogi State College of Education'
-  })
+  });
 
   const [passwordData, setPasswordData] = useState({
     current: '',
     new: '',
     confirm: ''
-  })
+  });
 
   const [notificationSettings, setNotificationSettings] = useState({
     notifications: true,
     examReminders: true,
     studyReminders: true
-  })
+  });
 
   const [examSettings, setExamSettings] = useState({
     autoSave: true,
     timerSound: true,
     tabWarning: true
-  })
+  });
 
   const [appearanceSettings, setAppearanceSettings] = useState({
     darkMode: false,
     theme: 'green'
-  })
+  });
 
   useEffect(() => {
     if (user) {
@@ -61,9 +60,9 @@ function SettingsContent() {
         school: user.school || 'Kogi State College of Education',
         phone: user.phone || '+234 800 123 4567',
         address: user.address || 'Kogi State College of Education'
-      })
+      });
     }
-  }, [user])
+  }, [user]);
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: '👤' },
@@ -71,46 +70,46 @@ function SettingsContent() {
     { id: 'notifications', label: 'Notifications', icon: '🔔' },
     { id: 'exam', label: 'Exam Settings', icon: '📝' },
     { id: 'appearance', label: 'Appearance', icon: '🎨' },
-  ]
+  ];
 
   const handleProfileUpdate = async () => {
-    setLoading(true)
-    const toastId = toast.loading('Updating profile...')
+    setLoading(true);
+    const toastId = toast.loading('Updating profile...');
     try {
-      const response = await fetchWithAuth('/auth/update-profile', {
+      const response = await fetchWithAuth('/admin/profile', {
         method: 'PUT',
         body: JSON.stringify(profileData)
-      })
+      });
       
-      const data = await response.json()
+      const data = await response.json();
       
       if (response.ok) {
-        updateUser(profileData)
-        setIsEditing(false)
-        toast.success('Profile updated successfully!', { id: toastId })
-        await refreshUser()
+        updateUser(profileData);
+        setIsEditing(false);
+        toast.success('Profile updated successfully!', { id: toastId });
+        await refreshUser();
       } else {
-        toast.error(data.message || 'Failed to update profile', { id: toastId })
+        toast.error(data.message || 'Failed to update profile', { id: toastId });
       }
     } catch (error) {
-      toast.error('Network error', { id: toastId })
+      toast.error('Network error', { id: toastId });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handlePasswordChange = async () => {
     if (passwordData.new !== passwordData.confirm) {
-      toast.error('New passwords do not match')
-      return
+      toast.error('New passwords do not match');
+      return;
     }
     if (passwordData.new.length < 8) {
-      toast.error('Password must be at least 8 characters')
-      return
+      toast.error('Password must be at least 8 characters');
+      return;
     }
     
-    setLoading(true)
-    const toastId = toast.loading('Changing password...')
+    setLoading(true);
+    const toastId = toast.loading('Changing password...');
     
     try {
       const response = await fetchWithAuth('/admin/change-password', {
@@ -119,192 +118,192 @@ function SettingsContent() {
           currentPassword: passwordData.current,
           newPassword: passwordData.new
         })
-      })
+      });
       
-      const data = await response.json()
+      const data = await response.json();
       
       if (response.ok) {
-        toast.success('Password changed successfully!', { id: toastId })
-        setShowPasswordModal(false)
-        setPasswordData({ current: '', new: '', confirm: '' })
+        toast.success('Password changed successfully!', { id: toastId });
+        setShowPasswordModal(false);
+        setPasswordData({ current: '', new: '', confirm: '' });
       } else {
-        toast.error(data.message || 'Failed to change password', { id: toastId })
+        toast.error(data.message || 'Failed to change password', { id: toastId });
       }
     } catch (error) {
-      toast.error('Network error', { id: toastId })
+      toast.error('Network error', { id: toastId });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSetup2FA = async () => {
-    setLoading2FA(true)
-    const toastId = toast.loading('Setting up 2FA...')
+    setLoading2FA(true);
+    const toastId = toast.loading('Setting up 2FA...');
     try {
       const response = await fetchWithAuth('/auth/setup-2fa', {
         method: 'POST'
-      })
+      });
       
-      const data = await response.json()
+      const data = await response.json();
       
       if (response.ok) {
-        setTwoFASecret(data.secret)
-        setTwoFAQRCode(data.qrCode)
-        setShow2FAModal(true)
-        toast.success('Scan the QR code with Google Authenticator', { id: toastId })
+        setTwoFASecret(data.secret);
+        setTwoFAQRCode(data.qrCode);
+        setShow2FAModal(true);
+        toast.success('Scan the QR code with Google Authenticator', { id: toastId });
       } else {
-        toast.error(data.message || 'Failed to setup 2FA', { id: toastId })
+        toast.error(data.message || 'Failed to setup 2FA', { id: toastId });
       }
     } catch (error) {
-      toast.error('Network error', { id: toastId })
+      toast.error('Network error', { id: toastId });
     } finally {
-      setLoading2FA(false)
+      setLoading2FA(false);
     }
-  }
+  };
 
   const handleVerify2FA = async () => {
-    const token = twoFAToken.join('')
+    const token = twoFAToken.join('');
     if (token.length !== 6) {
-      toast.error('Please enter complete 6-digit code')
-      return
+      toast.error('Please enter complete 6-digit code');
+      return;
     }
 
-    const toastId = toast.loading('Verifying...')
+    const toastId = toast.loading('Verifying...');
     try {
       const response = await fetchWithAuth('/auth/verify-2fa-setup', {
         method: 'POST',
         body: JSON.stringify({ token })
-      })
+      });
       
-      const data = await response.json()
+      const data = await response.json();
       
       if (response.ok) {
-        toast.success('2FA enabled successfully', { id: toastId })
-        setShow2FAModal(false)
-        setTwoFAToken(['', '', '', '', '', ''])
-        await refreshUser()
+        toast.success('2FA enabled successfully', { id: toastId });
+        setShow2FAModal(false);
+        setTwoFAToken(['', '', '', '', '', '']);
+        await refreshUser();
       } else {
-        toast.error(data.message || 'Invalid code', { id: toastId })
-        setTwoFAToken(['', '', '', '', '', ''])
+        toast.error(data.message || 'Invalid code', { id: toastId });
+        setTwoFAToken(['', '', '', '', '', '']);
       }
     } catch (error) {
-      toast.error('Verification failed', { id: toastId })
+      toast.error('Verification failed', { id: toastId });
     }
-  }
+  };
 
   const handleDisable2FA = async () => {
-    const toastId = toast.loading('Disabling 2FA...')
+    const toastId = toast.loading('Disabling 2FA...');
     try {
       const response = await fetchWithAuth('/auth/disable-2fa', {
         method: 'POST'
-      })
+      });
       
-      const data = await response.json()
+      const data = await response.json();
       
       if (response.ok) {
-        toast.success('2FA disabled successfully', { id: toastId })
-        setShowDisable2FAModal(false)
-        await refreshUser()
+        toast.success('2FA disabled successfully', { id: toastId });
+        setShowDisable2FAModal(false);
+        await refreshUser();
       } else {
-        toast.error(data.message || 'Failed to disable 2FA', { id: toastId })
+        toast.error(data.message || 'Failed to disable 2FA', { id: toastId });
       }
     } catch (error) {
-      toast.error('Network error', { id: toastId })
+      toast.error('Network error', { id: toastId });
     }
-  }
+  };
 
   const handle2FAChange = (index, value) => {
-    if (isNaN(value)) return
-    const newToken = [...twoFAToken]
-    newToken[index] = value.slice(-1)
-    setTwoFAToken(newToken)
+    if (isNaN(value)) return;
+    const newToken = [...twoFAToken];
+    newToken[index] = value.slice(-1);
+    setTwoFAToken(newToken);
     if (value && index < 5) {
-      const nextInput = document.getElementById(`2fa-${index + 1}`)
-      if (nextInput) nextInput.focus()
+      const nextInput = document.getElementById(`2fa-${index + 1}`);
+      if (nextInput) nextInput.focus();
     }
-  }
+  };
 
   const handle2FAKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !twoFAToken[index] && index > 0) {
-      const prevInput = document.getElementById(`2fa-${index - 1}`)
-      if (prevInput) prevInput.focus()
+      const prevInput = document.getElementById(`2fa-${index - 1}`);
+      if (prevInput) prevInput.focus();
     }
-  }
+  };
 
   const saveNotificationSettings = async () => {
-    const toastId = toast.loading('Saving notification settings...')
+    const toastId = toast.loading('Saving notification settings...');
     try {
       const response = await fetchWithAuth('/settings/notifications', {
         method: 'POST',
         body: JSON.stringify(notificationSettings)
-      })
+      });
       
       if (response.ok) {
-        toast.success('Notification settings saved!', { id: toastId })
+        toast.success('Notification settings saved!', { id: toastId });
       } else {
-        toast.error('Failed to save settings', { id: toastId })
+        toast.error('Failed to save settings', { id: toastId });
       }
     } catch (error) {
-      toast.error('Network error', { id: toastId })
+      toast.error('Network error', { id: toastId });
     }
-  }
+  };
 
   const saveExamSettings = async () => {
-    const toastId = toast.loading('Saving exam settings...')
+    const toastId = toast.loading('Saving exam settings...');
     try {
       const response = await fetchWithAuth('/settings/exam', {
         method: 'POST',
         body: JSON.stringify(examSettings)
-      })
+      });
       
       if (response.ok) {
-        toast.success('Exam settings saved!', { id: toastId })
+        toast.success('Exam settings saved!', { id: toastId });
       } else {
-        toast.error('Failed to save settings', { id: toastId })
+        toast.error('Failed to save settings', { id: toastId });
       }
     } catch (error) {
-      toast.error('Network error', { id: toastId })
+      toast.error('Network error', { id: toastId });
     }
-  }
+  };
 
   const saveAppearanceSettings = async () => {
-    const toastId = toast.loading('Saving appearance settings...')
+    const toastId = toast.loading('Saving appearance settings...');
     try {
       const response = await fetchWithAuth('/settings/appearance', {
         method: 'POST',
         body: JSON.stringify(appearanceSettings)
-      })
+      });
       
       if (response.ok) {
-        toast.success('Appearance settings saved!', { id: toastId })
+        toast.success('Appearance settings saved!', { id: toastId });
       } else {
-        toast.error('Failed to save settings', { id: toastId })
+        toast.error('Failed to save settings', { id: toastId });
       }
     } catch (error) {
-      toast.error('Network error', { id: toastId })
+      toast.error('Network error', { id: toastId });
     }
-  }
+  };
 
   const handleDeleteAccount = async () => {
-    const confirmDelete = window.confirm('Are you sure you want to delete your account? This action cannot be undone.')
-    if (!confirmDelete) return
+    const confirmDelete = window.confirm('Are you sure you want to delete your account? This action cannot be undone.');
+    if (!confirmDelete) return;
 
-    const toastId = toast.loading('Deleting account...')
+    const toastId = toast.loading('Deleting account...');
     try {
       const response = await fetchWithAuth('/auth/delete-account', {
         method: 'DELETE'
-      })
+      });
       
       if (response.ok) {
-        toast.success('Account deleted', { id: toastId })
-        setTimeout(() => { window.location.href = '/login' }, 2000)
+        toast.success('Account deleted', { id: toastId });
+        setTimeout(() => { window.location.href = '/login'; }, 2000);
       } else {
-        toast.error('Failed to delete account', { id: toastId })
+        toast.error('Failed to delete account', { id: toastId });
       }
     } catch (error) {
-      toast.error('Network error', { id: toastId })
+      toast.error('Network error', { id: toastId });
     }
-  }
+  };
 
   return (
     <div className="p-6">
@@ -760,8 +759,8 @@ function SettingsContent() {
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => {
-                    setShow2FAModal(false)
-                    setTwoFAToken(['', '', '', '', '', ''])
+                    setShow2FAModal(false);
+                    setTwoFAToken(['', '', '', '', '', '']);
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-playfair"
                 >
@@ -814,7 +813,7 @@ function SettingsContent() {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }
 
 export default function Settings() {
@@ -822,5 +821,5 @@ export default function Settings() {
     <ProtectedRoute>
       <SettingsContent />
     </ProtectedRoute>
-  )
+  );
 }

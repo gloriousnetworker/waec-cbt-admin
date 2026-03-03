@@ -1,9 +1,9 @@
-// components/sidebar/DashboardSidebar.jsx
+// components/dashboard-components/Sidebar.jsx
 'use client';
-
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import {
   sidebarContainer,
   sidebarOverlay,
@@ -30,12 +30,24 @@ import {
 
 export default function DashboardSidebar({ isOpen, onClose, activeSection, setActiveSection, onSupportClick }) {
   const { logout } = useAuth();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const menuItems = [
     { icon: '🏠', label: 'Dashboard', id: 'home' },
     { icon: '👥', label: 'Student Management', id: 'students' },
+    { icon: '📚', label: 'Subject Management', id: 'subjects' },
+    { icon: '❓', label: 'Question Bank', id: 'questions' },
     { icon: '📊', label: 'Performance Analytics', id: 'performance' },
-    { icon: '📝', label: 'Exam Results', id: 'results' },
+    { icon: '📈', label: 'Exam Results', id: 'results' },
     { icon: '🎫', label: 'Support Tickets', id: 'support' },
     { icon: '⚙️', label: 'Settings', id: 'settings' },
     { icon: '❓', label: 'Help & Resources', id: 'help' },
@@ -43,13 +55,19 @@ export default function DashboardSidebar({ isOpen, onClose, activeSection, setAc
 
   const handleMenuItemClick = (sectionId) => {
     setActiveSection(sectionId);
-    onClose();
+    if (isMobile) {
+      onClose();
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
     <>
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && isMobile && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -63,12 +81,12 @@ export default function DashboardSidebar({ isOpen, onClose, activeSection, setAc
       <motion.aside
         initial={false}
         animate={{ 
-          x: isOpen ? 0 : -280,
+          x: isOpen || !isMobile ? 0 : -280,
         }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className={sidebarContainer}
         style={{
-          visibility: isOpen || window.innerWidth >= 1024 ? 'visible' : 'hidden'
+          visibility: isOpen || !isMobile ? 'visible' : 'hidden'
         }}
       >
         <div className={sidebarHeader}>
@@ -83,8 +101,8 @@ export default function DashboardSidebar({ isOpen, onClose, activeSection, setAc
               />
             </div>
             <div>
-              <h2 className={sidebarHeaderTitle}>Admin Portal</h2>
-              <p className={sidebarHeaderSubtitle}>School Management</p>
+              <h2 className={sidebarHeaderTitle}>Kogi State College</h2>
+              <p className={sidebarHeaderSubtitle}>Admin Portal</p>
             </div>
           </div>
         </div>
@@ -114,7 +132,7 @@ export default function DashboardSidebar({ isOpen, onClose, activeSection, setAc
 
         <div className={sidebarFooter}>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className={sidebarLogout}
           >
             <span className={sidebarLogoutIcon}>🚪</span>
@@ -122,7 +140,7 @@ export default function DashboardSidebar({ isOpen, onClose, activeSection, setAc
           </button>
 
           <div className={sidebarHelp}>
-            <p className={sidebarHelpTitle}>Need help?</p>
+            <p className={sidebarHelpTitle}>Need assistance?</p>
             <button 
               onClick={onSupportClick}
               className={sidebarHelpButton}

@@ -1,7 +1,8 @@
+// components/dashboard-content/Results.jsx
 'use client';
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 import {
   examsContainer,
   examsHeader,
@@ -10,46 +11,86 @@ import {
 } from '../styles';
 
 export default function Results({ setActiveSection }) {
-  const [selectedClass, setSelectedClass] = useState('all');
-  const [selectedExam, setSelectedExam] = useState('all');
-  const [results, setResults] = useState([]);
+  const { fetchWithAuth } = useAuth();
   const [students, setStudents] = useState([]);
+  const [exams, setExams] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('all');
+  const [selectedSubject, setSelectedSubject] = useState('all');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedStudents = JSON.parse(localStorage.getItem('school_students') || '[]');
-    setStudents(storedStudents);
-    
-    const allResults = [];
-    storedStudents.forEach(student => {
-      const examHistory = JSON.parse(localStorage.getItem(`exam_history_${student.id}`)) || [];
-      examHistory.forEach(exam => {
-        allResults.push({
-          studentId: student.id,
-          studentName: `${student.firstName} ${student.lastName}`,
-          studentClass: student.class,
-          ...exam
-        });
-      });
-    });
-    
-    setResults(allResults);
+    fetchData();
   }, []);
 
+  const fetchData = async () => {
+    try {
+      const [studentsRes, examsRes] = await Promise.all([
+        fetchWithAuth('/admin/students'),
+        fetchWithAuth('/admin/exams')
+      ]);
+
+      if (studentsRes.ok) {
+        const studentsData = await studentsRes.json();
+        setStudents(studentsData.students || []);
+      }
+      
+      if (examsRes.ok) {
+        const examsData = await examsRes.json();
+        setExams(examsData.exams || []);
+        
+        // Build results array
+        const resultsData = examsData.exams?.map(exam => {
+          const student = studentsData.students?.find(s => s.id === exam.studentId);
+          return {
+            ...exam,
+            studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
+            studentClass: student?.class || 'N/A'
+          };
+        }) || [];
+        
+        setResults(resultsData);
+      }
+    } catch (error) {
+      console.error('Failed to load results:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const classes = ['all', ...new Set(students.map(s => s.class))];
-  const exams = ['all', ...new Set(results.map(r => r.subject))];
+  const subjects = ['all', ...new Set(exams.map(e => e.subject))];
 
   const filteredResults = results.filter(r => {
     if (selectedClass !== 'all' && r.studentClass !== selectedClass) return false;
-    if (selectedExam !== 'all' && r.subject !== selectedExam) return false;
+    if (selectedSubject !== 'all' && r.subject !== selectedSubject) return false;
     return true;
   });
 
   const getScoreColor = (score) => {
-    if (score >= 75) return 'text-[#10B981] bg-[#D1FAE5]';
-    if (score >= 60) return 'text-[#2563EB] bg-[#DBEAFE]';
+    if (score >= 75) return 'text-[#10b981] bg-[#D1FAE5]';
+    if (score >= 60) return 'text-[#3B82F6] bg-[#DBEAFE]';
     if (score >= 50) return 'text-[#F59E0B] bg-[#FEF3C7]';
     return 'text-[#DC2626] bg-[#FEE2E2]';
   };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    if (timestamp._seconds) {
+      return new Date(timestamp._seconds * 1000).toLocaleDateString();
+    }
+    return new Date(timestamp).toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className={examsContainer}>
+        <div className="flex items-center justify-center h-64">
+          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={examsContainer}>
@@ -65,8 +106,8 @@ export default function Results({ setActiveSection }) {
             onClick={() => setSelectedClass(cls)}
             className={`p-4 rounded-md border transition-all ${
               selectedClass === cls 
-                ? 'border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]' 
-                : 'border-[#E8E8E8] bg-white text-[#626060] hover:border-[#2563EB]'
+                ? 'border-[#10b981] bg-[#F0FDF4] text-[#10b981]' 
+                : 'border-[#E8E8E8] bg-white text-[#626060] hover:border-[#10b981]'
             }`}
           >
             <div className="font-[600] text-[16px] leading-[120%] mb-1 font-playfair">
@@ -81,12 +122,13 @@ export default function Results({ setActiveSection }) {
 
       <div className="mb-6 flex gap-4">
         <select
-          value={selectedExam}
-          onChange={(e) => setSelectedExam(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+          value={selectedSubject}
+          onChange={(e) => setSelectedSubject(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
         >
-          {exams.map(exam => (
-            <option key={exam} value={exam}>{exam === 'all' ? 'All Subjects' : exam}</option>
+          <option value="all">All Subjects</option>
+          {subjects.filter(s => s !== 'all').map(subject => (
+            <option key={subject} value={subject}>{subject}</option>
           ))}
         </select>
       </div>
@@ -99,6 +141,7 @@ export default function Results({ setActiveSection }) {
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Class</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Subject</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Score</th>
+              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Percentage</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Grade</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Date</th>
               <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Actions</th>
@@ -106,8 +149,9 @@ export default function Results({ setActiveSection }) {
           </thead>
           <tbody>
             {filteredResults.map((result, index) => {
-              const grade = result.score >= 75 ? 'A' : result.score >= 60 ? 'B' : result.score >= 50 ? 'C' : result.score >= 40 ? 'D' : 'F';
-              const scoreColor = getScoreColor(result.score);
+              const scorePercentage = result.percentage || (result.score / result.totalMarks * 100) || 0;
+              const grade = scorePercentage >= 75 ? 'A' : scorePercentage >= 60 ? 'B' : scorePercentage >= 50 ? 'C' : scorePercentage >= 40 ? 'D' : 'F';
+              const scoreColor = getScoreColor(scorePercentage);
               
               return (
                 <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
@@ -127,30 +171,40 @@ export default function Results({ setActiveSection }) {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-[12px] leading-[100%] font-[600] ${scoreColor}`}>
-                      {result.score}%
+                    <span className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">
+                      {result.score} / {result.totalMarks}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`text-[13px] leading-[100%] font-[700] ${
-                      grade === 'A' ? 'text-[#10B981]' : grade === 'B' ? 'text-[#2563EB]' : grade === 'C' ? 'text-[#F59E0B]' : 'text-[#DC2626]'
-                    } font-playfair`}>
+                    <span className={`px-3 py-1 rounded-full text-[12px] leading-[100%] font-[600] ${scoreColor}`}>
+                      {Math.round(scorePercentage)}%
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`text-[13px] leading-[100%] font-[600] font-playfair ${
+                      grade === 'A' ? 'text-[#10b981]' : 
+                      grade === 'B' ? 'text-[#3B82F6]' : 
+                      grade === 'C' ? 'text-[#F59E0B]' : 
+                      'text-[#DC2626]'
+                    }`}>
                       {grade}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                      {result.date}
+                      {formatDate(result.endTime || result.createdAt)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <button
                       onClick={() => {
                         const student = students.find(s => s.id === result.studentId);
-                        localStorage.setItem('selected_student', JSON.stringify(student));
-                        setActiveSection('performance');
+                        if (student) {
+                          localStorage.setItem('selected_student', JSON.stringify(student));
+                          setActiveSection('performance');
+                        }
                       }}
-                      className="text-[#2563EB] text-[12px] leading-[100%] font-[500] hover:underline"
+                      className="text-[#10b981] text-[12px] leading-[100%] font-[500] hover:underline"
                     >
                       View Details
                     </button>

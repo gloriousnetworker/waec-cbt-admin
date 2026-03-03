@@ -43,9 +43,13 @@ export default function Performance({ setActiveSection }) {
     setLoading(true);
     try {
       const response = await fetchWithAuth(`/admin/students/${studentId}`);
-      const data = await response.json();
-      setStudentPerformance(data.performance);
-      setStudentExams(data.exams || []);
+      if (response.ok) {
+        const data = await response.json();
+        setStudentPerformance(data.performance);
+        setStudentExams(data.exams || []);
+      } else {
+        toast.error('Failed to fetch student details');
+      }
     } catch (error) {
       toast.error('Failed to fetch student details');
     } finally {
@@ -68,7 +72,7 @@ export default function Performance({ setActiveSection }) {
           </p>
           <button
             onClick={() => setActiveSection('students')}
-            className="px-6 py-3 bg-[#2563EB] text-white rounded-lg hover:bg-[#1D4ED8] transition-colors font-playfair text-[14px] leading-[100%] font-[600]"
+            className="px-6 py-3 bg-[#10b981] text-white rounded-lg hover:bg-[#059669] transition-colors font-playfair text-[14px] leading-[100%] font-[600]"
           >
             Go to Students
           </button>
@@ -81,7 +85,7 @@ export default function Performance({ setActiveSection }) {
     return (
       <div className={examsContainer}>
         <div className="flex items-center justify-center h-64">
-          <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
     );
@@ -93,13 +97,16 @@ export default function Performance({ setActiveSection }) {
     totalExams: data.attempts || 0
   })) : [];
 
+  const totalExams = studentPerformance?.totalExams || 0;
+  const averageScore = studentPerformance?.averageScore ? Math.round(studentPerformance.averageScore) : 0;
+
   return (
     <div className={examsContainer}>
       <div className={examsHeader}>
         <div className="flex items-center gap-4 mb-2">
           <button
             onClick={() => setActiveSection('students')}
-            className="text-[#2563EB] text-[14px] leading-[100%] font-[500] hover:underline"
+            className="text-[#10b981] text-[14px] leading-[100%] font-[500] hover:underline"
           >
             ← Back to Students
           </button>
@@ -107,7 +114,7 @@ export default function Performance({ setActiveSection }) {
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-[18px] leading-[100%] font-[600] font-playfair">
+            <div className="w-12 h-12 rounded-full bg-[#10b981] flex items-center justify-center text-white text-[18px] leading-[100%] font-[600] font-playfair">
               {selectedStudent.firstName?.[0]}{selectedStudent.lastName?.[0]}
             </div>
             <div>
@@ -126,14 +133,14 @@ export default function Performance({ setActiveSection }) {
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
             <span className={homeStatCardIcon}>📚</span>
-            <span className={homeStatCardValue}>{studentPerformance?.totalExams || 0}</span>
+            <span className={homeStatCardValue}>{totalExams}</span>
           </div>
           <p className={homeStatCardLabel}>Total Exams</p>
         </motion.div>
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
             <span className={homeStatCardIcon}>📈</span>
-            <span className={homeStatCardValue}>{studentPerformance?.averageScore ? Math.round(studentPerformance.averageScore) : 0}%</span>
+            <span className={homeStatCardValue}>{averageScore}%</span>
           </div>
           <p className={homeStatCardLabel}>Average Score</p>
         </motion.div>
@@ -156,7 +163,7 @@ export default function Performance({ setActiveSection }) {
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">{subject.name}</span>
                     <span className={`text-[14px] leading-[100%] font-[600] ${
-                      subject.avgScore >= 75 ? 'text-[#10B981]' : subject.avgScore >= 50 ? 'text-[#F59E0B]' : 'text-[#DC2626]'
+                      subject.avgScore >= 75 ? 'text-[#10b981]' : subject.avgScore >= 50 ? 'text-[#F59E0B]' : 'text-[#DC2626]'
                     } font-playfair`}>
                       {subject.avgScore}%
                     </span>
@@ -167,7 +174,7 @@ export default function Performance({ setActiveSection }) {
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div 
                       className={`h-full ${
-                        subject.avgScore >= 75 ? 'bg-[#10B981]' : subject.avgScore >= 50 ? 'bg-[#F59E0B]' : 'bg-[#DC2626]'
+                        subject.avgScore >= 75 ? 'bg-[#10b981]' : subject.avgScore >= 50 ? 'bg-[#F59E0B]' : 'bg-[#DC2626]'
                       }`}
                       style={{ width: `${subject.avgScore}%` }}
                     />
@@ -195,8 +202,8 @@ export default function Performance({ setActiveSection }) {
                     </span>
                   </div>
                   <div className="flex justify-between text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                    <span>{exam.examType}</span>
-                    <span>{exam.date ? new Date(exam.date).toLocaleDateString() : 'N/A'}</span>
+                    <span>{exam.examType || 'Standard'}</span>
+                    <span>{exam.endTime ? new Date(exam.endTime._seconds * 1000).toLocaleDateString() : 'N/A'}</span>
                   </div>
                 </div>
               ))}

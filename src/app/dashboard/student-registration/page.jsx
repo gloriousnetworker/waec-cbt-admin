@@ -1,6 +1,5 @@
 // app/dashboard/student-registration/page.jsx
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ProtectedRoute from '../../../components/ProtectedRoute';
@@ -11,17 +10,16 @@ import { useAuth } from '../../../context/AuthContext';
 const containerClass = "min-h-screen bg-gradient-to-br from-[#F9FAFB] to-[#F3F4F6] py-12 px-4";
 const innerClass = "max-w-5xl mx-auto";
 const headerClass = "mb-10";
-const backButtonClass = "inline-flex items-center gap-2 text-[#2563EB] hover:text-[#1D4ED8] transition-colors text-[15px] leading-[100%] font-[500] font-playfair mb-6";
+const backButtonClass = "inline-flex items-center gap-2 text-[#10b981] hover:text-[#059669] transition-colors text-[15px] leading-[100%] font-[500] font-playfair mb-6";
 const titleClass = "text-[40px] leading-[120%] font-[700] tracking-[-0.02em] text-[#1E1E1E] font-playfair";
 const subtitleClass = "text-[18px] leading-[140%] font-[400] text-[#4B5563] mt-3 font-playfair";
 const formGridClass = "grid grid-cols-2 gap-8";
 const formGroupClass = "space-y-2";
 const labelClass = "block text-[15px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mb-2";
-const inputClass = "w-full px-5 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#2563EB] focus:ring-4 focus:ring-[#2563EB]/10 text-[15px] leading-[100%] font-[400] font-playfair transition-all";
-const selectClass = "w-full px-5 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#2563EB] focus:ring-4 focus:ring-[#2563EB]/10 text-[15px] leading-[100%] font-[400] font-playfair transition-all";
-const secondaryButtonClass = "px-8 py-4 bg-white text-[#2563EB] border-2 border-[#2563EB] rounded-xl hover:bg-[#EFF6FF] transition-all font-playfair text-[15px] leading-[100%] font-[600]";
-const primaryButtonClass = "px-8 py-4 bg-[#2563EB] text-white rounded-xl hover:bg-[#1D4ED8] transition-all font-playfair text-[15px] leading-[100%] font-[600] shadow-lg shadow-[#2563EB]/20";
-const previewCardClass = "mt-10 bg-gradient-to-r from-[#2563EB] to-[#1D4ED8] rounded-2xl p-8 text-white";
+const inputClass = "w-full px-5 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/10 text-[15px] leading-[100%] font-[400] font-playfair transition-all";
+const selectClass = "w-full px-5 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/10 text-[15px] leading-[100%] font-[400] font-playfair transition-all";
+const secondaryButtonClass = "px-8 py-4 bg-white text-[#10b981] border-2 border-[#10b981] rounded-xl hover:bg-[#F0FDF4] transition-all font-playfair text-[15px] leading-[100%] font-[600]";
+const primaryButtonClass = "px-8 py-4 bg-[#10b981] text-white rounded-xl hover:bg-[#059669] transition-all font-playfair text-[15px] leading-[100%] font-[600] shadow-lg shadow-[#10b981]/20";
 const requiredStarClass = "text-[#DC2626] ml-1 text-lg";
 
 function StudentRegistrationContent() {
@@ -87,13 +85,12 @@ function StudentRegistrationContent() {
       const body = {
         firstName: formData.firstName,
         lastName: formData.lastName,
-        class: formData.class
+        class: formData.class,
+        ...(formData.middleName && { middleName: formData.middleName }),
+        ...(formData.nin && { nin: formData.nin }),
+        ...(formData.phone && { phone: formData.phone }),
+        ...(formData.dateOfBirth && { dateOfBirth: formData.dateOfBirth })
       };
-
-      if (formData.middleName) body.middleName = formData.middleName;
-      if (formData.nin) body.nin = formData.nin;
-      if (formData.phone) body.phone = formData.phone;
-      if (formData.dateOfBirth) body.dateOfBirth = formData.dateOfBirth;
 
       const response = await fetchWithAuth(url, {
         method,
@@ -110,7 +107,7 @@ function StudentRegistrationContent() {
         toast.success('Student updated successfully!');
         localStorage.removeItem('edit_student');
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/dashboard?section=students');
         }, 1500);
       } else {
         toast.success('Student registered successfully!');
@@ -173,7 +170,7 @@ function StudentRegistrationContent() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-6 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl text-white"
+            className="mb-8 p-6 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-2xl text-white"
           >
             <h3 className="text-[20px] leading-[120%] font-[700] mb-4">Student Registered Successfully! 🎉</h3>
             <div className="space-y-2">
@@ -297,7 +294,6 @@ function StudentRegistrationContent() {
                 name="password"
                 value={formData.password}
                 className={inputClass}
-                placeholder="123456"
                 disabled
               />
               <p className="text-[13px] leading-[140%] font-[400] text-[#6B7280] font-playfair mt-2">

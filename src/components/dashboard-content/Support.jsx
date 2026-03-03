@@ -41,12 +41,28 @@ export default function Support({ setActiveSection, onOpenChat }) {
   const fetchTickets = async () => {
     try {
       const response = await fetchWithAuth('/admin/tickets');
-      const data = await response.json();
-      setTickets(data.tickets || []);
+      if (response.ok) {
+        const data = await response.json();
+        setTickets(data.tickets || []);
+      }
     } catch (error) {
       toast.error('Failed to fetch tickets');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTicketDetails = async (ticketId) => {
+    try {
+      const response = await fetchWithAuth(`/admin/tickets/${ticketId}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.ticket;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to fetch ticket details:', error);
+      return null;
     }
   };
 
@@ -115,11 +131,21 @@ export default function Support({ setActiveSection, onOpenChat }) {
     }
   };
 
+  const handleViewTicket = async (ticket) => {
+    setLoading(true);
+    const detailedTicket = await fetchTicketDetails(ticket.id);
+    if (detailedTicket) {
+      setSelectedTicket(detailedTicket);
+      setShowTicketModal(true);
+    }
+    setLoading(false);
+  };
+
   const getStatusColor = (status) => {
     switch(status) {
       case 'open': return 'bg-[#FEF3C7] text-[#F59E0B]';
-      case 'in-progress': return 'bg-[#DBEAFE] text-[#2563EB]';
-      case 'closed': return 'bg-[#D1FAE5] text-[#10B981]';
+      case 'in_progress': return 'bg-[#DBEAFE] text-[#2563EB]';
+      case 'closed': return 'bg-[#D1FAE5] text-[#10b981]';
       default: return 'bg-gray-100 text-gray-600';
     }
   };
@@ -128,7 +154,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
     switch(priority) {
       case 'high': return 'text-[#DC2626]';
       case 'medium': return 'text-[#F59E0B]';
-      case 'low': return 'text-[#10B981]';
+      case 'low': return 'text-[#10b981]';
       default: return 'text-[#626060]';
     }
   };
@@ -153,7 +179,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
     return (
       <div className={examsContainer}>
         <div className="flex items-center justify-center h-64">
-          <div className="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
     );
@@ -181,10 +207,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
             key={ticket.id}
             whileHover={{ y: -2 }}
             className="bg-white rounded-lg border border-gray-200 p-6 cursor-pointer hover:shadow-md"
-            onClick={() => {
-              setSelectedTicket(ticket);
-              setShowTicketModal(true);
-            }}
+            onClick={() => handleViewTicket(ticket)}
           >
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -193,7 +216,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                     {ticket.subject}
                   </h3>
                   <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(ticket.status)}`}>
-                    {ticket.status}
+                    {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
                   </span>
                 </div>
                 <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
@@ -245,7 +268,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                     name="subject"
                     value={formData.subject}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     placeholder="Brief description of the issue"
                   />
                 </div>
@@ -256,7 +279,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                       name="category"
                       value={formData.category}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
                       <option value="technical">Technical Issue</option>
                       <option value="bug">Bug Report</option>
@@ -271,7 +294,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                       name="priority"
                       value={formData.priority}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
@@ -286,7 +309,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                     value={formData.description}
                     onChange={handleInputChange}
                     rows="4"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     placeholder="Please provide detailed information about your issue..."
                   />
                 </div>
@@ -300,7 +323,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                 </button>
                 <button
                   onClick={handleCreateTicket}
-                  className="px-4 py-2 bg-[#2563EB] text-white rounded-md hover:bg-[#1D4ED8] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Create Ticket
                 </button>
@@ -329,7 +352,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                       {selectedTicket.subject}
                     </h3>
                     <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(selectedTicket.status)}`}>
-                      {selectedTicket.status}
+                      {selectedTicket.status === 'in_progress' ? 'In Progress' : selectedTicket.status}
                     </span>
                     <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] bg-gray-100 ${getPriorityColor(selectedTicket.priority)}`}>
                       {selectedTicket.priority}
@@ -348,6 +371,16 @@ export default function Support({ setActiveSection, onOpenChat }) {
                     </p>
                   </div>
                 </div>
+                <button
+                  onClick={() => {
+                    setShowTicketModal(false);
+                    setSelectedTicket(null);
+                    setReplyMessage('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
+                >
+                  ×
+                </button>
               </div>
 
               <div className="border-t border-gray-200 pt-6 mb-6">
@@ -357,7 +390,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
                     <div key={index} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] p-4 rounded-lg ${
                         msg.sender === 'admin' 
-                          ? 'bg-[#2563EB] text-white' 
+                          ? 'bg-[#10b981] text-white' 
                           : 'bg-gray-100 text-[#1E1E1E]'
                       }`}>
                         <p className="text-[10px] leading-[100%] font-[500] mb-1 opacity-70">
@@ -383,13 +416,13 @@ export default function Support({ setActiveSection, onOpenChat }) {
                     onChange={(e) => setReplyMessage(e.target.value)}
                     placeholder="Type your reply here..."
                     rows="3"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#2563EB] text-[13px] font-playfair mb-4"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#10b981] text-[13px] font-playfair mb-4"
                   />
                   <div className="flex justify-end">
                     <button
                       onClick={handleSendReply}
                       disabled={!replyMessage.trim()}
-                      className={`px-6 py-3 bg-[#2563EB] text-white rounded-lg hover:bg-[#1D4ED8] transition-colors text-[13px] leading-[100%] font-[600] ${
+                      className={`px-6 py-3 bg-[#10b981] text-white rounded-lg hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] ${
                         !replyMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                     >
