@@ -55,6 +55,8 @@ export default function DashboardHome({ setActiveSection }) {
   const [recentExams, setRecentExams] = useState([]);
   const [subjectPerformance, setSubjectPerformance] = useState({});
   const [subscription, setSubscription] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState({ active: false, reason: '' });
+  const [daysRemaining, setDaysRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -92,7 +94,18 @@ export default function DashboardHome({ setActiveSection }) {
       const response = await fetchWithAuth('/admin/subscription/status');
       if (response.ok) {
         const data = await response.json();
-        setSubscription(data);
+        setSubscriptionStatus(data.status || { active: false });
+        setSubscription(data.subscription);
+        
+        if (data.subscription?.expiryDate) {
+          const expiry = data.subscription.expiryDate._seconds 
+            ? new Date(data.subscription.expiryDate._seconds * 1000)
+            : new Date(data.subscription.expiryDate);
+          const now = new Date();
+          const diffTime = expiry - now;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          setDaysRemaining(diffDays > 0 ? diffDays : 0);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch subscription:', error);
@@ -103,6 +116,7 @@ export default function DashboardHome({ setActiveSection }) {
     { title: 'Add New Student', icon: '👤', color: 'border-[#10b981] text-[#10b981] hover:bg-[#F0FDF4]', action: () => setActiveSection('students') },
     { title: 'Create Subject', icon: '📚', color: 'border-[#10b981] text-[#10b981] hover:bg-[#F0FDF4]', action: () => setActiveSection('subjects') },
     { title: 'Add Questions', icon: '❓', color: 'border-[#10b981] text-[#10b981] hover:bg-[#F0FDF4]', action: () => setActiveSection('questions') },
+    { title: 'Setup Exam', icon: '📝', color: 'border-[#10b981] text-[#10b981] hover:bg-[#F0FDF4]', action: () => setActiveSection('exams') },
     { title: 'Support Tickets', icon: '🎫', color: 'border-[#10b981] text-[#10b981] hover:bg-[#F0FDF4]', action: () => setActiveSection('support') },
   ];
 
@@ -116,6 +130,14 @@ export default function DashboardHome({ setActiveSection }) {
     );
   }
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    if (timestamp._seconds) {
+      return new Date(timestamp._seconds * 1000).toLocaleDateString();
+    }
+    return new Date(timestamp).toLocaleDateString();
+  };
+
   return (
     <div className={homeContainer}>
       <div className={homeHeader}>
@@ -125,17 +147,47 @@ export default function DashboardHome({ setActiveSection }) {
         <p className={homeSubtitle}>
           {stats.totalStudents} students • {stats.totalSubjects} subjects • {stats.openTickets} pending tickets
         </p>
-        {subscription?.status && !subscription.status.active && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-700 text-sm">
-              ⚠️ Your subscription is {subscription.status.status}. 
-              <button 
-                onClick={() => setActiveSection('subscription')}
-                className="ml-2 text-yellow-800 font-medium underline"
-              >
-                Renew now
-              </button>
-            </p>
+        
+        {/* Subscription Status Banner */}
+        {subscription && (
+          <div className={`mt-4 p-4 rounded-lg ${
+            subscriptionStatus.active 
+              ? 'bg-green-50 border border-green-200' 
+              : 'bg-yellow-50 border border-yellow-200'
+          }`}>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                {subscriptionStatus.active ? (
+                  <span className="text-2xl">✅</span>
+                ) : (
+                  <span className="text-2xl">⚠️</span>
+                )}
+                <div>
+                  <p className={`text-sm font-[600] ${
+                    subscriptionStatus.active ? 'text-green-700' : 'text-yellow-700'
+                  }`}>
+                    {subscriptionStatus.active ? 'Active Subscription' : 'No Active Subscription'}
+                  </p>
+                  {subscriptionStatus.active ? (
+                    <p className="text-xs text-green-600 mt-1">
+                      Plan: {subscription?.plan} • Expires: {formatDate(subscription?.expiryDate)} • {daysRemaining} days remaining
+                    </p>
+                  ) : (
+                    <p className="text-xs text-yellow-600 mt-1">
+                      {subscriptionStatus.reason || 'Please activate your subscription to continue'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {!subscriptionStatus.active && (
+                <button
+                  onClick={() => setActiveSection('subscription')}
+                  className="px-4 py-2 bg-[#10b981] text-white rounded-lg hover:bg-[#059669] transition-colors text-sm font-[600]"
+                >
+                  Activate Now
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -148,35 +200,35 @@ export default function DashboardHome({ setActiveSection }) {
           </div>
           <p className={homeStatCardLabel}>Total Students</p>
         </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className={homeStatCard}>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
             <span className={homeStatCardIcon}>⚡</span>
             <span className={homeStatCardValue}>{stats.studentsInExamMode}</span>
           </div>
           <p className={homeStatCardLabel}>In Exam Mode</p>
         </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className={homeStatCard}>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
             <span className={homeStatCardIcon}>📚</span>
             <span className={homeStatCardValue}>{stats.totalExams}</span>
           </div>
           <p className={homeStatCardLabel}>Exams Taken</p>
         </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className={homeStatCard}>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
             <span className={homeStatCardIcon}>📊</span>
             <span className={homeStatCardValue}>{stats.averageScore}%</span>
           </div>
           <p className={homeStatCardLabel}>Average Score</p>
         </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className={homeStatCard}>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
             <span className={homeStatCardIcon}>🎫</span>
             <span className={homeStatCardValue}>{stats.openTickets}</span>
           </div>
           <p className={homeStatCardLabel}>Open Tickets</p>
         </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6 }} className={homeStatCard}>
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }} className={homeStatCard}>
           <div className={homeStatCardTop}>
             <span className={homeStatCardIcon}>✅</span>
             <span className={homeStatCardValue}>{stats.passRate}%</span>
@@ -231,6 +283,15 @@ export default function DashboardHome({ setActiveSection }) {
                 </div>
               </div>
             </button>
+            <button onClick={() => setActiveSection('exams')} className={homeSubjectButton}>
+              <div className={homeSubjectInner}>
+                <span className={homeSubjectIcon}>📝</span>
+                <div>
+                  <div className={homeSubjectName}>Exam Setup</div>
+                  <div className={homeSubjectCount}>Create new exams</div>
+                </div>
+              </div>
+            </button>
             <button onClick={() => setActiveSection('results')} className={homeSubjectButton}>
               <div className={homeSubjectInner}>
                 <span className={homeSubjectIcon}>📊</span>
@@ -252,7 +313,7 @@ export default function DashboardHome({ setActiveSection }) {
                   <div>
                     <p className="text-[13px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">{exam.subject}</p>
                     <p className="text-[10px] leading-[100%] font-[400] text-[#626060] mt-1 font-playfair">
-                      Score: {exam.score}% • {exam.date ? new Date(exam.date).toLocaleDateString() : ''}
+                      Student: {exam.studentName} • Score: {exam.score}%
                     </p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500] ${

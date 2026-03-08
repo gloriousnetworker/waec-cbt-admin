@@ -17,6 +17,8 @@ import Results from '../../components/dashboard-content/Results';
 import Support from '../../components/dashboard-content/Support';
 import Settings from '../../components/dashboard-content/Settings';
 import Help from '../../components/dashboard-content/Help';
+import Subscription from '../../components/dashboard-content/Subscription';
+import Exams from '../../components/dashboard-content/Exams';
 import SupportChat from '../../components/SupportChat';
 import toast from 'react-hot-toast';
 
@@ -34,6 +36,7 @@ function DashboardContent() {
   const [pageLoading, setPageLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('home');
   const [showSupportChat, setShowSupportChat] = useState(false);
+  const [pendingTicket, setPendingTicket] = useState(null);
   const { isAuthenticated, authChecked } = useAuth();
   const searchParams = useSearchParams();
 
@@ -56,12 +59,34 @@ function DashboardContent() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const handleOpenChat = (event) => {
+      if (event.detail) {
+        setPendingTicket(event.detail);
+      }
+      setShowSupportChat(true);
+    };
+
+    window.addEventListener('openChatWithTicket', handleOpenChat);
+    return () => window.removeEventListener('openChatWithTicket', handleOpenChat);
+  }, []);
+
   const handleNavigation = (section) => {
     setActiveSection(section);
     setSidebarOpen(false);
-    if (section === 'support') {
-      setShowSupportChat(true);
+  };
+
+  const handleOpenChat = (ticketId = null) => {
+    if (ticketId) {
+      const ticket = { id: ticketId };
+      setPendingTicket(ticket);
     }
+    setShowSupportChat(true);
+  };
+
+  const handleCloseChat = () => {
+    setShowSupportChat(false);
+    setPendingTicket(null);
   };
 
   const renderSection = () => {
@@ -72,9 +97,11 @@ function DashboardContent() {
       case 'questions': return <Questions setActiveSection={handleNavigation} />;
       case 'performance': return <Performance setActiveSection={handleNavigation} />;
       case 'results': return <Results setActiveSection={handleNavigation} />;
-      case 'support': return <Support setActiveSection={handleNavigation} onOpenChat={() => setShowSupportChat(true)} />;
+      case 'support': return <Support setActiveSection={handleNavigation} onOpenChat={handleOpenChat} />;
       case 'settings': return <Settings setActiveSection={handleNavigation} />;
       case 'help': return <Help setActiveSection={handleNavigation} />;
+      case 'subscription': return <Subscription setActiveSection={handleNavigation} />;
+      case 'exams': return <Exams setActiveSection={handleNavigation} />;
       default: return <DashboardHome setActiveSection={handleNavigation} />;
     }
   };
@@ -124,7 +151,8 @@ function DashboardContent() {
 
       <SupportChat 
         isOpen={showSupportChat}
-        onClose={() => setShowSupportChat(false)}
+        onClose={handleCloseChat}
+        initialTicket={pendingTicket}
       />
     </div>
   );
