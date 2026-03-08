@@ -1,4 +1,4 @@
-// app/dashboard/page.jsx
+// app/dashboard/page.jsx (updated with section param handling)
 'use client';
 
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -48,6 +48,27 @@ function DashboardContent() {
       return () => clearTimeout(timer);
     }
   }, [authChecked, isAuthenticated]);
+
+  // Handle section from URL params
+  useEffect(() => {
+    const section = searchParams.get('section');
+    const paymentRef = searchParams.get('payment_ref');
+    
+    if (section) {
+      setActiveSection(section);
+      
+      // Show success message if coming from payment
+      if (section === 'subscription' && paymentRef) {
+        toast.success('Payment completed successfully! Your subscription is now active.');
+        
+        // Clean up URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('payment_ref');
+        url.searchParams.delete('section');
+        window.history.replaceState({}, '', url.pathname);
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const ticketCreated = searchParams.get('ticketCreated');

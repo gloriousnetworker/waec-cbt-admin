@@ -23,7 +23,8 @@ function VerifyPaymentContent() {
 
   useEffect(() => {
     if (!refToUse) {
-      router.push('/dashboard/subscription');
+      // Redirect to dashboard with subscription section active
+      router.push('/dashboard?section=subscription');
       return;
     }
 
@@ -56,9 +57,9 @@ function VerifyPaymentContent() {
         // Clear pending payment from sessionStorage
         sessionStorage.removeItem('pendingPayment');
         
-        // Redirect after 3 seconds
+        // Redirect to dashboard with subscription section active after 3 seconds
         setTimeout(() => {
-          router.push('/dashboard/subscription?payment_ref=' + ref);
+          router.push('/dashboard?section=subscription&payment_ref=' + ref);
         }, 3000);
       } else {
         setStatus('failed');
@@ -140,11 +141,11 @@ function VerifyPaymentContent() {
             )}
             
             <p className="text-[12px] text-[#9CA3AF] font-playfair mb-4">
-              Redirecting you back to subscription page...
+              Redirecting you back to dashboard...
             </p>
             
             <button
-              onClick={() => router.push('/dashboard/subscription')}
+              onClick={() => router.push('/dashboard?section=subscription')}
               className="px-6 py-3 bg-[#10b981] text-white rounded-lg hover:bg-[#059669] transition-colors font-playfair w-full"
             >
               Go to Subscription
@@ -180,10 +181,10 @@ function VerifyPaymentContent() {
                 Retry Verification
               </button>
               <button
-                onClick={() => router.push('/dashboard/subscription')}
+                onClick={() => router.push('/dashboard?section=subscription')}
                 className="flex-1 px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-playfair"
               >
-                Back to Subscription
+                Back to Dashboard
               </button>
             </div>
           </>
