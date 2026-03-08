@@ -1,13 +1,14 @@
 // app/dashboard/subscription/verify/page.jsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
-export default function VerifyPayment() {
+function VerifyPaymentContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { fetchWithAuth } = useAuth();
@@ -189,5 +190,17 @@ export default function VerifyPayment() {
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function VerifyPayment() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <VerifyPaymentContent />
+    </Suspense>
   );
 }

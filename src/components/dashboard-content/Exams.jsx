@@ -15,10 +15,7 @@ import {
   modalText,
   modalActions,
   modalButtonSecondary,
-  modalButtonDanger,
-  superAdminStatCard,
-  superAdminStatValue,
-  superAdminStatLabel
+  modalButtonDanger
 } from '../styles';
 
 export default function Exams({ setActiveSection }) {
@@ -242,33 +239,33 @@ export default function Exams({ setActiveSection }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className={superAdminStatCard}>
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">📝</span>
-            <span className={superAdminStatValue}>{stats.total}</span>
+            <span className="text-[24px] leading-[100%] font-[700] text-[#1E1E1E] font-playfair">{stats.total}</span>
           </div>
-          <p className={superAdminStatLabel}>Total Exams</p>
+          <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">Total Exams</p>
         </div>
-        <div className={superAdminStatCard}>
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">🟢</span>
-            <span className={superAdminStatValue}>{stats.active}</span>
+            <span className="text-[24px] leading-[100%] font-[700] text-[#1E1E1E] font-playfair">{stats.active}</span>
           </div>
-          <p className={superAdminStatLabel}>Active</p>
+          <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">Active</p>
         </div>
-        <div className={superAdminStatCard}>
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">📄</span>
-            <span className={superAdminStatValue}>{stats.draft}</span>
+            <span className="text-[24px] leading-[100%] font-[700] text-[#1E1E1E] font-playfair">{stats.draft}</span>
           </div>
-          <p className={superAdminStatLabel}>Draft</p>
+          <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">Draft</p>
         </div>
-        <div className={superAdminStatCard}>
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">✅</span>
-            <span className={superAdminStatValue}>{stats.completed}</span>
+            <span className="text-[24px] leading-[100%] font-[700] text-[#1E1E1E] font-playfair">{stats.completed}</span>
           </div>
-          <p className={superAdminStatLabel}>Completed</p>
+          <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">Completed</p>
         </div>
       </div>
 
