@@ -26,17 +26,26 @@ export default function Exams({ setActiveSection }) {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showActivateModal, setShowActivateModal] = useState(false);
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showStudentSelectModal, setShowStudentSelectModal] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
   const [selectedExam, setSelectedExam] = useState(null);
+  const [examResults, setExamResults] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterClass, setFilterClass] = useState('all');
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [selectAllInClass, setSelectAllInClass] = useState(false);
+  const [selectedClass, setSelectedClass] = useState('');
   const [formData, setFormData] = useState({
     title: '',
-    subjectId: '',
     description: '',
-    duration: 60,
+    class: '',
+    subjects: [{ subjectId: '', questionCount: 10 }],
+    duration: 120,
     totalMarks: 100,
     passMark: 50,
     startDate: '',
@@ -46,8 +55,11 @@ export default function Exams({ setActiveSection }) {
     instructions: '',
     allowRetake: false,
     shuffleQuestions: true,
-    showResults: true
+    showResults: true,
+    questionSelection: 'random'
   });
+
+  const classes = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3'];
 
   useEffect(() => {
     fetchData();
@@ -57,7 +69,7 @@ export default function Exams({ setActiveSection }) {
     setLoading(true);
     try {
       const [examsRes, subjectsRes, studentsRes] = await Promise.all([
-        fetchWithAuth('/admin/exams'),
+        fetchWithAuth('/admin/exam-setups'),
         fetchWithAuth('/admin/subjects'),
         fetchWithAuth('/admin/students')
       ]);
@@ -83,34 +95,75 @@ export default function Exams({ setActiveSection }) {
     }
   };
 
+  const fetchExamResults = async (examId) => {
+    try {
+      const response = await fetchWithAuth(`/admin/exam-setups/${examId}/results`);
+      if (response.ok) {
+        const data = await response.json();
+        setExamResults(data);
+        setShowResultsModal(true);
+      } else {
+        toast.error('Failed to load exam results');
+      }
+    } catch (error) {
+      toast.error('Network error');
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'class') {
+      setSelectedClass(value);
+    }
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : value
     });
   };
 
+  const handleSubjectChange = (index, field, value) => {
+    const updatedSubjects = [...formData.subjects];
+    updatedSubjects[index][field] = value;
+    setFormData({ ...formData, subjects: updatedSubjects });
+  };
+
+  const addSubject = () => {
+    setFormData({
+      ...formData,
+      subjects: [...formData.subjects, { subjectId: '', questionCount: 10 }]
+    });
+  };
+
+  const removeSubject = (index) => {
+    if (formData.subjects.length > 1) {
+      const updatedSubjects = formData.subjects.filter((_, i) => i !== index);
+      setFormData({ ...formData, subjects: updatedSubjects });
+    }
+  };
+
   const handleCreateExam = async () => {
-    if (!formData.title || !formData.subjectId || !formData.startDate || !formData.endDate) {
+    if (!formData.title || !formData.class || !formData.startDate || !formData.endDate) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const startDateTime = new Date(`${formData.startDate}T${formData.startTime || '00:00'}`);
-    const endDateTime = new Date(`${formData.endDate}T${formData.endTime || '23:59'}`);
+    for (const subject of formData.subjects) {
+      if (!subject.subjectId) {
+        toast.error('Please select a subject for all entries');
+        return;
+      }
+    }
 
     const examData = {
       ...formData,
-      startDateTime: startDateTime.toISOString(),
-      endDateTime: endDateTime.toISOString(),
-      status: 'draft'
+      startDateTime: new Date(`${formData.startDate}T${formData.startTime || '00:00'}`).toISOString(),
+      endDateTime: new Date(`${formData.endDate}T${formData.endTime || '23:59'}`).toISOString(),
     };
 
     const toastId = toast.loading('Creating exam...');
 
     try {
-      const response = await fetchWithAuth('/admin/exams', {
+      const response = await fetchWithAuth('/admin/exam-setups', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -125,9 +178,10 @@ export default function Exams({ setActiveSection }) {
         setShowCreateModal(false);
         setFormData({
           title: '',
-          subjectId: '',
           description: '',
-          duration: 60,
+          class: '',
+          subjects: [{ subjectId: '', questionCount: 10 }],
+          duration: 120,
           totalMarks: 100,
           passMark: 50,
           startDate: '',
@@ -137,7 +191,8 @@ export default function Exams({ setActiveSection }) {
           instructions: '',
           allowRetake: false,
           shuffleQuestions: true,
-          showResults: true
+          showResults: true,
+          questionSelection: 'random'
         });
         fetchData();
       } else {
@@ -148,24 +203,90 @@ export default function Exams({ setActiveSection }) {
     }
   };
 
-  const handleActivateExam = async () => {
+  const handleUpdateExam = async () => {
+    if (!selectedExam) return;
+
+    const updateData = {};
+    if (formData.title !== selectedExam.title) updateData.title = formData.title;
+    if (formData.duration !== selectedExam.duration) updateData.duration = formData.duration;
+    if (formData.passMark !== selectedExam.passMark) updateData.passMark = formData.passMark;
+    if (formData.instructions !== selectedExam.instructions) updateData.instructions = formData.instructions;
+
+    if (Object.keys(updateData).length === 0) {
+      setShowEditModal(false);
+      return;
+    }
+
+    const toastId = toast.loading('Updating exam...');
+
+    try {
+      const response = await fetchWithAuth(`/admin/exam-setups/${selectedExam.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Exam updated successfully!', { id: toastId });
+        setShowEditModal(false);
+        fetchData();
+      } else {
+        toast.error(data.message || 'Failed to update exam', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
+  const handleAssignStudents = async () => {
     if (!selectedExam || selectedStudents.length === 0) {
       toast.error('Please select at least one student');
       return;
     }
 
-    const toastId = toast.loading('Activating exam...');
+    const toastId = toast.loading('Assigning students...');
 
     try {
-      const response = await fetchWithAuth(`/admin/exams/${selectedExam.id}/activate`, {
+      const response = await fetchWithAuth(`/admin/exam-setups/${selectedExam.id}/assign-students`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          studentIds: selectedStudents,
-          status: 'active'
-        })
+        body: JSON.stringify({ studentIds: selectedStudents })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`Assigned to ${selectedStudents.length} students successfully!`, { id: toastId });
+        setShowStudentSelectModal(false);
+        setSelectedStudents([]);
+        setSelectAllInClass(false);
+        fetchData();
+      } else {
+        toast.error(data.message || 'Failed to assign students', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
+  const handleActivateExam = async () => {
+    if (!selectedExam) return;
+
+    const toastId = toast.loading('Activating exam...');
+
+    try {
+      const response = await fetchWithAuth(`/admin/exam-setups/${selectedExam.id}/activate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(selectedStudents.length > 0 ? { studentIds: selectedStudents } : {})
       });
 
       const data = await response.json();
@@ -184,20 +305,76 @@ export default function Exams({ setActiveSection }) {
     }
   };
 
+  const handleDeactivateExam = async () => {
+    if (!selectedExam) return;
+
+    const toastId = toast.loading('Deactivating exam...');
+
+    try {
+      const response = await fetchWithAuth(`/admin/exam-setups/${selectedExam.id}/deactivate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Exam deactivated successfully!', { id: toastId });
+        setShowDeactivateModal(false);
+        fetchData();
+      } else {
+        toast.error(data.message || 'Failed to deactivate exam', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
+  const handleDeleteExam = async () => {
+    if (!selectedExam) return;
+
+    const toastId = toast.loading('Deleting exam...');
+
+    try {
+      const response = await fetchWithAuth(`/admin/exam-setups/${selectedExam.id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast.success('Exam deleted successfully!', { id: toastId });
+        setShowDeleteModal(false);
+        fetchData();
+      } else {
+        const data = await response.json();
+        toast.error(data.message || 'Failed to delete exam', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
+  const handleSelectAllInClass = () => {
+    if (selectAllInClass) {
+      setSelectedStudents([]);
+    } else {
+      const classStudents = students
+        .filter(s => s.class === selectedExam?.class)
+        .map(s => s.id);
+      setSelectedStudents(classStudents);
+    }
+    setSelectAllInClass(!selectAllInClass);
+  };
+
   const handleToggleStudent = (studentId) => {
     setSelectedStudents(prev =>
       prev.includes(studentId)
         ? prev.filter(id => id !== studentId)
         : [...prev, studentId]
     );
-  };
-
-  const handleSelectAllStudents = () => {
-    if (selectedStudents.length === students.length) {
-      setSelectedStudents([]);
-    } else {
-      setSelectedStudents(students.map(s => s.id));
-    }
+    setSelectAllInClass(false);
   };
 
   const formatDate = (timestamp) => {
@@ -208,12 +385,19 @@ export default function Exams({ setActiveSection }) {
     return new Date(timestamp).toLocaleString();
   };
 
+  const formatDateOnly = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    if (timestamp._seconds) {
+      return new Date(timestamp._seconds * 1000).toLocaleDateString();
+    }
+    return new Date(timestamp).toLocaleDateString();
+  };
+
   const getStatusColor = (status) => {
     switch(status) {
       case 'active': return 'bg-green-100 text-green-600';
       case 'draft': return 'bg-gray-100 text-gray-600';
       case 'completed': return 'bg-blue-100 text-blue-600';
-      case 'expired': return 'bg-red-100 text-red-600';
       default: return 'bg-gray-100 text-gray-600';
     }
   };
@@ -221,7 +405,8 @@ export default function Exams({ setActiveSection }) {
   const filteredExams = exams.filter(exam => {
     const matchesSearch = exam.title?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || exam.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const matchesClass = filterClass === 'all' || exam.class === filterClass;
+    return matchesSearch && matchesStatus && matchesClass;
   });
 
   const stats = {
@@ -282,15 +467,24 @@ export default function Exams({ setActiveSection }) {
           </div>
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
             <select
+              value={filterClass}
+              onChange={(e) => setFilterClass(e.target.value)}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+            >
+              <option value="all">All Classes</option>
+              {classes.map(cls => (
+                <option key={cls} value={cls}>{cls}</option>
+              ))}
+            </select>
+            <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
             >
               <option value="all">All Status</option>
-              <option value="active">Active</option>
               <option value="draft">Draft</option>
+              <option value="active">Active</option>
               <option value="completed">Completed</option>
-              <option value="expired">Expired</option>
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -328,9 +522,12 @@ export default function Exams({ setActiveSection }) {
                     <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(exam.status)}`}>
                       {exam.status}
                     </span>
+                    <span className="px-2 py-1 bg-purple-100 text-purple-600 rounded-full text-[10px] leading-[100%] font-[500]">
+                      {exam.class}
+                    </span>
                   </div>
                   <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
-                    Subject: {subjects.find(s => s.id === exam.subjectId)?.name || 'N/A'} • Duration: {exam.duration} mins
+                    {exam.subjects?.length || 0} subject(s) • {exam.subjects?.reduce((sum, s) => sum + (s.questionCount || 0), 0)} questions
                   </p>
                   <p className="text-[13px] leading-[140%] font-[400] text-[#1E1E1E] font-playfair line-clamp-2">
                     {exam.description || 'No description provided'}
@@ -338,10 +535,10 @@ export default function Exams({ setActiveSection }) {
                 </div>
                 <div className="text-right">
                   <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
-                    Starts: {formatDate(exam.startDateTime)}
+                    Starts: {formatDateOnly(exam.startDateTime)}
                   </p>
                   <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair mt-1">
-                    Ends: {formatDate(exam.endDateTime)}
+                    Ends: {formatDateOnly(exam.endDateTime)}
                   </p>
                 </div>
               </div>
@@ -349,17 +546,49 @@ export default function Exams({ setActiveSection }) {
               <div className="flex items-center gap-4 text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair">
                 <span>📊 Total Marks: {exam.totalMarks}</span>
                 <span>✅ Pass Mark: {exam.passMark}%</span>
-                <span>👥 {exam.assignedStudents || 0} students</span>
+                <span>👥 {exam.assignedStudents?.length || 0} students</span>
+                {exam.status === 'active' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fetchExamResults(exam.id);
+                    }}
+                    className="ml-auto px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-[10px] font-[600] hover:bg-blue-200"
+                  >
+                    View Results
+                  </button>
+                )}
                 {exam.status === 'draft' && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedExam(exam);
-                      setShowStudentSelectModal(true);
+                      setFormData({
+                        title: exam.title,
+                        description: exam.description || '',
+                        class: exam.class,
+                        subjects: exam.subjects.map(s => ({
+                          subjectId: s.subjectId,
+                          questionCount: s.questionCount
+                        })),
+                        duration: exam.duration,
+                        totalMarks: exam.totalMarks,
+                        passMark: exam.passMark,
+                        startDate: '',
+                        startTime: '',
+                        endDate: '',
+                        endTime: '',
+                        instructions: exam.instructions || '',
+                        allowRetake: exam.allowRetake || false,
+                        shuffleQuestions: exam.shuffleQuestions !== false,
+                        showResults: exam.showResults !== false,
+                        questionSelection: exam.questionSelection || 'random'
+                      });
+                      setShowEditModal(true);
                     }}
-                    className="ml-auto px-3 py-1 bg-[#10b981] text-white rounded-md text-[10px] font-[600] hover:bg-[#059669]"
+                    className="ml-2 px-3 py-1 bg-yellow-100 text-yellow-600 rounded-md text-[10px] font-[600] hover:bg-yellow-200"
                   >
-                    Activate Exam
+                    Edit
                   </button>
                 )}
               </div>
@@ -386,7 +615,7 @@ export default function Exams({ setActiveSection }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Create New Exam</h3>
@@ -400,20 +629,20 @@ export default function Exams({ setActiveSection }) {
                       value={formData.title}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
-                      placeholder="e.g., Mid-Term Examination"
+                      placeholder="e.g., First Term Examination"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subject *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Class *</label>
                     <select
-                      name="subjectId"
-                      value={formData.subjectId}
+                      name="class"
+                      value={formData.class}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
-                      <option value="">Select Subject</option>
-                      {subjects.map(subject => (
-                        <option key={subject.id} value={subject.id}>{subject.name}</option>
+                      <option value="">Select Class</option>
+                      {classes.map(cls => (
+                        <option key={cls} value={cls}>{cls}</option>
                       ))}
                     </select>
                   </div>
@@ -429,6 +658,51 @@ export default function Exams({ setActiveSection }) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     placeholder="Brief description of the exam"
                   />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subjects *</label>
+                    <button
+                      type="button"
+                      onClick={addSubject}
+                      className="text-[11px] text-[#10b981] font-[600] hover:underline"
+                    >
+                      + Add Subject
+                    </button>
+                  </div>
+                  {formData.subjects.map((subject, index) => (
+                    <div key={index} className="flex gap-3 mb-3">
+                      <select
+                        value={subject.subjectId}
+                        onChange={(e) => handleSubjectChange(index, 'subjectId', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      >
+                        <option value="">Select Subject</option>
+                        {subjects.map(s => (
+                          <option key={s.id} value={s.id}>{s.name} ({s.questionCount || 0} questions)</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        value={subject.questionCount}
+                        onChange={(e) => handleSubjectChange(index, 'questionCount', parseInt(e.target.value))}
+                        min="1"
+                        max="100"
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                        placeholder="Count"
+                      />
+                      {formData.subjects.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSubject(index)}
+                          className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -527,16 +801,6 @@ export default function Exams({ setActiveSection }) {
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      name="allowRetake"
-                      checked={formData.allowRetake}
-                      onChange={handleInputChange}
-                      className="w-4 h-4 text-[#10b981]"
-                    />
-                    <span className="text-[13px] text-[#1E1E1E] font-playfair">Allow retake</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
                       name="shuffleQuestions"
                       checked={formData.shuffleQuestions}
                       onChange={handleInputChange}
@@ -554,6 +818,16 @@ export default function Exams({ setActiveSection }) {
                     />
                     <span className="text-[13px] text-[#1E1E1E] font-playfair">Show results immediately</span>
                   </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="allowRetake"
+                      checked={formData.allowRetake}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 text-[#10b981]"
+                    />
+                    <span className="text-[13px] text-[#1E1E1E] font-playfair">Allow retake</span>
+                  </label>
                 </div>
               </div>
 
@@ -569,6 +843,84 @@ export default function Exams({ setActiveSection }) {
                   className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Create Exam
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showEditModal && selectedExam && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+            onClick={() => setShowEditModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className={modalTitle}>Edit Exam</h3>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Exam Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Duration (mins)</label>
+                    <input
+                      type="number"
+                      name="duration"
+                      value={formData.duration}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Pass Mark (%)</label>
+                    <input
+                      type="number"
+                      name="passMark"
+                      value={formData.passMark}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Instructions</label>
+                  <textarea
+                    name="instructions"
+                    value={formData.instructions}
+                    onChange={handleInputChange}
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                  />
+                </div>
+              </div>
+              <div className={modalActions}>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className={modalButtonSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateExam}
+                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                >
+                  Update Exam
                 </button>
               </div>
             </motion.div>
@@ -604,7 +956,7 @@ export default function Exams({ setActiveSection }) {
                     </span>
                   </div>
                   <p className="text-[13px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                    Subject: {subjects.find(s => s.id === selectedExam.subjectId)?.name || 'N/A'}
+                    Class: {selectedExam.class}
                   </p>
                 </div>
                 <button
@@ -633,7 +985,21 @@ export default function Exams({ setActiveSection }) {
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-[11px] leading-[100%] font-[400] text-[#626060] mb-1 font-playfair">Assigned Students</p>
-                  <p className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">{selectedExam.assignedStudents || 0}</p>
+                  <p className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">{selectedExam.assignedStudents?.length || 0}</p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">Subjects</h4>
+                <div className="space-y-2">
+                  {selectedExam.subjects?.map((subject, index) => (
+                    <div key={index} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                      <span className="text-[13px] font-[600] text-[#1E1E1E] font-playfair">{subject.subjectName}</span>
+                      <span className="text-[12px] text-[#626060] font-playfair">
+                        {subject.questionCount} questions • {subject.totalMarks} marks
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -667,7 +1033,7 @@ export default function Exams({ setActiveSection }) {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <div className="flex gap-3 pt-4 border-t border-gray-200 flex-wrap">
                 <button
                   onClick={() => {
                     setShowDetailsModal(false);
@@ -677,15 +1043,72 @@ export default function Exams({ setActiveSection }) {
                 >
                   Close
                 </button>
+                
                 {selectedExam.status === 'draft' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setShowDetailsModal(false);
+                        setShowStudentSelectModal(true);
+                      }}
+                      className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    >
+                      Assign Students
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDetailsModal(false);
+                        setSelectedStudents([]);
+                        setShowActivateModal(true);
+                      }}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    >
+                      Activate for All
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDetailsModal(false);
+                        setShowDeleteModal(true);
+                      }}
+                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+                
+                {selectedExam.status === 'active' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setShowDetailsModal(false);
+                        fetchExamResults(selectedExam.id);
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    >
+                      View Results
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDetailsModal(false);
+                        setShowDeactivateModal(true);
+                      }}
+                      className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    >
+                      Deactivate
+                    </button>
+                  </>
+                )}
+                
+                {selectedExam.status === 'completed' && (
                   <button
                     onClick={() => {
                       setShowDetailsModal(false);
-                      setShowStudentSelectModal(true);
+                      fetchExamResults(selectedExam.id);
                     }}
-                    className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                   >
-                    Activate Exam
+                    View Results
                   </button>
                 )}
               </div>
@@ -708,14 +1131,14 @@ export default function Exams({ setActiveSection }) {
               className="bg-white rounded-xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className={modalTitle}>Select Students for {selectedExam.title}</h3>
+              <h3 className={modalTitle}>Assign Students to {selectedExam.title}</h3>
               
               <div className="mb-4 flex items-center justify-between">
                 <button
-                  onClick={handleSelectAllStudents}
+                  onClick={handleSelectAllInClass}
                   className="text-[12px] text-[#10b981] font-[600] hover:underline"
                 >
-                  {selectedStudents.length === students.length ? 'Deselect All' : 'Select All'}
+                  {selectAllInClass ? 'Deselect All in Class' : 'Select All in Class'}
                 </button>
                 <p className="text-[12px] text-[#626060]">
                   {selectedStudents.length} students selected
@@ -723,7 +1146,9 @@ export default function Exams({ setActiveSection }) {
               </div>
 
               <div className="space-y-2 max-h-96 overflow-y-auto mb-6">
-                {students.map(student => (
+                {students
+                  .filter(s => s.class === selectedExam.class)
+                  .map(student => (
                   <label
                     key={student.id}
                     className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
@@ -754,16 +1179,13 @@ export default function Exams({ setActiveSection }) {
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    setShowStudentSelectModal(false);
-                    setShowActivateModal(true);
-                  }}
+                  onClick={handleAssignStudents}
                   disabled={selectedStudents.length === 0}
                   className={`px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair ${
                     selectedStudents.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  Continue to Activate
+                  Assign Students
                 </button>
               </div>
             </motion.div>
@@ -787,7 +1209,9 @@ export default function Exams({ setActiveSection }) {
             >
               <h3 className={modalTitle}>Activate Exam</h3>
               <p className={modalText}>
-                Are you sure you want to activate this exam for {selectedStudents.length} student(s)? 
+                {selectedStudents.length > 0 
+                  ? `Are you sure you want to activate this exam for ${selectedStudents.length} selected student(s)?`
+                  : 'Are you sure you want to activate this exam for all students in this class?'}
                 Once activated, students will be able to access the exam during the scheduled time.
               </p>
               <div className={modalActions}>
@@ -802,6 +1226,197 @@ export default function Exams({ setActiveSection }) {
                   className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
                 >
                   Confirm Activation
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showDeactivateModal && selectedExam && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+            onClick={() => setShowDeactivateModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className={modalContainer}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className={modalTitle}>Deactivate Exam</h3>
+              <p className={modalText}>
+                Are you sure you want to deactivate this exam? Students will no longer be able to access it.
+              </p>
+              <div className={modalActions}>
+                <button
+                  onClick={() => setShowDeactivateModal(false)}
+                  className={modalButtonSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeactivateExam}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                >
+                  Confirm Deactivation
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showDeleteModal && selectedExam && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className={modalContainer}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className={modalTitle}>Delete Exam</h3>
+              <p className={modalText}>
+                Are you sure you want to delete this exam? This action cannot be undone.
+              </p>
+              <div className={modalActions}>
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className={modalButtonSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteExam}
+                  className={modalButtonDanger}
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showResultsModal && examResults && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+            onClick={() => {
+              setShowResultsModal(false);
+              setExamResults(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-start mb-6">
+                <h3 className={modalTitle}>{examResults.exam.title} - Results</h3>
+                <button
+                  onClick={() => {
+                    setShowResultsModal(false);
+                    setExamResults(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-[11px] text-[#626060] mb-1 font-playfair">Total Students</p>
+                  <p className="text-[20px] font-[700] text-[#1E1E1E] font-playfair">{examResults.summary.totalStudents}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-[11px] text-[#626060] mb-1 font-playfair">Submitted</p>
+                  <p className="text-[20px] font-[700] text-[#1E1E1E] font-playfair">{examResults.summary.submittedCount}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-[11px] text-[#626060] mb-1 font-playfair">Average Score</p>
+                  <p className="text-[20px] font-[700] text-[#1E1E1E] font-playfair">{Math.round(examResults.summary.averageScore)}%</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-[11px] text-[#626060] mb-1 font-playfair">Pass Rate</p>
+                  <p className="text-[20px] font-[700] text-[#10b981] font-playfair">{Math.round(examResults.summary.passRate)}%</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Student</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Class</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Score</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Percentage</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Correct</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Wrong</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Submitted</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {examResults.results.map((result, index) => (
+                      <tr key={index} className="border-b border-gray-100">
+                        <td className="px-4 py-3">
+                          <span className="text-[12px] font-[500] text-[#1E1E1E]">{result.studentName}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-[12px] text-[#626060]">{result.studentClass}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-[12px] font-[500]">{result.score}/{result.totalMarks}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-[600] ${
+                            result.percentage >= 75 ? 'bg-green-100 text-green-600' :
+                            result.percentage >= 60 ? 'bg-blue-100 text-blue-600' :
+                            result.percentage >= 50 ? 'bg-yellow-100 text-yellow-600' :
+                            'bg-red-100 text-red-600'
+                          }`}>
+                            {Math.round(result.percentage)}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-[12px] text-green-600">{result.correctAnswers || 0}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-[12px] text-red-600">{result.wrongAnswers || 0}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-[11px] text-[#626060]">
+                            {result.submittedAt ? new Date(result.submittedAt._seconds * 1000).toLocaleDateString() : 'N/A'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className={modalActions}>
+                <button
+                  onClick={() => {
+                    setShowResultsModal(false);
+                    setExamResults(null);
+                  }}
+                  className={modalButtonSecondary}
+                >
+                  Close
                 </button>
               </div>
             </motion.div>
