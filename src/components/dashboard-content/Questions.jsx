@@ -47,6 +47,11 @@ export default function Questions({ setActiveSection }) {
     mode: 'exam'
   });
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [paginatedQuestions, setPaginatedQuestions] = useState([]);
+
   const difficulties = ['easy', 'medium', 'hard'];
   const modes = ['exam', 'practice'];
   const classes = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3', 'General'];
@@ -69,6 +74,14 @@ export default function Questions({ setActiveSection }) {
     }
     fetchData();
   }, []);
+
+  useEffect(() => {
+    // Update paginated questions whenever filtered questions change or page changes
+    const filtered = filteredQuestions;
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    setPaginatedQuestions(filtered.slice(indexOfFirstItem, indexOfLastItem));
+  }, [questions, searchTerm, filterSubject, filterMode, filterDifficulty, currentPage, itemsPerPage]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -288,6 +301,7 @@ export default function Questions({ setActiveSection }) {
           mode: 'exam'
         });
         fetchData();
+        setCurrentPage(1); // Reset to first page after creation
       } else {
         toast.error(data.message || 'Failed to create question', { id: toastId });
       }
@@ -441,6 +455,7 @@ export default function Questions({ setActiveSection }) {
         setBulkImportData('');
         setBulkImportFile(null);
         fetchData();
+        setCurrentPage(1); // Reset to first page after import
       } else {
         toast.error(data.message || 'Failed to import questions', { id: toastId });
       }
@@ -473,6 +488,29 @@ export default function Questions({ setActiveSection }) {
     const matchesDifficulty = filterDifficulty === 'all' || q.difficulty === filterDifficulty;
     return matchesSearch && matchesSubject && matchesMode && matchesDifficulty;
   });
+
+  // Pagination handlers
+  const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
+  
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top of questions list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Get subscription plan name for display
   const getSubscriptionPlanName = () => {
@@ -510,7 +548,10 @@ export default function Questions({ setActiveSection }) {
               type="text"
               placeholder="Search questions..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1); // Reset to first page on search
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] font-playfair text-[13px]"
             />
           </div>
@@ -555,6 +596,7 @@ export default function Questions({ setActiveSection }) {
             value={filterSubject}
             onChange={(e) => {
               setFilterSubject(e.target.value);
+              setCurrentPage(1); // Reset to first page on filter change
               const subject = subjects.find(s => s.id === e.target.value);
               setSelectedSubject(subject);
               if (subject) {
@@ -570,7 +612,10 @@ export default function Questions({ setActiveSection }) {
           </select>
           <select
             value={filterMode}
-            onChange={(e) => setFilterMode(e.target.value)}
+            onChange={(e) => {
+              setFilterMode(e.target.value);
+              setCurrentPage(1); // Reset to first page on filter change
+            }}
             className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
           >
             <option value="all">All Modes</option>
@@ -580,7 +625,10 @@ export default function Questions({ setActiveSection }) {
           </select>
           <select
             value={filterDifficulty}
-            onChange={(e) => setFilterDifficulty(e.target.value)}
+            onChange={(e) => {
+              setFilterDifficulty(e.target.value);
+              setCurrentPage(1); // Reset to first page on filter change
+            }}
             className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
           >
             <option value="all">All Difficulties</option>
@@ -597,81 +645,170 @@ export default function Questions({ setActiveSection }) {
           <p className="text-[14px] text-[#626060] font-playfair">Loading questions...</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredQuestions.map((question) => (
-            <motion.div
-              key={question.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
-                      {question.question}
-                    </h3>
-                    <span className={`px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500] ${
-                      question.difficulty === 'easy' ? 'bg-green-100 text-green-600' :
-                      question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                      'bg-red-100 text-red-600'
-                    }`}>
-                      {question.difficulty}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500] ${
-                      question.mode === 'exam' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
-                    }`}>
-                      {question.mode === 'exam' ? 'Exam Mode' : 'Practice Mode'}
-                    </span>
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-[9px] leading-[100%] font-[500]">
-                      {question.marks} mark{question.marks > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mb-2">
-                    Subject: {subjects.find(s => s.id === question.subjectId)?.name || 'N/A'} • Class: {question.class} • Topic: {question.topic || 'General'}
-                  </p>
-                  <div className="space-y-2 mb-3">
-                    {question.options?.map((option, idx) => (
-                      <div key={idx} className={`p-3 rounded-md text-[13px] leading-[140%] font-[400] ${
-                        option === question.correctAnswer ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-gray-50 text-[#1E1E1E]'
+        <>
+          {/* Results count and pagination info */}
+          <div className="mb-4 flex justify-between items-center">
+            <p className="text-[13px] text-[#626060] font-playfair">
+              Showing {paginatedQuestions.length} of {filteredQuestions.length} questions
+            </p>
+            {filteredQuestions.length > 0 && (
+              <p className="text-[13px] text-[#626060] font-playfair">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
+          </div>
+
+          {/* Questions list */}
+          <div className="space-y-4">
+            {paginatedQuestions.map((question) => (
+              <motion.div
+                key={question.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
+                        {question.question}
+                      </h3>
+                      <span className={`px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500] ${
+                        question.difficulty === 'easy' ? 'bg-green-100 text-green-600' :
+                        question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-600' :
+                        'bg-red-100 text-red-600'
                       }`}>
-                        {String.fromCharCode(65 + idx)}. {option}
-                        {option === question.correctAnswer && ' ✓'}
-                      </div>
-                    ))}
-                  </div>
-                  {question.explanation && (
-                    <div className="mt-3 p-3 bg-blue-50 text-blue-700 rounded-md text-[12px] leading-[140%] font-[400]">
-                      <span className="font-[600]">Explanation:</span> {question.explanation}
+                        {question.difficulty}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500] ${
+                        question.mode === 'exam' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                      }`}>
+                        {question.mode === 'exam' ? 'Exam Mode' : 'Practice Mode'}
+                      </span>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-[9px] leading-[100%] font-[500]">
+                        {question.marks} mark{question.marks > 1 ? 's' : ''}
+                      </span>
                     </div>
-                  )}
+                    <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mb-2">
+                      Subject: {subjects.find(s => s.id === question.subjectId)?.name || 'N/A'} • Class: {question.class} • Topic: {question.topic || 'General'}
+                    </p>
+                    <div className="space-y-2 mb-3">
+                      {question.options?.map((option, idx) => (
+                        <div key={idx} className={`p-3 rounded-md text-[13px] leading-[140%] font-[400] ${
+                          option === question.correctAnswer ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-gray-50 text-[#1E1E1E]'
+                        }`}>
+                          {String.fromCharCode(65 + idx)}. {option}
+                          {option === question.correctAnswer && ' ✓'}
+                        </div>
+                      ))}
+                    </div>
+                    {question.explanation && (
+                      <div className="mt-3 p-3 bg-blue-50 text-blue-700 rounded-md text-[12px] leading-[140%] font-[400]">
+                        <span className="font-[600]">Explanation:</span> {question.explanation}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => openEditModal(question)}
+                      className="p-2 text-[#10b981] hover:bg-[#F0FDF4] rounded-md transition-colors"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedQuestion(question);
+                        setShowDeleteModal(true);
+                      }}
+                      className="p-2 text-[#DC2626] hover:bg-[#FEF2F2] rounded-md transition-colors"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2 ml-4">
-                  <button
-                    onClick={() => openEditModal(question)}
-                    className="p-2 text-[#10b981] hover:bg-[#F0FDF4] rounded-md transition-colors"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedQuestion(question);
-                      setShowDeleteModal(true);
-                    }}
-                    className="p-2 text-[#DC2626] hover:bg-[#FEF2F2] rounded-md transition-colors"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* No results message */}
           {filteredQuestions.length === 0 && (
             <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
               <p className="text-[14px] text-[#626060] font-playfair">No questions found</p>
             </div>
           )}
-        </div>
+
+          {/* Pagination controls */}
+          {filteredQuestions.length > itemsPerPage && (
+            <div className="mt-8 flex justify-center items-center gap-2">
+              <button
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-md text-[13px] font-[600] font-playfair transition-colors ${
+                  currentPage === 1
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-[#10b981] text-white hover:bg-[#059669]'
+                }`}
+              >
+                ← Previous
+              </button>
+              
+              <div className="flex gap-1">
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  // Show first page, last page, and pages around current page
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`w-10 h-10 rounded-md text-[13px] font-[600] font-playfair transition-colors ${
+                          currentPage === pageNumber
+                            ? 'bg-[#10b981] text-white'
+                            : 'bg-white border border-gray-300 text-[#626060] hover:border-[#10b981] hover:text-[#10b981]'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  } else if (
+                    pageNumber === currentPage - 2 ||
+                    pageNumber === currentPage + 2
+                  ) {
+                    return (
+                      <span key={pageNumber} className="w-10 h-10 flex items-center justify-center text-[#626060]">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-2 rounded-md text-[13px] font-[600] font-playfair transition-colors ${
+                  currentPage === totalPages
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-[#10b981] text-white hover:bg-[#059669]'
+                }`}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+
+          {/* Items per page info */}
+          {filteredQuestions.length > 0 && (
+            <div className="mt-4 text-center text-[11px] text-[#626060] font-playfair">
+              Showing {Math.min(itemsPerPage, filteredQuestions.length)} items per page
+            </div>
+          )}
+        </>
       )}
 
       <AnimatePresence>
@@ -701,7 +838,6 @@ export default function Questions({ setActiveSection }) {
                       disabled
                       className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-[13px] font-playfair"
                     />
-                    {/* Hidden input to ensure subjectId is in formData */}
                     <input type="hidden" name="subjectId" value={selectedSubject?.id || ''} />
                   </div>
                   <div>
