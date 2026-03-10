@@ -172,11 +172,17 @@ export default function Questions({ setActiveSection }) {
   };
 
   const validateForm = () => {
-    if (!formData.subjectId) {
-      toast.error('Please select a subject');
+    // Check if subject is selected
+    if (!selectedSubject && !formData.subjectId) {
+      toast.error('Please select a subject from the filter first');
       return false;
     }
-    
+
+    // Ensure subjectId is set in formData
+    if (!formData.subjectId && selectedSubject) {
+      setFormData(prev => ({ ...prev, subjectId: selectedSubject.id }));
+    }
+
     if (!formData.question || formData.question.trim() === '') {
       toast.error('Please enter the question');
       return false;
@@ -192,7 +198,7 @@ export default function Questions({ setActiveSection }) {
       return false;
     }
     
-    // Optional: Validate that correctAnswer matches one of the options
+    // Validate that correctAnswer matches one of the options
     const correctAnswerExists = formData.options.some(
       opt => opt.trim().toLowerCase() === formData.correctAnswer.trim().toLowerCase()
     );
@@ -216,7 +222,25 @@ export default function Questions({ setActiveSection }) {
   };
 
   const handleCreateQuestion = async () => {
+    // Ensure subjectId is set
+    if (!formData.subjectId && selectedSubject) {
+      setFormData(prev => ({ ...prev, subjectId: selectedSubject.id }));
+    }
+
     if (!validateForm()) return;
+
+    // Prepare the data exactly as the API expects
+    const questionData = {
+      subjectId: formData.subjectId || selectedSubject.id,
+      question: formData.question.trim(),
+      options: formData.options.map(opt => opt.trim()),
+      correctAnswer: formData.correctAnswer.trim(),
+      marks: parseInt(formData.marks) || 1,
+      difficulty: formData.difficulty,
+      topic: formData.topic.trim() || 'General',
+      class: formData.class,
+      mode: formData.mode
+    };
 
     const toastId = toast.loading('Creating question...');
 
@@ -226,7 +250,7 @@ export default function Questions({ setActiveSection }) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(questionData)
       });
 
       const data = await response.json();
@@ -257,6 +281,18 @@ export default function Questions({ setActiveSection }) {
   const handleUpdateQuestion = async () => {
     if (!validateForm()) return;
 
+    const questionData = {
+      subjectId: formData.subjectId || selectedSubject.id,
+      question: formData.question.trim(),
+      options: formData.options.map(opt => opt.trim()),
+      correctAnswer: formData.correctAnswer.trim(),
+      marks: parseInt(formData.marks) || 1,
+      difficulty: formData.difficulty,
+      topic: formData.topic.trim() || 'General',
+      class: formData.class,
+      mode: formData.mode
+    };
+
     const toastId = toast.loading('Updating question...');
 
     try {
@@ -265,7 +301,7 @@ export default function Questions({ setActiveSection }) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(questionData)
       });
 
       const data = await response.json();
@@ -420,6 +456,8 @@ export default function Questions({ setActiveSection }) {
                   toast.error('Please select a subject from the filter first');
                   return;
                 }
+                // Ensure subjectId is set in formData
+                setFormData(prev => ({ ...prev, subjectId: selectedSubject.id }));
                 setShowCreateModal(true);
               }}
               className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
@@ -437,7 +475,7 @@ export default function Questions({ setActiveSection }) {
               const subject = subjects.find(s => s.id === e.target.value);
               setSelectedSubject(subject);
               if (subject) {
-                setFormData(prev => ({ ...prev, class: subject.class || 'General' }));
+                setFormData(prev => ({ ...prev, subjectId: subject.id, class: subject.class || 'General' }));
               }
             }}
             className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
@@ -580,6 +618,8 @@ export default function Questions({ setActiveSection }) {
                       disabled
                       className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-[13px] font-playfair"
                     />
+                    {/* Hidden input to ensure subjectId is in formData */}
+                    <input type="hidden" name="subjectId" value={selectedSubject?.id || ''} />
                   </div>
                   <div>
                     <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Mode *</label>
@@ -668,7 +708,6 @@ export default function Questions({ setActiveSection }) {
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
-                      <option value="">Select Class</option>
                       {classes.map(cls => (
                         <option key={cls} value={cls}>{cls}</option>
                       ))}
@@ -872,7 +911,6 @@ export default function Questions({ setActiveSection }) {
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     >
-                      <option value="">Select Class</option>
                       {classes.map(cls => (
                         <option key={cls} value={cls}>{cls}</option>
                       ))}
