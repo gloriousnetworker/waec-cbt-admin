@@ -49,6 +49,7 @@ export default function Questions({ setActiveSection }) {
 
   const difficulties = ['easy', 'medium', 'hard'];
   const modes = ['exam', 'practice'];
+  const classes = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3', 'General'];
 
   useEffect(() => {
     const storedSubject = localStorage.getItem('selected_subject');
@@ -58,7 +59,7 @@ export default function Questions({ setActiveSection }) {
       setFormData(prev => ({
         ...prev,
         subjectId: subject.id,
-        class: 'General',
+        class: subject.class || 'General',
         mode: 'exam'
       }));
       setFilterSubject(subject.id);
@@ -170,11 +171,52 @@ export default function Questions({ setActiveSection }) {
     setFormData({ ...formData, options: newOptions });
   };
 
-  const handleCreateQuestion = async () => {
-    if (!formData.subjectId || !formData.question || formData.options.some(opt => !opt) || !formData.correctAnswer) {
-      toast.error('Please fill in all required fields');
-      return;
+  const validateForm = () => {
+    if (!formData.subjectId) {
+      toast.error('Please select a subject');
+      return false;
     }
+    
+    if (!formData.question || formData.question.trim() === '') {
+      toast.error('Please enter the question');
+      return false;
+    }
+    
+    if (formData.options.some(opt => !opt || opt.trim() === '')) {
+      toast.error('Please fill in all four options');
+      return false;
+    }
+    
+    if (!formData.correctAnswer || formData.correctAnswer.trim() === '') {
+      toast.error('Please enter the correct answer');
+      return false;
+    }
+    
+    // Optional: Validate that correctAnswer matches one of the options
+    const correctAnswerExists = formData.options.some(
+      opt => opt.trim().toLowerCase() === formData.correctAnswer.trim().toLowerCase()
+    );
+    
+    if (!correctAnswerExists) {
+      toast.error('Correct answer must match one of the options exactly');
+      return false;
+    }
+    
+    if (!formData.class) {
+      toast.error('Please select a class');
+      return false;
+    }
+    
+    if (!formData.mode) {
+      toast.error('Please select a mode');
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleCreateQuestion = async () => {
+    if (!validateForm()) return;
 
     const toastId = toast.loading('Creating question...');
 
@@ -200,7 +242,7 @@ export default function Questions({ setActiveSection }) {
           marks: 1,
           difficulty: 'easy',
           topic: '',
-          class: 'General',
+          class: selectedSubject?.class || 'General',
           mode: 'exam'
         });
         fetchData();
@@ -213,10 +255,7 @@ export default function Questions({ setActiveSection }) {
   };
 
   const handleUpdateQuestion = async () => {
-    if (!formData.question || formData.options.some(opt => !opt) || !formData.correctAnswer) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
+    if (!validateForm()) return;
 
     const toastId = toast.loading('Updating question...');
 
@@ -243,7 +282,7 @@ export default function Questions({ setActiveSection }) {
           marks: 1,
           difficulty: 'easy',
           topic: '',
-          class: 'General',
+          class: selectedSubject?.class || 'General',
           mode: 'exam'
         });
         fetchData();
@@ -397,6 +436,9 @@ export default function Questions({ setActiveSection }) {
               setFilterSubject(e.target.value);
               const subject = subjects.find(s => s.id === e.target.value);
               setSelectedSubject(subject);
+              if (subject) {
+                setFormData(prev => ({ ...prev, class: subject.class || 'General' }));
+              }
             }}
             className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
           >
@@ -619,15 +661,18 @@ export default function Questions({ setActiveSection }) {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Class</label>
-                    <input
-                      type="text"
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Class *</label>
+                    <select
                       name="class"
                       value={formData.class}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
-                      placeholder="e.g., SS1, General"
-                    />
+                    >
+                      <option value="">Select Class</option>
+                      {classes.map(cls => (
+                        <option key={cls} value={cls}>{cls}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -820,14 +865,18 @@ export default function Questions({ setActiveSection }) {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Class</label>
-                    <input
-                      type="text"
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Class *</label>
+                    <select
                       name="class"
                       value={formData.class}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
-                    />
+                    >
+                      <option value="">Select Class</option>
+                      {classes.map(cls => (
+                        <option key={cls} value={cls}>{cls}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
