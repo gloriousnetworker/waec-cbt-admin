@@ -31,17 +31,14 @@ export default function Subscription({ setActiveSection }) {
   const [selectedMethod, setSelectedMethod] = useState('card');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
 
   useEffect(() => {
     fetchData();
-    // Check for payment reference in URL (for verification page redirect)
     const urlParams = new URLSearchParams(window.location.search);
     const paymentRef = urlParams.get('payment_ref');
     if (paymentRef) {
       toast.success('Payment completed! Your subscription is being activated...');
-      // Clean up URL
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -106,14 +103,12 @@ export default function Subscription({ setActiveSection }) {
       if (response.ok) {
         toast.success('Payment initialized! Redirecting...', { id: toastId });
         
-        // Store payment info in sessionStorage for reference after redirect
         sessionStorage.setItem('pendingPayment', JSON.stringify({
           reference: data.payment.reference,
           plan: selectedPlan,
           amount: plans[selectedPlan]?.price
         }));
         
-        // Redirect to Paystack payment page
         window.location.href = data.payment.authorizationUrl;
       } else {
         toast.error(data.message || 'Failed to initialize payment', { id: toastId });
@@ -129,11 +124,6 @@ export default function Subscription({ setActiveSection }) {
 
   const handleViewPaymentDetails = (payment) => {
     setSelectedPayment(payment);
-  };
-
-  const handleCancelPayment = () => {
-    setShowCancelModal(false);
-    setSelectedPayment(null);
   };
 
   const formatDate = (timestamp) => {
@@ -167,44 +157,69 @@ export default function Subscription({ setActiveSection }) {
     }
   };
 
-  const getPlanFeatures = (planKey) => {
+  const getPlanPeriod = (planKey, plan) => {
+    if (!plan) return '';
+    if (plan.days === 30) return '/month';
+    if (plan.days === 120) return '/term';
+    if (plan.days === 365) return '/year';
+    return '';
+  };
+
+  const getPlanFeatures = (planKey, plan) => {
     const features = {
       monthly: [
-        'Up to 50 students',
-        'Basic analytics',
-        'Email support',
-        'Question bank access'
+        `✓ Up to ${plan.studentLimit || 50} students`,
+        '✓ Basic analytics',
+        '✓ Email support',
+        '✓ Question bank access',
+        '✓ Practice mode',
+        '✗ Bulk import',
+        '✗ Advanced exam scheduling',
+        '✗ Custom branding'
       ],
       termly: [
-        'Up to 200 students',
-        'Advanced analytics',
-        'Priority support',
-        'Question bank access',
-        'Bulk import',
-        'Exam scheduling'
+        `✓ Up to ${plan.studentLimit || 200} students`,
+        '✓ Advanced analytics',
+        '✓ Priority support',
+        '✓ Question bank access',
+        '✓ Bulk import',
+        '✓ Exam scheduling',
+        '✓ Practice mode',
+        '✗ Custom branding'
       ],
       yearly: [
-        'Unlimited students',
-        'All analytics features',
-        '24/7 priority support',
-        'Full question bank',
-        'Bulk import',
-        'Advanced exam scheduling',
-        'Custom branding'
+        `✓ Up to ${plan.studentLimit || 500} students`,
+        '✓ All analytics features',
+        '✓ 24/7 priority support',
+        '✓ Full question bank',
+        '✓ Bulk import',
+        '✓ Advanced exam scheduling',
+        '✓ Custom branding',
+        '✓ API access'
       ],
       unlimited: [
-        'Unlimited students',
-        'All analytics features',
-        'Dedicated support',
-        'Full question bank',
-        'Bulk import',
-        'Advanced exam scheduling',
-        'Custom branding',
-        'API access',
-        'White-label solution'
+        `✓ Unlimited students for one year`,
+        '✓ All analytics features',
+        '✓ Dedicated support',
+        '✓ Full question bank',
+        '✓ Bulk import',
+        '✓ Advanced exam scheduling',
+        '✓ Custom branding',
+        '✓ API access',
+        '✓ White-label solution',
+        '⭐ BEST VALUE'
       ]
     };
     return features[planKey] || [];
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   };
 
   if (loading) {
@@ -216,6 +231,8 @@ export default function Subscription({ setActiveSection }) {
       </div>
     );
   }
+
+  const planOrder = ['monthly', 'termly', 'yearly', 'unlimited'];
 
   return (
     <div className={examsContainer}>
@@ -231,11 +248,17 @@ export default function Subscription({ setActiveSection }) {
               <span className="text-3xl">✅</span>
               <div>
                 <h3 className="text-[16px] leading-[120%] font-[600] text-green-700 font-playfair">
-                  Active Subscription: {currentSubscription.plan?.charAt(0).toUpperCase() + currentSubscription.plan?.slice(1)} Plan
+                  Active Subscription: {subscriptionStatus.planName || currentSubscription.plan?.charAt(0).toUpperCase() + currentSubscription.plan?.slice(1)} Plan
                 </h3>
                 <p className="text-[13px] text-green-600 font-playfair mt-1">
                   Started: {formatDate(currentSubscription.startDate)} • 
-                  {!currentSubscription.expiryDate ? ' Unlimited' : ` Expires: ${formatDate(currentSubscription.expiryDate)} • ${subscriptionStatus.daysLeft || 0} days remaining`}
+                  Expires: {formatDate(currentSubscription.expiryDate)} • {subscriptionStatus.daysLeft || 0} days remaining
+                </p>
+                <p className="text-[12px] text-green-600 font-playfair mt-1">
+                  Student Usage: {subscriptionStatus.studentCount || 0} / {subscriptionStatus.studentLimit === null ? '∞' : subscriptionStatus.studentLimit} students
+                  {subscriptionStatus.remainingStudents !== null && subscriptionStatus.remainingStudents > 0 && (
+                    <span className="ml-2 text-green-500">({subscriptionStatus.remainingStudents} slots left)</span>
+                  )}
                 </p>
                 {currentSubscription.paymentReference && (
                   <p className="text-[11px] text-green-500 font-playfair mt-1">
@@ -271,55 +294,95 @@ export default function Subscription({ setActiveSection }) {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {Object.entries(plans).map(([key, plan]) => (
-          <motion.div
-            key={key}
-            whileHover={{ y: -4 }}
-            className={`bg-white rounded-xl border-2 p-6 ${
-              currentSubscription?.plan === key && subscriptionStatus.active
-                ? 'border-[#10b981] bg-[#F0FDF4]'
-                : 'border-gray-200 hover:border-[#10b981]'
-            }`}
-          >
-            <div className="text-center mb-4">
-              <h3 className="text-[20px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair">
-                {plan.name}
-              </h3>
-              <div className="mt-3">
-                <span className="text-[32px] leading-[100%] font-[700] text-[#10b981] font-playfair">
-                  ₦{plan.price?.toLocaleString()}
-                </span>
-                {plan.days && (
-                  <span className="text-[12px] text-[#626060] font-playfair">/{plan.days} days</span>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3 mb-6">
-              {getPlanFeatures(key).map((benefit, index) => (
-                <div key={index} className="flex items-center gap-2 text-[12px] text-[#626060] font-playfair">
-                  <span className="text-[#10b981]">✓</span>
-                  {benefit}
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => {
-                setSelectedPlan(key);
-                setShowPaymentModal(true);
-              }}
-              disabled={currentSubscription?.plan === key && subscriptionStatus.active}
-              className={`w-full py-3 rounded-lg font-[600] text-[13px] leading-[100%] font-playfair transition-colors ${
-                currentSubscription?.plan === key && subscriptionStatus.active
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-[#10b981] text-white hover:bg-[#059669]'
+        {planOrder.map((key) => {
+          const plan = plans[key];
+          if (!plan) return null;
+          
+          const isCurrentPlan = currentSubscription?.plan === key && subscriptionStatus.active;
+          const isUnlimited = key === 'unlimited';
+          const period = getPlanPeriod(key, plan);
+          
+          return (
+            <motion.div
+              key={key}
+              whileHover={{ y: -4 }}
+              className={`bg-white rounded-xl border-2 p-6 relative ${
+                isCurrentPlan
+                  ? 'border-[#10b981] bg-[#F0FDF4]'
+                  : isUnlimited
+                  ? 'border-[#8B5CF6] hover:border-[#7C3AED]'
+                  : 'border-gray-200 hover:border-[#10b981]'
               }`}
             >
-              {currentSubscription?.plan === key && subscriptionStatus.active ? 'Current Plan' : 'Select Plan'}
-            </button>
-          </motion.div>
-        ))}
+              {isUnlimited && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#8B5CF6] text-white px-3 py-1 rounded-full text-[10px] font-[600]">
+                  BEST VALUE
+                </div>
+              )}
+              
+              <div className="text-center mb-4">
+                <h3 className="text-[20px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair">
+                  {plan.name}
+                </h3>
+                <div className="mt-3">
+                  <span className={`text-[32px] leading-[100%] font-[700] font-playfair ${
+                    isUnlimited ? 'text-[#8B5CF6]' : 'text-[#10b981]'
+                  }`}>
+                    {formatCurrency(plan.price)}
+                  </span>
+                  {period && (
+                    <span className="text-[12px] text-[#626060] font-playfair">{period}</span>
+                  )}
+                </div>
+                {plan.studentLimit ? (
+                  <p className="text-[13px] text-[#626060] mt-2 font-playfair">
+                    Up to {plan.studentLimit} students
+                  </p>
+                ) : (
+                  <p className="text-[13px] text-[#8B5CF6] mt-2 font-playfair font-[600]">
+                    Unlimited students
+                  </p>
+                )}
+                <p className="text-[11px] text-[#9CA3AF] mt-1 font-playfair">
+                  {plan.description}
+                </p>
+                <p className="text-[10px] text-[#626060] mt-1 font-playfair">
+                  {plan.days} days validity
+                </p>
+              </div>
+
+              <div className="space-y-2 mb-6">
+                {getPlanFeatures(key, plan).map((benefit, index) => (
+                  <div key={index} className={`flex items-center gap-2 text-[11px] font-playfair ${
+                    benefit.includes('✗') ? 'text-[#9CA3AF]' : 'text-[#1E1E1E]'
+                  }`}>
+                    <span className={benefit.includes('✓') ? 'text-[#10b981]' : benefit.includes('⭐') ? 'text-[#8B5CF6] font-[600]' : 'text-[#9CA3AF]'}>
+                      {benefit.includes('✓') ? '✓' : benefit.includes('✗') ? '✗' : ''}
+                    </span>
+                    <span>{benefit.replace(/[✓✗⭐]\s/, '')}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedPlan(key);
+                  setShowPaymentModal(true);
+                }}
+                disabled={isCurrentPlan}
+                className={`w-full py-3 rounded-lg font-[600] text-[13px] leading-[100%] font-playfair transition-colors ${
+                  isCurrentPlan
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : isUnlimited
+                    ? 'bg-[#8B5CF6] text-white hover:bg-[#7C3AED]'
+                    : 'bg-[#10b981] text-white hover:bg-[#059669]'
+                }`}
+              >
+                {isCurrentPlan ? 'Current Plan' : 'Select Plan'}
+              </button>
+            </motion.div>
+          );
+        })}
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-8">
@@ -338,9 +401,9 @@ export default function Subscription({ setActiveSection }) {
             </p>
           </div>
           <div>
-            <h3 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">What payment methods are accepted?</h3>
+            <h3 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">What happens when I reach my student limit?</h3>
             <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">
-              We accept card payments (Visa, Mastercard, Verve), bank transfers, and USSD codes through Paystack.
+              You won't be able to add more students until you upgrade to a higher plan or delete existing students.
             </p>
           </div>
           <div>
@@ -377,8 +440,20 @@ export default function Subscription({ setActiveSection }) {
                     {plans[selectedPlan]?.name} Plan
                   </p>
                   <p className="text-[20px] font-[700] text-[#10b981] font-playfair mt-2">
-                    ₦{plans[selectedPlan]?.price?.toLocaleString()}
+                    {formatCurrency(plans[selectedPlan]?.price)}
                   </p>
+                  <p className="text-[11px] text-[#626060] mt-1">
+                    {plans[selectedPlan]?.days} days validity
+                  </p>
+                  {plans[selectedPlan]?.studentLimit ? (
+                    <p className="text-[12px] text-[#626060] mt-2">
+                      Student Limit: {plans[selectedPlan].studentLimit} students
+                    </p>
+                  ) : (
+                    <p className="text-[12px] text-[#8B5CF6] mt-2 font-[600]">
+                      Unlimited students
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -473,7 +548,7 @@ export default function Subscription({ setActiveSection }) {
                           </p>
                         </div>
                         <span className="text-[14px] font-[600] text-[#10b981]">
-                          ₦{payment.amount?.toLocaleString()}
+                          {formatCurrency(payment.amount)}
                         </span>
                       </div>
 

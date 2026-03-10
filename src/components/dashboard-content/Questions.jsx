@@ -19,7 +19,7 @@ import {
 } from '../styles';
 
 export default function Questions({ setActiveSection }) {
-  const { fetchWithAuth } = useAuth();
+  const { user, fetchWithAuth } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +50,9 @@ export default function Questions({ setActiveSection }) {
   const difficulties = ['easy', 'medium', 'hard'];
   const modes = ['exam', 'practice'];
   const classes = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3', 'General'];
+
+  // Check if user can use bulk import (not allowed for monthly plan)
+  const canUseBulkImport = user?.subscription?.plan !== 'monthly';
 
   useEffect(() => {
     const storedSubject = localStorage.getItem('selected_subject');
@@ -217,6 +220,12 @@ export default function Questions({ setActiveSection }) {
       toast.error('Please select a mode');
       return false;
     }
+
+    // Validate marks is a positive number
+    if (!formData.marks || formData.marks < 1) {
+      toast.error('Marks must be at least 1');
+      return false;
+    }
     
     return true;
   };
@@ -229,18 +238,27 @@ export default function Questions({ setActiveSection }) {
 
     if (!validateForm()) return;
 
+    // Ensure marks is a number
+    const marksValue = parseInt(formData.marks);
+    if (isNaN(marksValue) || marksValue < 1) {
+      toast.error('Please enter a valid number for marks');
+      return;
+    }
+
     // Prepare the data exactly as the API expects
     const questionData = {
       subjectId: formData.subjectId || selectedSubject.id,
       question: formData.question.trim(),
       options: formData.options.map(opt => opt.trim()),
       correctAnswer: formData.correctAnswer.trim(),
-      marks: parseInt(formData.marks) || 1,
+      marks: marksValue,
       difficulty: formData.difficulty,
       topic: formData.topic.trim() || 'General',
       class: formData.class,
       mode: formData.mode
     };
+
+    console.log('Submitting question data:', questionData); // Debug log
 
     const toastId = toast.loading('Creating question...');
 
@@ -274,6 +292,7 @@ export default function Questions({ setActiveSection }) {
         toast.error(data.message || 'Failed to create question', { id: toastId });
       }
     } catch (error) {
+      console.error('Create question error:', error);
       toast.error('Network error', { id: toastId });
     }
   };
@@ -281,17 +300,26 @@ export default function Questions({ setActiveSection }) {
   const handleUpdateQuestion = async () => {
     if (!validateForm()) return;
 
+    // Ensure marks is a number
+    const marksValue = parseInt(formData.marks);
+    if (isNaN(marksValue) || marksValue < 1) {
+      toast.error('Please enter a valid number for marks');
+      return;
+    }
+
     const questionData = {
       subjectId: formData.subjectId || selectedSubject.id,
       question: formData.question.trim(),
       options: formData.options.map(opt => opt.trim()),
       correctAnswer: formData.correctAnswer.trim(),
-      marks: parseInt(formData.marks) || 1,
+      marks: marksValue,
       difficulty: formData.difficulty,
       topic: formData.topic.trim() || 'General',
       class: formData.class,
       mode: formData.mode
     };
+
+    console.log('Updating question data:', questionData); // Debug log
 
     const toastId = toast.loading('Updating question...');
 
@@ -326,6 +354,7 @@ export default function Questions({ setActiveSection }) {
         toast.error(data.message || 'Failed to update question', { id: toastId });
       }
     } catch (error) {
+      console.error('Update question error:', error);
       toast.error('Network error', { id: toastId });
     }
   };
@@ -358,14 +387,35 @@ export default function Questions({ setActiveSection }) {
       return;
     }
 
+    if (!canUseBulkImport) {
+      toast.error('Bulk import is not available on the Monthly plan. Please upgrade to Termly, Yearly, or Unlimited plan to use this feature.');
+      return;
+    }
+
     let questions;
     try {
       questions = JSON.parse(bulkImportData);
       if (!Array.isArray(questions)) {
         throw new Error('Data must be an array');
       }
+
+      // Validate each question has required fields and proper marks
+      questions.forEach((q, index) => {
+        if (!q.question || !q.options || !Array.isArray(q.options) || q.options.length !== 4) {
+          throw new Error(`Question ${index + 1}: Missing question or invalid options`);
+        }
+        if (!q.correctAnswer) {
+          throw new Error(`Question ${index + 1}: Missing correct answer`);
+        }
+        if (!q.marks || isNaN(parseInt(q.marks)) || parseInt(q.marks) < 1) {
+          throw new Error(`Question ${index + 1}: Invalid marks value`);
+        }
+        // Ensure marks is a number
+        q.marks = parseInt(q.marks);
+      });
+
     } catch (error) {
-      toast.error('Invalid JSON format');
+      toast.error(error.message || 'Invalid JSON format');
       return;
     }
 
@@ -395,6 +445,7 @@ export default function Questions({ setActiveSection }) {
         toast.error(data.message || 'Failed to import questions', { id: toastId });
       }
     } catch (error) {
+      console.error('Bulk import error:', error);
       toast.error('Network error', { id: toastId });
     }
   };
@@ -423,6 +474,13 @@ export default function Questions({ setActiveSection }) {
     return matchesSearch && matchesSubject && matchesMode && matchesDifficulty;
   });
 
+  // Get subscription plan name for display
+  const getSubscriptionPlanName = () => {
+    if (!user?.subscription?.plan) return 'No Plan';
+    const plan = user.subscription.plan;
+    return plan.charAt(0).toUpperCase() + plan.slice(1);
+  };
+
   return (
     <div className={examsContainer}>
       <div className={examsHeader}>
@@ -430,6 +488,19 @@ export default function Questions({ setActiveSection }) {
         <p className={examsSubtitle}>
           {selectedSubject ? `Managing questions for ${selectedSubject.name}` : 'Create and manage questions'}
         </p>
+        {!canUseBulkImport && (
+          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-[11px] text-yellow-700 font-playfair">
+              ⚠️ Bulk import is not available on your {getSubscriptionPlanName()} plan. 
+              <button 
+                onClick={() => setActiveSection('subscription')}
+                className="ml-2 text-yellow-800 font-[600] hover:underline"
+              >
+                Upgrade to access
+              </button>
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mb-6 flex flex-col gap-4">
@@ -445,10 +516,22 @@ export default function Questions({ setActiveSection }) {
           </div>
           <div className="flex gap-3">
             <button
-              onClick={() => setShowBulkImportModal(true)}
-              className="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
+              onClick={() => {
+                if (!canUseBulkImport) {
+                  toast.error('Bulk import is not available on your current plan. Please upgrade to access this feature.');
+                  return;
+                }
+                setShowBulkImportModal(true);
+              }}
+              className={`px-4 py-2 rounded-md font-playfair text-[13px] leading-[100%] font-[600] transition-colors ${
+                canUseBulkImport 
+                  ? 'bg-[#8B5CF6] text-white hover:bg-[#7C3AED]' 
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+              title={!canUseBulkImport ? 'Upgrade to Termly plan or higher to use bulk import' : ''}
             >
               📦 Bulk Import
+              {!canUseBulkImport && ' (Upgrade Required)'}
             </button>
             <button
               onClick={() => {
@@ -677,13 +760,14 @@ export default function Questions({ setActiveSection }) {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Marks</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Marks *</label>
                     <input
                       type="number"
                       name="marks"
                       value={formData.marks}
                       onChange={handleInputChange}
                       min="1"
+                      step="1"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
@@ -778,6 +862,11 @@ export default function Questions({ setActiveSection }) {
                       Please select a subject from the filter before importing.
                     </p>
                   )}
+                  {!canUseBulkImport && (
+                    <p className="text-[12px] text-red-600 font-playfair mt-2">
+                      ⚠️ Bulk import is not available on your current plan. Please upgrade to access this feature.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-3 mb-4">
@@ -792,9 +881,14 @@ export default function Questions({ setActiveSection }) {
                       type="file"
                       accept=".csv"
                       onChange={handleFileUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={!canUseBulkImport}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                     />
-                    <button className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair">
+                    <button className={`px-4 py-2 rounded-md text-[13px] leading-[100%] font-[600] font-playfair ${
+                      canUseBulkImport 
+                        ? 'bg-[#10b981] text-white hover:bg-[#059669]' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}>
                       📤 Upload CSV
                     </button>
                   </div>
@@ -802,7 +896,7 @@ export default function Questions({ setActiveSection }) {
 
                 <div className="bg-gray-50 p-4 rounded-lg mb-4">
                   <p className="text-[11px] text-[#626060] font-playfair mb-2">
-                    <strong>CSV Format:</strong> question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty (easy/medium/hard), topic, class, mode (exam/practice)
+                    <strong>CSV Format:</strong> question, optionA, optionB, optionC, optionD, correctAnswer, marks (number), difficulty (easy/medium/hard), topic, class, mode (exam/practice)
                   </p>
                   <p className="text-[10px] text-[#626060] font-playfair mt-2">
                     Example: "What is the SI unit of force?","Newton","Joule","Watt","Pascal","Newton",2,"easy","Mechanics","General","exam"
@@ -861,9 +955,11 @@ export default function Questions({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleBulkImport}
-                  disabled={!selectedSubject || !bulkImportData.trim()}
-                  className={`px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors text-[13px] leading-[100%] font-[600] font-playfair ${
-                    (!selectedSubject || !bulkImportData.trim()) ? 'opacity-50 cursor-not-allowed' : ''
+                  disabled={!selectedSubject || !bulkImportData.trim() || !canUseBulkImport}
+                  className={`px-4 py-2 rounded-md text-[13px] leading-[100%] font-[600] font-playfair ${
+                    (!selectedSubject || !bulkImportData.trim() || !canUseBulkImport)
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                      : 'bg-[#8B5CF6] text-white hover:bg-[#7C3AED]'
                   }`}
                 >
                   Import Questions
@@ -957,13 +1053,14 @@ export default function Questions({ setActiveSection }) {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Marks</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Marks *</label>
                     <input
                       type="number"
                       name="marks"
                       value={formData.marks}
                       onChange={handleInputChange}
                       min="1"
+                      step="1"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
