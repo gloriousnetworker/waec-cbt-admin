@@ -44,7 +44,8 @@ export default function Questions({ setActiveSection }) {
     difficulty: 'easy',
     topic: '',
     class: 'General',
-    mode: 'exam'
+    mode: 'exam',
+    explanation: ''
   });
 
   // Pagination states
@@ -76,7 +77,6 @@ export default function Questions({ setActiveSection }) {
   }, []);
 
   useEffect(() => {
-    // Update paginated questions whenever filtered questions change or page changes
     const filtered = filteredQuestions;
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -108,7 +108,7 @@ export default function Questions({ setActiveSection }) {
   };
 
   const downloadCSVTemplate = () => {
-    const headers = ['question', 'optionA', 'optionB', 'optionC', 'optionD', 'correctAnswer', 'marks', 'difficulty', 'topic', 'class', 'mode'];
+    const headers = ['question', 'optionA', 'optionB', 'optionC', 'optionD', 'correctAnswer', 'marks', 'difficulty', 'topic', 'class', 'mode', 'explanation'];
     const exampleRow = [
       'What is the SI unit of force?',
       'Newton',
@@ -120,7 +120,8 @@ export default function Questions({ setActiveSection }) {
       'easy',
       'Mechanics',
       'General',
-      'exam'
+      'exam',
+      'The Newton is the SI unit of force, named after Sir Isaac Newton'
     ];
     
     const csvContent = [
@@ -154,7 +155,7 @@ export default function Questions({ setActiveSection }) {
         if (!lines[i].trim()) continue;
         
         const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-        if (values.length < 7) continue;
+        if (values.length < 8) continue;
         
         const question = {
           question: values[0],
@@ -164,7 +165,8 @@ export default function Questions({ setActiveSection }) {
           difficulty: values[7] || 'easy',
           topic: values[8] || '',
           class: values[9] || 'General',
-          mode: values[10] || 'exam'
+          mode: values[10] || 'exam',
+          explanation: values[11] || ''
         };
         
         questions.push(question);
@@ -188,13 +190,11 @@ export default function Questions({ setActiveSection }) {
   };
 
   const validateForm = () => {
-    // Check if subject is selected
     if (!selectedSubject && !formData.subjectId) {
       toast.error('Please select a subject from the filter first');
       return false;
     }
 
-    // Ensure subjectId is set in formData
     if (!formData.subjectId && selectedSubject) {
       setFormData(prev => ({ ...prev, subjectId: selectedSubject.id }));
     }
@@ -214,7 +214,6 @@ export default function Questions({ setActiveSection }) {
       return false;
     }
     
-    // Validate that correctAnswer matches one of the options
     const correctAnswerExists = formData.options.some(
       opt => opt.trim().toLowerCase() === formData.correctAnswer.trim().toLowerCase()
     );
@@ -234,7 +233,6 @@ export default function Questions({ setActiveSection }) {
       return false;
     }
 
-    // Validate marks is a positive number
     if (!formData.marks || formData.marks < 1) {
       toast.error('Marks must be at least 1');
       return false;
@@ -244,21 +242,18 @@ export default function Questions({ setActiveSection }) {
   };
 
   const handleCreateQuestion = async () => {
-    // Ensure subjectId is set
     if (!formData.subjectId && selectedSubject) {
       setFormData(prev => ({ ...prev, subjectId: selectedSubject.id }));
     }
 
     if (!validateForm()) return;
 
-    // Ensure marks is a number
     const marksValue = parseInt(formData.marks);
     if (isNaN(marksValue) || marksValue < 1) {
       toast.error('Please enter a valid number for marks');
       return;
     }
 
-    // Prepare the data exactly as the API expects
     const questionData = {
       subjectId: formData.subjectId || selectedSubject.id,
       question: formData.question.trim(),
@@ -268,10 +263,9 @@ export default function Questions({ setActiveSection }) {
       difficulty: formData.difficulty,
       topic: formData.topic.trim() || 'General',
       class: formData.class,
-      mode: formData.mode
+      mode: formData.mode,
+      explanation: formData.explanation.trim() || ''
     };
-
-    console.log('Submitting question data:', questionData); // Debug log
 
     const toastId = toast.loading('Creating question...');
 
@@ -298,10 +292,11 @@ export default function Questions({ setActiveSection }) {
           difficulty: 'easy',
           topic: '',
           class: selectedSubject?.class || 'General',
-          mode: 'exam'
+          mode: 'exam',
+          explanation: ''
         });
         fetchData();
-        setCurrentPage(1); // Reset to first page after creation
+        setCurrentPage(1);
       } else {
         toast.error(data.message || 'Failed to create question', { id: toastId });
       }
@@ -314,7 +309,6 @@ export default function Questions({ setActiveSection }) {
   const handleUpdateQuestion = async () => {
     if (!validateForm()) return;
 
-    // Ensure marks is a number
     const marksValue = parseInt(formData.marks);
     if (isNaN(marksValue) || marksValue < 1) {
       toast.error('Please enter a valid number for marks');
@@ -330,10 +324,9 @@ export default function Questions({ setActiveSection }) {
       difficulty: formData.difficulty,
       topic: formData.topic.trim() || 'General',
       class: formData.class,
-      mode: formData.mode
+      mode: formData.mode,
+      explanation: formData.explanation.trim() || ''
     };
-
-    console.log('Updating question data:', questionData); // Debug log
 
     const toastId = toast.loading('Updating question...');
 
@@ -361,7 +354,8 @@ export default function Questions({ setActiveSection }) {
           difficulty: 'easy',
           topic: '',
           class: selectedSubject?.class || 'General',
-          mode: 'exam'
+          mode: 'exam',
+          explanation: ''
         });
         fetchData();
       } else {
@@ -413,7 +407,6 @@ export default function Questions({ setActiveSection }) {
         throw new Error('Data must be an array');
       }
 
-      // Validate each question has required fields and proper marks
       questions.forEach((q, index) => {
         if (!q.question || !q.options || !Array.isArray(q.options) || q.options.length !== 4) {
           throw new Error(`Question ${index + 1}: Missing question or invalid options`);
@@ -421,10 +414,12 @@ export default function Questions({ setActiveSection }) {
         if (!q.correctAnswer) {
           throw new Error(`Question ${index + 1}: Missing correct answer`);
         }
+        if (!q.options.includes(q.correctAnswer)) {
+          throw new Error(`Question ${index + 1}: Correct answer must be one of the options`);
+        }
         if (!q.marks || isNaN(parseInt(q.marks)) || parseInt(q.marks) < 1) {
           throw new Error(`Question ${index + 1}: Invalid marks value`);
         }
-        // Ensure marks is a number
         q.marks = parseInt(q.marks);
       });
 
@@ -455,7 +450,7 @@ export default function Questions({ setActiveSection }) {
         setBulkImportData('');
         setBulkImportFile(null);
         fetchData();
-        setCurrentPage(1); // Reset to first page after import
+        setCurrentPage(1);
       } else {
         toast.error(data.message || 'Failed to import questions', { id: toastId });
       }
@@ -476,7 +471,8 @@ export default function Questions({ setActiveSection }) {
       difficulty: question.difficulty || 'easy',
       topic: question.topic || '',
       class: question.class || 'General',
-      mode: question.mode || 'exam'
+      mode: question.mode || 'exam',
+      explanation: question.explanation || ''
     });
     setShowEditModal(true);
   };
@@ -489,12 +485,10 @@ export default function Questions({ setActiveSection }) {
     return matchesSearch && matchesSubject && matchesMode && matchesDifficulty;
   });
 
-  // Pagination handlers
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
   
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
-    // Scroll to top of questions list
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -512,7 +506,6 @@ export default function Questions({ setActiveSection }) {
     }
   };
 
-  // Get subscription plan name for display
   const getSubscriptionPlanName = () => {
     if (!user?.subscription?.plan) return 'No Plan';
     const plan = user.subscription.plan;
@@ -550,7 +543,7 @@ export default function Questions({ setActiveSection }) {
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setCurrentPage(1); // Reset to first page on search
+                setCurrentPage(1);
               }}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] font-playfair text-[13px]"
             />
@@ -580,7 +573,6 @@ export default function Questions({ setActiveSection }) {
                   toast.error('Please select a subject from the filter first');
                   return;
                 }
-                // Ensure subjectId is set in formData
                 setFormData(prev => ({ ...prev, subjectId: selectedSubject.id }));
                 setShowCreateModal(true);
               }}
@@ -596,7 +588,7 @@ export default function Questions({ setActiveSection }) {
             value={filterSubject}
             onChange={(e) => {
               setFilterSubject(e.target.value);
-              setCurrentPage(1); // Reset to first page on filter change
+              setCurrentPage(1);
               const subject = subjects.find(s => s.id === e.target.value);
               setSelectedSubject(subject);
               if (subject) {
@@ -614,7 +606,7 @@ export default function Questions({ setActiveSection }) {
             value={filterMode}
             onChange={(e) => {
               setFilterMode(e.target.value);
-              setCurrentPage(1); // Reset to first page on filter change
+              setCurrentPage(1);
             }}
             className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
           >
@@ -627,7 +619,7 @@ export default function Questions({ setActiveSection }) {
             value={filterDifficulty}
             onChange={(e) => {
               setFilterDifficulty(e.target.value);
-              setCurrentPage(1); // Reset to first page on filter change
+              setCurrentPage(1);
             }}
             className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
           >
@@ -646,7 +638,6 @@ export default function Questions({ setActiveSection }) {
         </div>
       ) : (
         <>
-          {/* Results count and pagination info */}
           <div className="mb-4 flex justify-between items-center">
             <p className="text-[13px] text-[#626060] font-playfair">
               Showing {paginatedQuestions.length} of {filteredQuestions.length} questions
@@ -658,7 +649,6 @@ export default function Questions({ setActiveSection }) {
             )}
           </div>
 
-          {/* Questions list */}
           <div className="space-y-4">
             {paginatedQuestions.map((question) => (
               <motion.div
@@ -730,14 +720,12 @@ export default function Questions({ setActiveSection }) {
             ))}
           </div>
 
-          {/* No results message */}
           {filteredQuestions.length === 0 && (
             <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
               <p className="text-[14px] text-[#626060] font-playfair">No questions found</p>
             </div>
           )}
 
-          {/* Pagination controls */}
           {filteredQuestions.length > itemsPerPage && (
             <div className="mt-8 flex justify-center items-center gap-2">
               <button
@@ -755,7 +743,6 @@ export default function Questions({ setActiveSection }) {
               <div className="flex gap-1">
                 {[...Array(totalPages)].map((_, index) => {
                   const pageNumber = index + 1;
-                  // Show first page, last page, and pages around current page
                   if (
                     pageNumber === 1 ||
                     pageNumber === totalPages ||
@@ -802,7 +789,6 @@ export default function Questions({ setActiveSection }) {
             </div>
           )}
 
-          {/* Items per page info */}
           {filteredQuestions.length > 0 && (
             <div className="mt-4 text-center text-[11px] text-[#626060] font-playfair">
               Showing {Math.min(itemsPerPage, filteredQuestions.length)} items per page
@@ -946,6 +932,18 @@ export default function Questions({ setActiveSection }) {
                     placeholder="e.g., Mechanics, Algebra"
                   />
                 </div>
+
+                <div>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Explanation</label>
+                  <textarea
+                    name="explanation"
+                    value={formData.explanation}
+                    onChange={handleInputChange}
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    placeholder="Explain why the correct answer is right (optional)"
+                  />
+                </div>
               </div>
 
               <div className={modalActions}>
@@ -1032,10 +1030,10 @@ export default function Questions({ setActiveSection }) {
 
                 <div className="bg-gray-50 p-4 rounded-lg mb-4">
                   <p className="text-[11px] text-[#626060] font-playfair mb-2">
-                    <strong>CSV Format:</strong> question, optionA, optionB, optionC, optionD, correctAnswer, marks (number), difficulty (easy/medium/hard), topic, class, mode (exam/practice)
+                    <strong>CSV Format:</strong> question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty (easy/medium/hard), topic, class, mode (exam/practice), explanation
                   </p>
                   <p className="text-[10px] text-[#626060] font-playfair mt-2">
-                    Example: "What is the SI unit of force?","Newton","Joule","Watt","Pascal","Newton",2,"easy","Mechanics","General","exam"
+                    Example: "What is the SI unit of force?","Newton","Joule","Watt","Pascal","Newton",2,"easy","Mechanics","General","exam","The Newton is the SI unit of force"
                   </p>
                 </div>
 
@@ -1065,7 +1063,8 @@ export default function Questions({ setActiveSection }) {
                         difficulty: "easy",
                         topic: "Mechanics",
                         class: "General",
-                        mode: "exam"
+                        mode: "exam",
+                        explanation: "The Newton is the SI unit of force"
                       }
                     ], null, 2)}
                   />
@@ -1073,7 +1072,7 @@ export default function Questions({ setActiveSection }) {
 
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <p className="text-[12px] text-blue-700 font-playfair">
-                    <strong>Required Fields:</strong> question (string), options (array of 4 strings), correctAnswer (string), marks (number), difficulty (easy/medium/hard), class (string), mode (exam/practice). Topic is optional.
+                    <strong>Required Fields:</strong> question (string), options (array of 4 strings), correctAnswer (string), marks (number), difficulty (easy/medium/hard), class (string), mode (exam/practice). Topic and explanation are optional.
                   </p>
                 </div>
               </div>
@@ -1223,6 +1222,18 @@ export default function Questions({ setActiveSection }) {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Explanation</label>
+                  <textarea
+                    name="explanation"
+                    value={formData.explanation}
+                    onChange={handleInputChange}
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    placeholder="Explain why the correct answer is right"
+                  />
                 </div>
               </div>
 
