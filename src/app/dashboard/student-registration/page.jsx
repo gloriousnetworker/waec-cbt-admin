@@ -40,6 +40,7 @@ function StudentRegistrationContent() {
   });
   const [loading, setLoading] = useState(false);
   const [generatedCredentials, setGeneratedCredentials] = useState(null);
+  const [ninError, setNinError] = useState('');
 
   useEffect(() => {
     if (isEdit) {
@@ -61,11 +62,36 @@ function StudentRegistrationContent() {
     }
   }, [isEdit]);
 
+  const validateNIN = (nin) => {
+    if (!nin) return true;
+    const ninRegex = /^\d{11}$/;
+    return ninRegex.test(nin);
+  };
+
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    
+    if (name === 'nin') {
+      if (value && !/^\d*$/.test(value)) {
+        return;
+      }
+      
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+      
+      if (value && value.length !== 11) {
+        setNinError('NIN must be exactly 11 digits');
+      } else {
+        setNinError('');
+      }
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -73,6 +99,11 @@ function StudentRegistrationContent() {
     
     if (!formData.firstName || !formData.lastName || !formData.class) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (formData.nin && !validateNIN(formData.nin)) {
+      toast.error('NIN must be exactly 11 digits');
       return;
     }
 
@@ -123,6 +154,7 @@ function StudentRegistrationContent() {
           class: '',
           password: '123456'
         });
+        setNinError('');
       }
     } catch (error) {
       toast.error(error.message);
@@ -143,6 +175,7 @@ function StudentRegistrationContent() {
       password: '123456'
     });
     setGeneratedCredentials(null);
+    setNinError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -238,9 +271,15 @@ function StudentRegistrationContent() {
                 name="nin"
                 value={formData.nin}
                 onChange={handleInputChange}
-                className={inputClass}
-                placeholder="Enter NIN (optional)"
+                className={`${inputClass} ${ninError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : ''}`}
+                placeholder="Enter 11-digit NIN (optional)"
+                maxLength="11"
               />
+              {ninError && (
+                <p className="text-[13px] leading-[140%] font-[400] text-red-500 font-playfair mt-1">
+                  {ninError}
+                </p>
+              )}
             </div>
 
             <div className={formGroupClass}>
