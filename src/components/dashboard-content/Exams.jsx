@@ -19,9 +19,10 @@ import {
 } from '../styles';
 
 export default function Exams({ setActiveSection }) {
-  const { fetchWithAuth } = useAuth();
+  const { user, fetchWithAuth } = useAuth();
   const [exams, setExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [questions, setQuestions] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -46,7 +47,6 @@ export default function Exams({ setActiveSection }) {
     class: '',
     subjects: [{ subjectId: '', questionCount: 10 }],
     duration: 120,
-    totalMarks: 100,
     passMark: 50,
     startDate: '',
     startTime: '',
@@ -58,6 +58,7 @@ export default function Exams({ setActiveSection }) {
     showResults: true,
     questionSelection: 'random'
   });
+  // Removed totalMarks from formData since backend calculates it
 
   const classes = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3'];
 
@@ -68,10 +69,11 @@ export default function Exams({ setActiveSection }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [examsRes, subjectsRes, studentsRes] = await Promise.all([
+      const [examsRes, subjectsRes, studentsRes, questionsRes] = await Promise.all([
         fetchWithAuth('/admin/exam-setups'),
         fetchWithAuth('/admin/subjects'),
-        fetchWithAuth('/admin/students')
+        fetchWithAuth('/admin/students'),
+        fetchWithAuth('/admin/questions')
       ]);
 
       if (examsRes.ok) {
@@ -88,11 +90,33 @@ export default function Exams({ setActiveSection }) {
         const studentsData = await studentsRes.json();
         setStudents(studentsData.students || []);
       }
+
+      if (questionsRes.ok) {
+        const questionsData = await questionsRes.json();
+        setQuestions(questionsData.questions || []);
+      }
     } catch (error) {
-      toast.error('Failed to load exams');
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to get question count for a subject (filtered by exam mode)
+  const getQuestionCountForSubject = (subjectId, mode = 'exam') => {
+    return questions.filter(q => q.subjectId === subjectId && q.mode === mode).length;
+  };
+
+  // Helper function to get total available marks for a subject
+  const getTotalMarksForSubject = (subjectId, questionCount, mode = 'exam') => {
+    const subjectQuestions = questions.filter(q => q.subjectId === subjectId && q.mode === mode);
+    // If we're selecting a specific number of questions, estimate marks based on average
+    if (questionCount && subjectQuestions.length > 0) {
+      const totalMarks = subjectQuestions.reduce((sum, q) => sum + (q.marks || 1), 0);
+      const averageMarks = totalMarks / subjectQuestions.length;
+      return Math.round(averageMarks * questionCount);
+    }
+    return 0;
   };
 
   const fetchExamResults = async (examId) => {
@@ -141,21 +165,58 @@ export default function Exams({ setActiveSection }) {
     }
   };
 
-  const handleCreateExam = async () => {
+  const validateExamForm = () => {
     if (!formData.title || !formData.class || !formData.startDate || !formData.endDate) {
       toast.error('Please fill in all required fields');
-      return;
+      return false;
+    }
+
+    if (formData.subjects.length === 0) {
+      toast.error('Please add at least one subject');
+      return false;
     }
 
     for (const subject of formData.subjects) {
       if (!subject.subjectId) {
         toast.error('Please select a subject for all entries');
-        return;
+        return false;
+      }
+      
+      const availableQuestions = getQuestionCountForSubject(subject.subjectId);
+      if (availableQuestions === 0) {
+        toast.error(`No questions available for the selected subject. Please create questions first.`);
+        return false;
+      }
+      
+      if (subject.questionCount > availableQuestions) {
+        toast.error(`Subject only has ${availableQuestions} questions available`);
+        return false;
+      }
+
+      if (subject.questionCount < 1) {
+        toast.error('Question count must be at least 1');
+        return false;
       }
     }
 
+    const startDate = new Date(formData.startDate);
+    const endDate = new Date(formData.endDate);
+    if (endDate <= startDate) {
+      toast.error('End date must be after start date');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleCreateExam = async () => {
+    if (!validateExamForm()) return;
+
+    // Remove totalMarks from the data being sent
+    const { totalMarks, ...examDataToSend } = formData;
+    
     const examData = {
-      ...formData,
+      ...examDataToSend,
       startDateTime: new Date(`${formData.startDate}T${formData.startTime || '00:00'}`).toISOString(),
       endDateTime: new Date(`${formData.endDate}T${formData.endTime || '23:59'}`).toISOString(),
     };
@@ -182,7 +243,6 @@ export default function Exams({ setActiveSection }) {
           class: '',
           subjects: [{ subjectId: '', questionCount: 10 }],
           duration: 120,
-          totalMarks: 100,
           passMark: 50,
           startDate: '',
           startTime: '',
@@ -572,7 +632,6 @@ export default function Exams({ setActiveSection }) {
                           questionCount: s.questionCount
                         })),
                         duration: exam.duration,
-                        totalMarks: exam.totalMarks,
                         passMark: exam.passMark,
                         startDate: '',
                         startTime: '',
@@ -671,43 +730,62 @@ export default function Exams({ setActiveSection }) {
                       + Add Subject
                     </button>
                   </div>
-                  {formData.subjects.map((subject, index) => (
-                    <div key={index} className="flex gap-3 mb-3">
-                      <select
-                        value={subject.subjectId}
-                        onChange={(e) => handleSubjectChange(index, 'subjectId', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
-                      >
-                        <option value="">Select Subject</option>
-                        {subjects.map(s => (
-                          <option key={s.id} value={s.id}>{s.name} ({s.questionCount || 0} questions)</option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        value={subject.questionCount}
-                        onChange={(e) => handleSubjectChange(index, 'questionCount', parseInt(e.target.value))}
-                        min="1"
-                        max="100"
-                        className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
-                        placeholder="Count"
-                      />
-                      {formData.subjects.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeSubject(index)}
-                          className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
+                  {formData.subjects.map((subject, index) => {
+                    const availableQuestions = getQuestionCountForSubject(subject.subjectId);
+                    const estimatedMarks = getTotalMarksForSubject(subject.subjectId, subject.questionCount);
+                    return (
+                      <div key={index} className="flex gap-3 mb-3">
+                        <select
+                          value={subject.subjectId}
+                          onChange={(e) => handleSubjectChange(index, 'subjectId', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                         >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          <option value="">Select Subject</option>
+                          {subjects.map(s => {
+                            const count = getQuestionCountForSubject(s.id);
+                            return (
+                              <option key={s.id} value={s.id} disabled={count === 0}>
+                                {s.name} ({count} questions available)
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <input
+                          type="number"
+                          value={subject.questionCount}
+                          onChange={(e) => handleSubjectChange(index, 'questionCount', parseInt(e.target.value))}
+                          min="1"
+                          max={availableQuestions || 100}
+                          className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                          placeholder="Count"
+                        />
+                        {formData.subjects.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeSubject(index)}
+                            className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
+                          >
+                            ✕
+                          </button>
+                        )}
+                        {subject.subjectId && (
+                          <span className="text-[11px] text-[#626060] self-center whitespace-nowrap">
+                            ~{estimatedMarks} marks
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {formData.subjects.some(s => s.subjectId && s.questionCount > getQuestionCountForSubject(s.subjectId)) && (
+                    <p className="text-[11px] text-red-600 mt-1">
+                      ⚠️ Some subjects have more questions selected than available
+                    </p>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Duration (mins)</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Duration (mins) *</label>
                     <input
                       type="number"
                       name="duration"
@@ -718,18 +796,7 @@ export default function Exams({ setActiveSection }) {
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Total Marks</label>
-                    <input
-                      type="number"
-                      name="totalMarks"
-                      value={formData.totalMarks}
-                      onChange={handleInputChange}
-                      min="1"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Pass Mark (%)</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Pass Mark (%) *</label>
                     <input
                       type="number"
                       name="passMark"
@@ -750,6 +817,7 @@ export default function Exams({ setActiveSection }) {
                       name="startDate"
                       value={formData.startDate}
                       onChange={handleInputChange}
+                      min={new Date().toISOString().split('T')[0]}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
@@ -770,6 +838,7 @@ export default function Exams({ setActiveSection }) {
                       name="endDate"
                       value={formData.endDate}
                       onChange={handleInputChange}
+                      min={formData.startDate || new Date().toISOString().split('T')[0]}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
                     />
                   </div>
