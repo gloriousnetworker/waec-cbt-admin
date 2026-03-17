@@ -46,7 +46,8 @@ import {
   modalButtonDanger,
 } from '../../styles/styles';
 
-const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
+// Proxy — same origin, no CORS issues
+const BASE_URL = '';
 
 const navSections = [
   { id: 'home',        label: 'Dashboard',   icon: '🏠' },

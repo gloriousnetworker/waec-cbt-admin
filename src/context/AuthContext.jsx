@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
-const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
+// Empty string — all requests go to /api/* on the same origin.
+// next.config.ts rewrites /api/* → https://cbt-simulator-backend.vercel.app/api/*
+// This eliminates CORS and cross-origin cookie issues on all browsers and iOS.
+const BASE_URL = '';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -211,9 +214,8 @@ export function AuthProvider({ children }) {
   }, [router]);
 
   const fetchWithAuth = useCallback(async (endpoint, options = {}) => {
-    const url = endpoint.startsWith('http') 
-      ? endpoint 
-      : `${BASE_URL}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    // Always use relative /api/* so requests go through the Next.js proxy
+    const url = `/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
     const maxRetries = 1;
     let retryCount = 0;

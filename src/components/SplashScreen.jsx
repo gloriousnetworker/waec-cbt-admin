@@ -10,8 +10,8 @@ export default function SplashScreen() {
   const currentYear = new Date().getFullYear();
 
   useEffect(() => {
-    const duration = 5000;
-    const interval = 50;
+    const duration = 3000;
+    const interval = 40;
     const increment = (interval / duration) * 100;
 
     const progressInterval = setInterval(() => {
@@ -19,7 +19,7 @@ export default function SplashScreen() {
         const next = prev + increment;
         if (next >= 100) {
           clearInterval(progressInterval);
-          setTimeout(() => setVisible(false), 300);
+          setTimeout(() => setVisible(false), 400);
           return 100;
         }
         return next;
@@ -36,94 +36,109 @@ export default function SplashScreen() {
       {visible && (
         <motion.div
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center"
+          exit={{ opacity: 0, transition: { duration: 0.4 } }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #0D1220 100%)' }}
         >
+          {/* Background radial glow */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(58,79,122,0.35) 0%, transparent 70%)',
+            }}
+          />
+
+          {/* Gold corner accent */}
+          <div
+            className="absolute top-0 right-0 w-64 h-64 pointer-events-none opacity-10"
+            style={{ background: 'radial-gradient(circle at top right, #FFB300, transparent 70%)' }}
+          />
+
+          {/* Logo */}
           <motion.div
-            initial={{ scale: 0.3, opacity: 0 }}
-            animate={{ 
-              scale: [0.3, 1.1, 1],
-              opacity: [0, 1, 1]
-            }}
-            transition={{
-              duration: 1.5,
-              times: [0, 0.6, 1],
-              ease: "easeInOut"
-            }}
-            className="mb-12"
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: [0.4, 1.08, 1], opacity: [0, 1, 1] }}
+            transition={{ duration: 1.2, times: [0, 0.65, 1], ease: 'easeOut' }}
+            className="mb-10 relative"
           >
             <motion.div
-              animate={{
-                scale: [1, 1.05, 1]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
+              animate={{ scale: [1, 1.04, 1] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
             >
+              {/* Glow ring behind logo */}
+              <div
+                className="absolute inset-0 rounded-3xl blur-xl opacity-30"
+                style={{ background: 'linear-gradient(135deg, #1F2A49, #3A4F7A)' }}
+              />
               <Image
                 src="/logo.png"
-                alt="School Logo"
-                width={200}
-                height={200}
+                alt="Einstein's CBT Admin"
+                width={120}
+                height={120}
                 priority
-                className="w-48 h-48 object-contain"
+                className="relative w-28 h-28 object-contain rounded-3xl shadow-lg"
               />
             </motion.div>
           </motion.div>
 
+          {/* Text block */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.5 }}
-            className="w-full max-w-sm px-8"
+            transition={{ delay: 0.7, duration: 0.5, ease: 'easeOut' }}
+            className="text-center mb-10 px-8"
           >
-            <div className="mb-4">
-              <div className="w-full h-1.5 bg-[#E8E8E8] rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: '0%' }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ ease: "linear" }}
-                  className="h-full bg-[#2563EB] rounded-full"
-                />
-              </div>
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 0.5 }}
-              className="text-center"
-            >
-              <h2 className="text-[20px] leading-[120%] font-[700] tracking-[-0.03em] text-[#2563EB] mb-2 font-playfair">
-                Kogi State College of Education
-              </h2>
-              <p className="text-[11px] text-content-muted mb-1">
-                Admin Portal
-              </p>
-              <p className="text-[9px] text-content-muted">
-                Powered by Mega Tech Solutions © {currentYear} All rights reserved
-              </p>
-            </motion.div>
-
-            <motion.div
-              animate={{
-                opacity: [0.5, 1, 0.5]
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="flex justify-center space-x-1.5 mt-6"
-            >
-              <div className="w-1.5 h-1.5 bg-[#2563EB] rounded-full"></div>
-              <div className="w-1.5 h-1.5 bg-[#2563EB] rounded-full"></div>
-              <div className="w-1.5 h-1.5 bg-[#2563EB] rounded-full"></div>
-            </motion.div>
+            <h1 className="text-2xl font-bold tracking-tight text-white mb-1 font-playfair">
+              Einstein&apos;s CBT Admin
+            </h1>
+            <p className="text-sm text-white/50 font-medium">
+              Admin Portal
+            </p>
           </motion.div>
+
+          {/* Progress bar */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.9, duration: 0.4 }}
+            className="w-full max-w-[220px] px-0"
+          >
+            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: '0%' }}
+                animate={{ width: `${progress}%` }}
+                transition={{ ease: 'linear' }}
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg, #1F2A49, #3A4F7A, #FFB300)' }}
+              />
+            </div>
+          </motion.div>
+
+          {/* Pulsing dots */}
+          <motion.div
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+            className="flex justify-center gap-1.5 mt-5"
+          >
+            {[0, 0.2, 0.4].map((delay, i) => (
+              <motion.div
+                key={i}
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay, ease: 'easeInOut' }}
+                className="w-1.5 h-1.5 rounded-full bg-white/40"
+              />
+            ))}
+          </motion.div>
+
+          {/* Footer */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.1, duration: 0.5 }}
+            className="absolute bottom-8 text-[10px] text-white/25 tracking-wide"
+          >
+            Powered by Mega Tech Solutions © {currentYear}
+          </motion.p>
         </motion.div>
       )}
     </AnimatePresence>
