@@ -18,3 +18,5 @@ export const API_ENDPOINTS = {
   GENERATE_BACKUP_CODES: `${API_BASE_URL}/api/auth/generate-backup-codes`,
   DISABLE_2FA: `${API_BASE_URL}/api/auth/disable-2fa`,
 };
+
+// updated
