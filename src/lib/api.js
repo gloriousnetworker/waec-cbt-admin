@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://nysc-backend.vercel.app';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://cbt-simulator-backend.vercel.app';
 
 export const API_ENDPOINTS = {
   SIGNUP: `${API_BASE_URL}/api/auth/signup`,
