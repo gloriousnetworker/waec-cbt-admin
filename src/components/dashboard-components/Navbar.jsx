@@ -46,7 +46,6 @@ import {
   modalButtonDanger,
 } from '../../styles/styles';
 
-// Proxy — same origin, no CORS issues
 const BASE_URL = '';
 
 const navSections = [
