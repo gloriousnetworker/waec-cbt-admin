@@ -210,9 +210,9 @@ function StudentRegistrationContent() {
               <p><strong>Login ID:</strong> {generatedCredentials.loginId}</p>
               <p><strong>Email:</strong> {generatedCredentials.email}</p>
               {generatedCredentials.nin && <p><strong>NIN:</strong> {generatedCredentials.nin}</p>}
-              <p><strong>Default Password:</strong> <span className="font-mono bg-white/20 px-2 py-1 rounded">{generatedCredentials.password}</span></p>
+              <p><strong>Default Password:</strong> <span className="font-mono bg-white/20 px-2 py-1 rounded">123456</span></p>
             </div>
-            <p className="text-sm mt-4 opacity-90">Student can change password after first login</p>
+            <p className="text-sm mt-4 opacity-90">Student must change this password on first login.</p>
           </motion.div>
         )}
 

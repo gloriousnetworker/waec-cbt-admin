@@ -14,7 +14,7 @@ import {
   modalTitle,
   modalActions,
   modalButtonSecondary
-} from '../styles';
+} from '../../styles/styles';
 
 export default function Results({ setActiveSection }) {
   const { fetchWithAuth } = useAuth();
@@ -26,6 +26,9 @@ export default function Results({ setActiveSection }) {
   const [filterClass, setFilterClass] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showResultsModal, setShowResultsModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const LIMIT = 50;
   const [stats, setStats] = useState({
     totalExams: 0,
     totalResults: 0,
@@ -37,16 +40,17 @@ export default function Results({ setActiveSection }) {
 
   useEffect(() => {
     fetchExams();
-  }, []);
+  }, [page]);
 
   const fetchExams = async () => {
     setLoading(true);
     try {
-      const response = await fetchWithAuth('/admin/exam-setups');
+      const response = await fetchWithAuth(`/admin/exam-setups?limit=${LIMIT}&page=${page}`);
       if (response.ok) {
         const data = await response.json();
         const completedExams = data.exams?.filter(e => e.status === 'completed' || e.status === 'active') || [];
         setExams(completedExams);
+        setTotalCount(data.total || (data.exams || []).length);
         
         let totalResults = 0;
         let totalPercentage = 0;
@@ -138,14 +142,14 @@ export default function Results({ setActiveSection }) {
         <title>${title} - Results</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; }
-          h1 { color: #10b981; }
+          h1 { color: #1F2A49; }
           .header { margin-bottom: 30px; }
           .summary { display: flex; gap: 20px; margin-bottom: 30px; }
           .summary-item { background: #f3f4f6; padding: 15px; border-radius: 8px; flex: 1; }
           .summary-item h3 { margin: 0 0 5px; font-size: 12px; color: #666; }
           .summary-item p { margin: 0; font-size: 24px; font-weight: bold; color: #1e1e1e; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #10b981; color: white; padding: 12px; text-align: left; font-size: 12px; }
+          th { background: #1F2A49; color: white; padding: 12px; text-align: left; font-size: 12px; }
           td { padding: 10px; border-bottom: 1px solid #ddd; font-size: 12px; }
           tr:nth-child(even) { background: #f9f9f9; }
           .percentage { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
@@ -233,13 +237,13 @@ export default function Results({ setActiveSection }) {
         <title>${title} - Results</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; }
-          h1 { color: #10b981; }
+          h1 { color: #1F2A49; }
           .summary { display: flex; gap: 20px; margin-bottom: 30px; }
           .summary-item { background: #f3f4f6; padding: 15px; border-radius: 8px; flex: 1; }
           .summary-item h3 { margin: 0 0 5px; font-size: 12px; color: #666; }
           .summary-item p { margin: 0; font-size: 24px; font-weight: bold; color: #1e1e1e; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #10b981; color: white; padding: 12px; text-align: left; font-size: 12px; }
+          th { background: #1F2A49; color: white; padding: 12px; text-align: left; font-size: 12px; }
           td { padding: 10px; border-bottom: 1px solid #ddd; font-size: 12px; }
         </style>
       </head>
@@ -316,7 +320,7 @@ export default function Results({ setActiveSection }) {
     return (
       <div className={examsContainer}>
         <div className="flex items-center justify-center h-64">
-          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-brand-primary-lt border-t-brand-primary rounded-full animate-spin"></div>
         </div>
       </div>
     );
@@ -329,71 +333,43 @@ export default function Results({ setActiveSection }) {
         <p className={examsSubtitle}>View and analyze student performance across all exams</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-[32px] mb-2">📝</div>
-          <div className="text-[24px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair mb-1">
-            {stats.totalExams}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        {[
+          { icon: '📝', value: stats.totalExams, label: 'Total Exams' },
+          { icon: '👥', value: stats.totalResults, label: 'Results Submitted' },
+          { icon: '📊', value: `${stats.averageScore}%`, label: 'Average Score' },
+          { icon: '✅', value: `${stats.passRate}%`, label: 'Pass Rate' },
+        ].map(({ icon, value, label }) => (
+          <div key={label} className="bg-white rounded-xl border border-border p-4 sm:p-5">
+            <div className="text-2xl mb-2">{icon}</div>
+            <div className="text-xl sm:text-2xl font-bold text-content-primary mb-1">{value}</div>
+            <div className="text-xs text-content-muted">{label}</div>
           </div>
-          <div className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-            Total Exams
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-[32px] mb-2">👥</div>
-          <div className="text-[24px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair mb-1">
-            {stats.totalResults}
-          </div>
-          <div className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-            Results Submitted
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-[32px] mb-2">📊</div>
-          <div className="text-[24px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair mb-1">
-            {stats.averageScore}%
-          </div>
-          <div className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-            Average Score
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="text-[32px] mb-2">✅</div>
-          <div className="text-[24px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair mb-1">
-            {stats.passRate}%
-          </div>
-          <div className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-            Pass Rate
-          </div>
-        </div>
+        ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-          <div className="flex-1 w-full lg:w-auto">
-            <input
-              type="text"
-              placeholder="Search exams by title..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
-            />
-          </div>
-          <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+      <div className="bg-white rounded-xl border border-border p-4 sm:p-6 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            placeholder="Search exams by title..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-sm text-content-primary placeholder-content-muted min-h-[44px]"
+          />
+          <div className="flex gap-2 flex-shrink-0">
             <select
               value={filterClass}
               onChange={(e) => setFilterClass(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+              className="flex-1 sm:flex-none px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm text-content-primary min-h-[44px]"
             >
               <option value="all">All Classes</option>
-              {classes.map(cls => (
-                <option key={cls} value={cls}>{cls}</option>
-              ))}
+              {classes.map(cls => (<option key={cls} value={cls}>{cls}</option>))}
             </select>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+              className="flex-1 sm:flex-none px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm text-content-primary min-h-[44px]"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -408,38 +384,31 @@ export default function Results({ setActiveSection }) {
           <motion.div
             key={exam.id}
             whileHover={{ y: -2 }}
-            className="bg-white rounded-xl border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-all"
+            className="bg-white rounded-xl border border-border p-4 sm:p-6 cursor-pointer hover:shadow-card-md hover:border-brand-primary transition-all"
             onClick={() => fetchExamResults(exam.id)}
           >
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <h3 className="text-base font-bold text-content-primary truncate">
                     {exam.title}
                   </h3>
-                  <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${
-                    exam.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-                  }`}>
-                    {exam.status}
-                  </span>
-                  <span className="px-2 py-1 bg-purple-100 text-purple-600 rounded-full text-[10px] leading-[100%] font-[500]">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
+                    exam.status === 'active' ? 'bg-success-light text-success-dark' : 'bg-info-light text-info-dark'
+                  }`}>{exam.status}</span>
+                  <span className="px-2 py-0.5 bg-brand-primary-lt text-brand-primary rounded-full text-xs font-semibold flex-shrink-0">
                     {exam.class}
                   </span>
                 </div>
-                <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
-                  {exam.subjects?.length || 0} subject(s) • {exam.subjects?.reduce((sum, s) => sum + (s.questionCount || 0), 0)} questions
+                <p className="text-xs text-content-muted mb-1">
+                  {exam.subjects?.length || 0} subject(s) · {exam.subjects?.reduce((sum, s) => sum + (s.questionCount || 0), 0)} questions
                 </p>
-                <p className="text-[13px] leading-[140%] font-[400] text-[#1E1E1E] font-playfair line-clamp-1">
+                <p className="text-sm text-content-secondary line-clamp-1">
                   {exam.description || 'No description provided'}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
-                  {exam.subjects?.length || 0} subjects
-                </p>
-                <p className="text-[11px] leading-[100%] font-[400] text-[#10b981] font-playfair mt-1">
-                  Click to view results →
-                </p>
+              <div className="flex-shrink-0 text-sm font-semibold text-brand-primary">
+                View results →
               </div>
             </div>
           </motion.div>
@@ -447,12 +416,30 @@ export default function Results({ setActiveSection }) {
       </div>
 
       {filteredExams.length === 0 && (
-        <div className="bg-white rounded-lg p-12 text-center">
+        <div className="bg-white rounded-xl border border-border p-12 text-center">
           <div className="text-5xl mb-4">📊</div>
-          <h3 className="text-[18px] leading-[120%] font-[600] text-[#1E1E1E] mb-2 font-playfair">No Results Found</h3>
-          <p className="text-[14px] leading-[140%] font-[400] text-[#626060] font-playfair">
-            No exam results match your current filters.
+          <h3 className="text-lg font-bold text-content-primary mb-2">No Results Found</h3>
+          <p className="text-sm text-content-muted">No exam results match your current filters.</p>
+        </div>
+      )}
+
+      {totalCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-4 border-t border-border gap-3">
+          <p className="text-sm text-content-muted">
+            Page {page} of {Math.ceil(totalCount / LIMIT)} · {totalCount} total results
           </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+            >Previous</button>
+            <button
+              onClick={() => setPage(p => Math.min(Math.ceil(totalCount / LIMIT), p + 1))}
+              disabled={page >= Math.ceil(totalCount / LIMIT)}
+              className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+            >Next</button>
+          </div>
         </div>
       )}
 
@@ -472,72 +459,45 @@ export default function Results({ setActiveSection }) {
                 <h3 className={modalTitle}>{examResults.exam.title}</h3>
                 <p className="text-[13px] text-[#626060] mt-1">Total Marks: {examResults.exam.totalMarks} • Pass Mark: {examResults.exam.passMark}%</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button onClick={exportToCSV} className="px-3 py-1.5 bg-success-light text-success-dark rounded-lg text-xs font-semibold hover:opacity-80 transition-opacity min-h-[36px]">CSV</button>
+                <button onClick={exportToPDF} className="px-3 py-1.5 bg-danger-light text-danger-dark rounded-lg text-xs font-semibold hover:opacity-80 transition-opacity min-h-[36px]">PDF</button>
+                <button onClick={exportToWord} className="px-3 py-1.5 bg-info-light text-info-dark rounded-lg text-xs font-semibold hover:opacity-80 transition-opacity min-h-[36px]">Word</button>
                 <button
-                  onClick={exportToCSV}
-                  className="px-3 py-1 bg-green-100 text-green-600 rounded-md text-[11px] font-[600] hover:bg-green-200"
-                >
-                  CSV
-                </button>
-                <button
-                  onClick={exportToPDF}
-                  className="px-3 py-1 bg-red-100 text-red-600 rounded-md text-[11px] font-[600] hover:bg-red-200"
-                >
-                  PDF
-                </button>
-                <button
-                  onClick={exportToWord}
-                  className="px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-[11px] font-[600] hover:bg-blue-200"
-                >
-                  Word
-                </button>
-                <button
-                  onClick={() => {
-                    setShowResultsModal(false);
-                    setExamResults(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600 text-xl ml-2"
-                >
-                  ×
-                </button>
+                  onClick={() => { setShowResultsModal(false); setExamResults(null); }}
+                  className="p-1.5 text-content-muted hover:text-content-primary hover:bg-surface-subtle rounded-lg transition-colors ml-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-lg"
+                  aria-label="Close"
+                >×</button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-[11px] text-[#626060] mb-1">Total Students</p>
-                <p className="text-[20px] font-[700] text-[#1E1E1E]">{examResults.summary.totalStudents}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-[11px] text-[#626060] mb-1">Submitted</p>
-                <p className="text-[20px] font-[700] text-[#1E1E1E]">{examResults.summary.submittedCount}</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-[11px] text-[#626060] mb-1">Average Score</p>
-                <p className="text-[20px] font-[700] text-[#1E1E1E]">{Math.round(examResults.summary.averageScore)}%</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-[11px] text-[#626060] mb-1">Pass Rate</p>
-                <p className="text-[20px] font-[700] text-[#10b981]">{Math.round(examResults.summary.passRate)}%</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-[11px] text-[#626060] mb-1">Distinction</p>
-                <p className="text-[20px] font-[700] text-[#8b5cf6]">{Math.round(examResults.summary.distinctionRate || 0)}%</p>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
+              {[
+                { label: 'Total Students', value: examResults.summary.totalStudents, color: 'text-content-primary' },
+                { label: 'Submitted', value: examResults.summary.submittedCount, color: 'text-content-primary' },
+                { label: 'Average Score', value: `${Math.round(examResults.summary.averageScore)}%`, color: 'text-content-primary' },
+                { label: 'Pass Rate', value: `${Math.round(examResults.summary.passRate)}%`, color: 'text-success-dark' },
+                { label: 'Distinction', value: `${Math.round(examResults.summary.distinctionRate || 0)}%`, color: 'text-brand-primary' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-surface-muted p-3 rounded-lg">
+                  <p className="text-xs text-content-muted mb-1">{label}</p>
+                  <p className={`text-lg font-bold ${color}`}>{value}</p>
+                </div>
+              ))}
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-surface-muted border-b border-border">
                   <tr>
-                    <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Student</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Class</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Score</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Percentage</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Correct</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Wrong</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Unanswered</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Date</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Student</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Class</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Score</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Percentage</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Correct</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Wrong</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Unanswered</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -549,18 +509,18 @@ export default function Results({ setActiveSection }) {
                                           'bg-red-100 text-red-600';
                     
                     return (
-                      <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={index} className="border-b border-border hover:bg-surface-muted">
                         <td className="px-4 py-3">
-                          <span className="text-[12px] font-[500] text-[#1E1E1E]">{result.studentName}</span>
+                          <span className="text-xs font-medium text-content-primary">{result.studentName}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[12px] text-[#626060]">{result.studentClass}</span>
+                          <span className="text-xs text-content-muted">{result.studentClass}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[12px] font-[500]">{result.score}/{result.totalMarks}</span>
+                          <span className="text-xs font-medium">{result.score}/{result.totalMarks}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-[10px] font-[600] ${percentageClass}`}>
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${percentageClass}`}>
                             {Math.round(percentage)}%
                           </span>
                         </td>
@@ -571,10 +531,10 @@ export default function Results({ setActiveSection }) {
                           <span className="text-[12px] text-red-600">{result.wrongAnswers || 0}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[12px] text-gray-400">{result.totalQuestions - (result.correctAnswers + result.wrongAnswers)}</span>
+                          <span className="text-xs text-content-muted">{result.totalQuestions - (result.correctAnswers + result.wrongAnswers)}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[11px] text-[#626060]">
+                          <span className="text-[11px] text-content-muted">
                             {result.submittedAt ? formatDate(result.submittedAt) : 'N/A'}
                           </span>
                         </td>

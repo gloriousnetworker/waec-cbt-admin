@@ -16,7 +16,12 @@ import {
   modalActions,
   modalButtonSecondary,
   modalButtonDanger
-} from '../styles';
+} from '../../styles/styles';
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.25, ease: 'easeOut' } }),
+};
 
 export default function Questions({ setActiveSection }) {
   const { user, fetchWithAuth } = useAuth();
@@ -520,8 +525,8 @@ export default function Questions({ setActiveSection }) {
           {selectedSubject ? `Managing questions for ${selectedSubject.name}` : 'Create and manage questions'}
         </p>
         {!canUseBulkImport && (
-          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-[11px] text-yellow-700 font-playfair">
+          <div className="mt-2 p-2 bg-warning-light border border-yellow-200 rounded-md">
+            <p className="text-[11px] text-yellow-700">
               ⚠️ Bulk import is not available on your {getSubscriptionPlanName()} plan. 
               <button 
                 onClick={() => setActiveSection('subscription')}
@@ -545,7 +550,7 @@ export default function Questions({ setActiveSection }) {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] font-playfair text-[13px]"
+              className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
             />
           </div>
           <div className="flex gap-3">
@@ -557,10 +562,10 @@ export default function Questions({ setActiveSection }) {
                 }
                 setShowBulkImportModal(true);
               }}
-              className={`px-4 py-2 rounded-md font-playfair text-[13px] leading-[100%] font-[600] transition-colors ${
+              className={`px-4 py-2 rounded-md text-[13px] leading-[100%] font-[600] transition-colors ${
                 canUseBulkImport 
-                  ? 'bg-[#8B5CF6] text-white hover:bg-[#7C3AED]' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  ? 'bg-brand-accent text-white hover:bg-[#7C3AED]' 
+                  : 'bg-gray-300 text-content-muted cursor-not-allowed'
               }`}
               title={!canUseBulkImport ? 'Upgrade to Termly plan or higher to use bulk import' : ''}
             >
@@ -576,7 +581,7 @@ export default function Questions({ setActiveSection }) {
                 setFormData(prev => ({ ...prev, subjectId: selectedSubject.id }));
                 setShowCreateModal(true);
               }}
-              className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
+              className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
             >
               + Add Question
             </button>
@@ -595,7 +600,7 @@ export default function Questions({ setActiveSection }) {
                 setFormData(prev => ({ ...prev, subjectId: subject.id, class: subject.class || 'General' }));
               }
             }}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+            className="px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
           >
             <option value="all">All Subjects</option>
             {subjects.map(subject => (
@@ -608,7 +613,7 @@ export default function Questions({ setActiveSection }) {
               setFilterMode(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+            className="px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
           >
             <option value="all">All Modes</option>
             {modes.map(mode => (
@@ -621,7 +626,7 @@ export default function Questions({ setActiveSection }) {
               setFilterDifficulty(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+            className="px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
           >
             <option value="all">All Difficulties</option>
             {difficulties.map(diff => (
@@ -632,41 +637,40 @@ export default function Questions({ setActiveSection }) {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[14px] text-[#626060] font-playfair">Loading questions...</p>
+        <div className="bg-white rounded-lg border border-border p-12 text-center">
+          <div className="w-12 h-12 border-4 border-brand-primary-lt border-t-brand-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[14px] text-content-muted">Loading questions...</p>
         </div>
       ) : (
         <>
           <div className="mb-4 flex justify-between items-center">
-            <p className="text-[13px] text-[#626060] font-playfair">
+            <p className="text-[13px] text-content-muted">
               Showing {paginatedQuestions.length} of {filteredQuestions.length} questions
             </p>
             {filteredQuestions.length > 0 && (
-              <p className="text-[13px] text-[#626060] font-playfair">
+              <p className="text-[13px] text-content-muted">
                 Page {currentPage} of {totalPages}
               </p>
             )}
           </div>
 
           <div className="space-y-4">
-            {paginatedQuestions.map((question) => (
+            {paginatedQuestions.map((question, i) => (
               <motion.div
                 key={question.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all"
+                custom={i} variants={cardVariants} initial="hidden" animate="visible"
+                className="bg-white rounded-lg border border-border p-6 hover:shadow-card-md transition-all"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
+                      <h3 className="text-[16px] leading-[120%] font-[600] text-content-primary">
                         {question.question}
                       </h3>
                       <span className={`px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500] ${
-                        question.difficulty === 'easy' ? 'bg-green-100 text-green-600' :
-                        question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-600' :
-                        'bg-red-100 text-red-600'
+                        question.difficulty === 'easy' ? 'bg-success-light text-success' :
+                        question.difficulty === 'medium' ? 'bg-warning-light text-warning-dark' :
+                        'bg-danger-light text-danger'
                       }`}>
                         {question.difficulty}
                       </span>
@@ -675,17 +679,17 @@ export default function Questions({ setActiveSection }) {
                       }`}>
                         {question.mode === 'exam' ? 'Exam Mode' : 'Practice Mode'}
                       </span>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-[9px] leading-[100%] font-[500]">
+                      <span className="px-2 py-1 bg-surface-subtle text-content-secondary rounded-full text-[9px] leading-[100%] font-[500]">
                         {question.marks} mark{question.marks > 1 ? 's' : ''}
                       </span>
                     </div>
-                    <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mb-2">
+                    <p className="text-[11px] leading-[100%] font-[400] text-content-muted mb-2">
                       Subject: {subjects.find(s => s.id === question.subjectId)?.name || 'N/A'} • Class: {question.class} • Topic: {question.topic || 'General'}
                     </p>
                     <div className="space-y-2 mb-3">
                       {question.options?.map((option, idx) => (
                         <div key={idx} className={`p-3 rounded-md text-[13px] leading-[140%] font-[400] ${
-                          option === question.correctAnswer ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-gray-50 text-[#1E1E1E]'
+                          option === question.correctAnswer ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-surface-muted text-content-primary'
                         }`}>
                           {String.fromCharCode(65 + idx)}. {option}
                           {option === question.correctAnswer && ' ✓'}
@@ -701,7 +705,7 @@ export default function Questions({ setActiveSection }) {
                   <div className="flex gap-2 ml-4">
                     <button
                       onClick={() => openEditModal(question)}
-                      className="p-2 text-[#10b981] hover:bg-[#F0FDF4] rounded-md transition-colors"
+                      className="p-2 text-brand-primary hover:bg-brand-primary-lt rounded-md transition-colors"
                     >
                       ✏️
                     </button>
@@ -721,8 +725,8 @@ export default function Questions({ setActiveSection }) {
           </div>
 
           {filteredQuestions.length === 0 && (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-              <p className="text-[14px] text-[#626060] font-playfair">No questions found</p>
+            <div className="text-center py-12 bg-white rounded-lg border border-border">
+              <p className="text-[14px] text-content-muted">No questions found</p>
             </div>
           )}
 
@@ -731,10 +735,10 @@ export default function Questions({ setActiveSection }) {
               <button
                 onClick={handlePreviousPage}
                 disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-md text-[13px] font-[600] font-playfair transition-colors ${
+                className={`px-4 py-2 rounded-md text-[13px] font-[600] transition-colors ${
                   currentPage === 1
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-[#10b981] text-white hover:bg-[#059669]'
+                    ? 'bg-surface-subtle text-content-muted cursor-not-allowed'
+                    : 'bg-brand-primary text-white hover:bg-brand-primary-dk'
                 }`}
               >
                 ← Previous
@@ -752,10 +756,10 @@ export default function Questions({ setActiveSection }) {
                       <button
                         key={pageNumber}
                         onClick={() => handlePageChange(pageNumber)}
-                        className={`w-10 h-10 rounded-md text-[13px] font-[600] font-playfair transition-colors ${
+                        className={`w-10 h-10 rounded-md text-[13px] font-[600] transition-colors ${
                           currentPage === pageNumber
-                            ? 'bg-[#10b981] text-white'
-                            : 'bg-white border border-gray-300 text-[#626060] hover:border-[#10b981] hover:text-[#10b981]'
+                            ? 'bg-brand-primary text-white'
+                            : 'bg-white border border-border text-content-muted hover:border-brand-primary hover:text-brand-primary'
                         }`}
                       >
                         {pageNumber}
@@ -766,7 +770,7 @@ export default function Questions({ setActiveSection }) {
                     pageNumber === currentPage + 2
                   ) {
                     return (
-                      <span key={pageNumber} className="w-10 h-10 flex items-center justify-center text-[#626060]">
+                      <span key={pageNumber} className="w-10 h-10 flex items-center justify-center text-content-muted">
                         ...
                       </span>
                     );
@@ -778,10 +782,10 @@ export default function Questions({ setActiveSection }) {
               <button
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
-                className={`px-4 py-2 rounded-md text-[13px] font-[600] font-playfair transition-colors ${
+                className={`px-4 py-2 rounded-md text-[13px] font-[600] transition-colors ${
                   currentPage === totalPages
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-[#10b981] text-white hover:bg-[#059669]'
+                    ? 'bg-surface-subtle text-content-muted cursor-not-allowed'
+                    : 'bg-brand-primary text-white hover:bg-brand-primary-dk'
                 }`}
               >
                 Next →
@@ -790,7 +794,7 @@ export default function Questions({ setActiveSection }) {
           )}
 
           {filteredQuestions.length > 0 && (
-            <div className="mt-4 text-center text-[11px] text-[#626060] font-playfair">
+            <div className="mt-4 text-center text-[11px] text-content-muted">
               Showing {Math.min(itemsPerPage, filteredQuestions.length)} items per page
             </div>
           )}
@@ -817,22 +821,22 @@ export default function Questions({ setActiveSection }) {
               <div className="space-y-4 mb-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subject</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Subject</label>
                     <input
                       type="text"
                       value={selectedSubject?.name || 'No subject selected'}
                       disabled
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md bg-surface-subtle text-[13px]"
                     />
                     <input type="hidden" name="subjectId" value={selectedSubject?.id || ''} />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Mode *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Mode *</label>
                     <select
                       name="mode"
                       value={formData.mode}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     >
                       <option value="exam">Exam Mode</option>
                       <option value="practice">Practice Mode</option>
@@ -841,27 +845,27 @@ export default function Questions({ setActiveSection }) {
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Question *</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Question *</label>
                   <textarea
                     name="question"
                     value={formData.question}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     placeholder="Enter the question text"
                   />
                 </div>
 
                 <div className="space-y-3">
-                  <label className="block text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Options *</label>
+                  <label className="block text-[12px] leading-[100%] font-[500] text-content-primary">Options *</label>
                   {formData.options.map((option, index) => (
                     <div key={index} className="flex items-center gap-3">
-                      <span className="w-6 text-[13px] font-[600] text-[#626060]">{String.fromCharCode(65 + index)}.</span>
+                      <span className="w-6 text-[13px] font-[600] text-content-muted">{String.fromCharCode(65 + index)}.</span>
                       <input
                         type="text"
                         value={option}
                         onChange={(e) => handleOptionChange(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                        className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                         placeholder={`Option ${String.fromCharCode(65 + index)}`}
                       />
                     </div>
@@ -869,20 +873,20 @@ export default function Questions({ setActiveSection }) {
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Correct Answer *</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Correct Answer *</label>
                   <input
                     type="text"
                     name="correctAnswer"
                     value={formData.correctAnswer}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     placeholder="Enter the exact correct answer text"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Marks *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Marks *</label>
                     <input
                       type="number"
                       name="marks"
@@ -890,16 +894,16 @@ export default function Questions({ setActiveSection }) {
                       onChange={handleInputChange}
                       min="1"
                       step="1"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Difficulty</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Difficulty</label>
                     <select
                       name="difficulty"
                       value={formData.difficulty}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     >
                       {difficulties.map(diff => (
                         <option key={diff} value={diff}>{diff}</option>
@@ -907,12 +911,12 @@ export default function Questions({ setActiveSection }) {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Class *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Class *</label>
                     <select
                       name="class"
                       value={formData.class}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     >
                       {classes.map(cls => (
                         <option key={cls} value={cls}>{cls}</option>
@@ -922,25 +926,25 @@ export default function Questions({ setActiveSection }) {
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Topic</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Topic</label>
                   <input
                     type="text"
                     name="topic"
                     value={formData.topic}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     placeholder="e.g., Mechanics, Algebra"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Explanation</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Explanation</label>
                   <textarea
                     name="explanation"
                     value={formData.explanation}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     placeholder="Explain why the correct answer is right (optional)"
                   />
                 </div>
@@ -955,7 +959,7 @@ export default function Questions({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleCreateQuestion}
-                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Create Question
                 </button>
@@ -986,18 +990,18 @@ export default function Questions({ setActiveSection }) {
               <h3 className={modalTitle}>Bulk Import Questions</h3>
               
               <div className="mb-6">
-                <div className={`p-4 rounded-lg mb-4 ${selectedSubject ? 'bg-green-50' : 'bg-yellow-50'}`}>
-                  <p className="text-[12px] font-playfair">
+                <div className={`p-4 rounded-lg mb-4 ${selectedSubject ? 'bg-green-50' : 'bg-warning-light'}`}>
+                  <p className="text-[12px]">
                     <strong>Subject Selected:</strong> {selectedSubject?.name || 'None'} 
                     {selectedSubject && ` (${selectedSubject.examType})`}
                   </p>
                   {!selectedSubject && (
-                    <p className="text-[12px] text-red-600 font-playfair mt-1">
+                    <p className="text-[12px] text-red-600 mt-1">
                       Please select a subject from the filter before importing.
                     </p>
                   )}
                   {!canUseBulkImport && (
-                    <p className="text-[12px] text-red-600 font-playfair mt-2">
+                    <p className="text-[12px] text-red-600 mt-2">
                       ⚠️ Bulk import is not available on your current plan. Please upgrade to access this feature.
                     </p>
                   )}
@@ -1006,7 +1010,7 @@ export default function Questions({ setActiveSection }) {
                 <div className="flex gap-3 mb-4">
                   <button
                     onClick={downloadCSVTemplate}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-[13px] leading-[100%] font-[600]"
                   >
                     📥 Download CSV Template
                   </button>
@@ -1018,28 +1022,28 @@ export default function Questions({ setActiveSection }) {
                       disabled={!canUseBulkImport}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                     />
-                    <button className={`px-4 py-2 rounded-md text-[13px] leading-[100%] font-[600] font-playfair ${
+                    <button className={`px-4 py-2 rounded-md text-[13px] leading-[100%] font-[600] ${
                       canUseBulkImport 
-                        ? 'bg-[#10b981] text-white hover:bg-[#059669]' 
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        ? 'bg-brand-primary text-white hover:bg-brand-primary-dk' 
+                        : 'bg-gray-300 text-content-muted cursor-not-allowed'
                     }`}>
                       📤 Upload CSV
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                  <p className="text-[11px] text-[#626060] font-playfair mb-2">
+                <div className="bg-surface-muted p-4 rounded-lg mb-4">
+                  <p className="text-[11px] text-content-muted mb-2">
                     <strong>CSV Format:</strong> question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty (easy/medium/hard), topic, class, mode (exam/practice), explanation
                   </p>
-                  <p className="text-[10px] text-[#626060] font-playfair mt-2">
+                  <p className="text-[10px] text-content-muted mt-2">
                     Example: "What is the SI unit of force?","Newton","Joule","Watt","Pascal","Newton",2,"easy","Mechanics","General","exam","The Newton is the SI unit of force"
                   </p>
                 </div>
 
                 {bulkImportFile && (
                   <div className="bg-blue-50 p-2 rounded-md mb-4">
-                    <p className="text-[11px] text-blue-700 font-playfair">
+                    <p className="text-[11px] text-blue-700">
                       File uploaded: {bulkImportFile.name}
                     </p>
                   </div>
@@ -1048,12 +1052,12 @@ export default function Questions({ setActiveSection }) {
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Questions Data (JSON Preview)</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Questions Data (JSON Preview)</label>
                   <textarea
                     value={bulkImportData}
                     onChange={(e) => setBulkImportData(e.target.value)}
                     rows="8"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[12px] font-mono font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[12px] font-mono"
                     placeholder={JSON.stringify([
                       {
                         question: "What is the SI unit of force?",
@@ -1071,7 +1075,7 @@ export default function Questions({ setActiveSection }) {
                 </div>
 
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-[12px] text-blue-700 font-playfair">
+                  <p className="text-[12px] text-blue-700">
                     <strong>Required Fields:</strong> question (string), options (array of 4 strings), correctAnswer (string), marks (number), difficulty (easy/medium/hard), class (string), mode (exam/practice). Topic and explanation are optional.
                   </p>
                 </div>
@@ -1091,10 +1095,10 @@ export default function Questions({ setActiveSection }) {
                 <button
                   onClick={handleBulkImport}
                   disabled={!selectedSubject || !bulkImportData.trim() || !canUseBulkImport}
-                  className={`px-4 py-2 rounded-md text-[13px] leading-[100%] font-[600] font-playfair ${
+                  className={`px-4 py-2 rounded-md text-[13px] leading-[100%] font-[600] ${
                     (!selectedSubject || !bulkImportData.trim() || !canUseBulkImport)
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                      : 'bg-[#8B5CF6] text-white hover:bg-[#7C3AED]'
+                      ? 'bg-gray-300 text-content-muted cursor-not-allowed' 
+                      : 'bg-brand-accent text-white hover:bg-[#7C3AED]'
                   }`}
                 >
                   Import Questions
@@ -1123,24 +1127,24 @@ export default function Questions({ setActiveSection }) {
               <div className="space-y-4 mb-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Mode</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Mode</label>
                     <select
                       name="mode"
                       value={formData.mode}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     >
                       <option value="exam">Exam Mode</option>
                       <option value="practice">Practice Mode</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Class *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Class *</label>
                     <select
                       name="class"
                       value={formData.class}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     >
                       {classes.map(cls => (
                         <option key={cls} value={cls}>{cls}</option>
@@ -1150,45 +1154,45 @@ export default function Questions({ setActiveSection }) {
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Question *</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Question *</label>
                   <textarea
                     name="question"
                     value={formData.question}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                   />
                 </div>
 
                 <div className="space-y-3">
-                  <label className="block text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Options *</label>
+                  <label className="block text-[12px] leading-[100%] font-[500] text-content-primary">Options *</label>
                   {formData.options.map((option, index) => (
                     <div key={index} className="flex items-center gap-3">
-                      <span className="w-6 text-[13px] font-[600] text-[#626060]">{String.fromCharCode(65 + index)}.</span>
+                      <span className="w-6 text-[13px] font-[600] text-content-muted">{String.fromCharCode(65 + index)}.</span>
                       <input
                         type="text"
                         value={option}
                         onChange={(e) => handleOptionChange(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                        className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                       />
                     </div>
                   ))}
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Correct Answer *</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Correct Answer *</label>
                   <input
                     type="text"
                     name="correctAnswer"
                     value={formData.correctAnswer}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Marks *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Marks *</label>
                     <input
                       type="number"
                       name="marks"
@@ -1196,16 +1200,16 @@ export default function Questions({ setActiveSection }) {
                       onChange={handleInputChange}
                       min="1"
                       step="1"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Difficulty</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Difficulty</label>
                     <select
                       name="difficulty"
                       value={formData.difficulty}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     >
                       {difficulties.map(diff => (
                         <option key={diff} value={diff}>{diff}</option>
@@ -1213,25 +1217,25 @@ export default function Questions({ setActiveSection }) {
                     </select>
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Topic</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Topic</label>
                     <input
                       type="text"
                       name="topic"
                       value={formData.topic}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Explanation</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Explanation</label>
                   <textarea
                     name="explanation"
                     value={formData.explanation}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     placeholder="Explain why the correct answer is right"
                   />
                 </div>
@@ -1246,7 +1250,7 @@ export default function Questions({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleUpdateQuestion}
-                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Update Question
                 </button>

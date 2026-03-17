@@ -2,8 +2,10 @@
 
 import '../styles/globals.css'
 import { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 import { AuthProvider } from '../context/AuthContext'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import PWAInstallPrompt from '../components/PWAInstallPrompt'
 
 const toastOptions = {
   style: {
@@ -16,18 +18,18 @@ const toastOptions = {
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
     border: '1px solid #E8E8E8',
     maxWidth: '400px',
-    fontFamily: '"Playfair Display", serif',
+    fontFamily: '"Inter", sans-serif',
   },
   success: {
     style: {
-      background: '#E8F8F6',
-      color: '#2563EB',
-      borderLeft: '4px solid #2563EB',
-      border: '1px solid #C7EDE9',
+      background: '#EDF0F7',
+      color: '#1F2A49',
+      borderLeft: '4px solid #1F2A49',
+      border: '1px solid #C5CBDB',
     },
     iconTheme: {
-      primary: '#2563EB',
-      secondary: '#E8F8F6',
+      primary: '#1F2A49',
+      secondary: '#EDF0F7',
     },
   },
   error: {
@@ -54,24 +56,14 @@ const toastOptions = {
 }
 
 export default function RootLayout({ children }) {
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
-
   useEffect(() => {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
-    })
-
-    window.addEventListener('appinstalled', () => {
-      setDeferredPrompt(null)
-    })
-
     const handleOffline = () => {
-      console.log('App is offline')
+      toast.error('You are offline — some features may be unavailable.', { id: 'offline-toast', duration: Infinity })
     }
-    
+
     const handleOnline = () => {
-      console.log('App is online')
+      toast.dismiss('offline-toast')
+      toast.success('Back online!', { duration: 2000 })
     }
 
     window.addEventListener('offline', handleOffline)
@@ -88,23 +80,23 @@ export default function RootLayout({ children }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-        <meta name="theme-color" content="#2563EB" />
-        <meta name="description" content="School Admin Dashboard - Manage Students, Exams and Results" />
+        <meta name="theme-color" content="#1F2A49" />
+        <meta name="description" content="Einstein's CBT Admin Portal — Manage your school's students, exams and results" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="School Admin" />
+        <meta name="apple-mobile-web-app-title" content="Einstein's CBT Admin" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="application-name" content="School Admin" />
-        <meta name="msapplication-TileColor" content="#2563EB" />
+        <meta name="application-name" content="Einstein's CBT Admin" />
+        <meta name="msapplication-TileColor" content="#1F2A49" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <title>School Admin Dashboard</title>
+        <title>Einstein's CBT Admin — Mega Tech Solutions</title>
         <script src="/sw-register.js" defer></script>
       </head>
-      <body className="bg-white min-h-screen font-playfair antialiased">
+      <body className="bg-surface-muted min-h-screen antialiased">
         <AuthProvider>
           <Toaster 
             position="top-center" 
@@ -114,6 +106,7 @@ export default function RootLayout({ children }) {
             }}
           />
           {children}
+          <PWAInstallPrompt />
         </AuthProvider>
       </body>
     </html>

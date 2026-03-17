@@ -134,12 +134,11 @@ export function AuthProvider({ children }) {
             tempToken: data.tempToken,
             message: data.message
           };
-        } else if (data.user && data.tokens) {
+        } else if (data.user) {
           setUser(data.user);
-          return { 
-            success: true, 
+          return {
+            success: true,
             user: data.user,
-            tokens: data.tokens,
             hasSubscription: data.hasSubscription,
             subscription: data.subscription
           };
@@ -173,12 +172,11 @@ export function AuthProvider({ children }) {
 
       const data = await response.json();
 
-      if (response.ok && data.user && data.tokens) {
+      if (response.ok && data.user) {
         setUser(data.user);
-        return { 
-          success: true, 
-          user: data.user,
-          tokens: data.tokens
+        return {
+          success: true,
+          user: data.user
         };
       }
       

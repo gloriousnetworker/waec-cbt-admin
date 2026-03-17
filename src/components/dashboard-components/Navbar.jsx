@@ -24,9 +24,9 @@ import {
   navbarSearchInput,
   navbarNotification,
   navbarNotificationBadge,
-  navbarProfile,
   navbarProfileButton,
   navbarProfileAvatar,
+  navbarProfileAvatarText,
   navbarProfileInfo,
   navbarProfileName,
   navbarProfileId,
@@ -43,10 +43,20 @@ import {
   modalText,
   modalActions,
   modalButtonSecondary,
-  modalButtonDanger
+  modalButtonDanger,
 } from '../../styles/styles';
 
 const BASE_URL = 'https://cbt-simulator-backend.vercel.app';
+
+const navSections = [
+  { id: 'home',        label: 'Dashboard',   icon: '🏠' },
+  { id: 'students',   label: 'Students',    icon: '👥' },
+  { id: 'subjects',   label: 'Subjects',    icon: '📚' },
+  { id: 'questions',  label: 'Questions',   icon: '❓' },
+  { id: 'performance',label: 'Performance', icon: '📊' },
+  { id: 'results',    label: 'Results',     icon: '📈' },
+  { id: 'support',    label: 'Support',     icon: '🎫' },
+];
 
 export default function DashboardNavbar({ activeSection, setActiveSection, onMenuClick, onSupportClick }) {
   const { user, logout } = useAuth();
@@ -71,14 +81,15 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
   }, []);
 
   useEffect(() => {
+    if (!showDropdown) return;
     const handleClickOutside = (e) => {
       if (!e.target.closest('.profile-container')) {
         setShowDropdown(false);
       }
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDropdown]);
 
   const displayUser = liveUser || user;
 
@@ -92,27 +103,17 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
     setShowLogoutConfirm(false);
   };
 
-  const navSections = [
-    { id: 'home', label: 'Dashboard', icon: '🏠' },
-    { id: 'students', label: 'Students', icon: '👥' },
-    { id: 'subjects', label: 'Subjects', icon: '📚' },
-    { id: 'questions', label: 'Questions', icon: '❓' },
-    { id: 'performance', label: 'Performance', icon: '📊' },
-    { id: 'results', label: 'Results', icon: '📈' },
-    { id: 'support', label: 'Support', icon: '🎫' },
-  ];
-
   return (
     <>
       <nav className={navbarContainer}>
         <div className={navbarInner}>
           <div className={navbarContent}>
+
+            {/* ── Left: Hamburger + Logo ──────────────────────── */}
             <div className={navbarLeft}>
-              <button
-                onClick={onMenuClick}
-                className={navbarMenuButton}
-              >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Hamburger — visible on ALL screen sizes per design system */}
+              <button onClick={onMenuClick} className={navbarMenuButton} aria-label="Toggle menu">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
@@ -121,40 +122,43 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
                 <div className={navbarLogoImage}>
                   <Image
                     src="/logo.png"
-                    alt="School Logo"
-                    width={40}
-                    height={40}
+                    alt="Einstein's CBT App"
+                    width={36}
+                    height={36}
                     className="object-contain"
                   />
                 </div>
                 <div>
-                  <h1 className={navbarLogoText}>Kogi State College</h1>
-                  <p className={navbarLogoSubtext}>CBT Examination System</p>
+                  <h1 className={navbarLogoText}>Einstein's CBT App</h1>
+                  <p className={navbarLogoSubtext}>Admin Management Console</p>
                 </div>
               </div>
             </div>
 
-            <div className={navbarNav}>
-              {navSections.map(section => (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`${navbarNavButton} ${
-                    activeSection === section.id
-                      ? navbarNavButtonActive
-                      : navbarNavButtonInactive
-                  }`}
-                >
-                  <span className="mr-2">{section.icon}</span>
-                  {section.label}
-                </button>
-              ))}
+            {/* ── Centre: Active section breadcrumb (visible md+, replaces overcrowded tabs) ─── */}
+            <div className="hidden md:flex items-center px-3 py-1.5 bg-brand-primary-lt rounded-lg">
+              <span className="text-sm font-semibold text-brand-primary capitalize">
+                {activeSection === 'home' ? 'Dashboard' :
+                 activeSection === 'students' ? 'Student Management' :
+                 activeSection === 'subjects' ? 'Subject Management' :
+                 activeSection === 'questions' ? 'Question Bank' :
+                 activeSection === 'exams' ? 'Exam Setup' :
+                 activeSection === 'performance' ? 'Performance' :
+                 activeSection === 'results' ? 'Exam Results' :
+                 activeSection === 'support' ? 'Support Tickets' :
+                 activeSection === 'subscription' ? 'Subscription' :
+                 activeSection === 'settings' ? 'Settings' :
+                 activeSection === 'help' ? 'Help & Resources' :
+                 activeSection}
+              </span>
             </div>
 
+            {/* ── Right: Search + Bell + Profile ──────────────── */}
             <div className={navbarRight}>
+              {/* Search */}
               <div className={navbarSearch}>
                 <div className={navbarSearchIcon}>
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
@@ -165,81 +169,95 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
                 />
               </div>
 
-              <button className={navbarNotification}>
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Notification bell */}
+              <button className={navbarNotification} aria-label="Notifications">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                <span className={navbarNotificationBadge}></span>
+                <span className={navbarNotificationBadge} />
               </button>
 
+              {/* Profile dropdown — state-controlled, no CSS visibility tricks */}
               <div className="profile-container relative">
                 <button
-                  onClick={() => setShowDropdown(!showDropdown)}
+                  onClick={() => setShowDropdown(prev => !prev)}
                   className={navbarProfileButton}
+                  aria-label="Profile menu"
+                  aria-expanded={showDropdown}
                 >
                   <div className={navbarProfileAvatar}>
-                    <div className="w-9 h-9 rounded-full bg-[#10b981] flex items-center justify-center text-white text-[14px] leading-[100%] font-[600]">
+                    {/* Avatar — brand gradient, white initials */}
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                      style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #141C33 100%)' }}
+                    >
                       {getInitials(displayUser?.name)}
                     </div>
                   </div>
                   <div className={navbarProfileInfo}>
                     <p className={navbarProfileName}>{displayUser?.name || 'Admin'}</p>
-                    <p className={navbarProfileId}>School Administrator</p>
+                    <p className={navbarProfileId}>Administrator</p>
                   </div>
+                  {/* Admin role badge */}
+                  <span className="hidden xl:flex badge-admin text-xs ml-1">Admin</span>
                 </button>
 
+                {/* Dropdown — rendered via state only */}
                 {showDropdown && (
-                  <div className={navbarDropdown}>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className={navbarDropdown}
+                  >
                     <div className={navbarDropdownHeader}>
                       <p className={navbarDropdownHeaderName}>{displayUser?.name || 'Admin'}</p>
                       <p className={navbarDropdownHeaderEmail}>{displayUser?.email || ''}</p>
                     </div>
                     <div className={navbarDropdownMenu}>
                       <button
-                        onClick={() => {
-                          setActiveSection('settings');
-                          setShowDropdown(false);
-                        }}
+                        onClick={() => { setActiveSection('settings'); setShowDropdown(false); }}
                         className={navbarDropdownItem}
                       >
-                        Settings
+                        ⚙️ &nbsp;Settings
                       </button>
                       <button
-                        onClick={() => {
-                          onSupportClick();
-                          setShowDropdown(false);
-                        }}
+                        onClick={() => { onSupportClick(); setShowDropdown(false); }}
                         className={navbarDropdownItem}
                       >
-                        Support Chat
+                        💬 &nbsp;Support Chat
                       </button>
+                      <div className="h-px bg-border mx-2 my-1" />
                       <button
-                        onClick={() => {
-                          setShowLogoutConfirm(true);
-                          setShowDropdown(false);
-                        }}
+                        onClick={() => { setShowLogoutConfirm(true); setShowDropdown(false); }}
                         className={navbarDropdownItemDanger}
                       >
-                        Logout
+                        🚪 &nbsp;Sign Out
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </div>
             </div>
+
           </div>
         </div>
       </nav>
 
+      {/* ── Logout confirmation modal ─────────────────────────── */}
       {showLogoutConfirm && (
         <div className={modalOverlay}>
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+            initial={{ scale: 0.92, y: 16, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            transition={{ duration: 0.2 }}
             className={modalContainer}
           >
-            <h3 className={modalTitle}>Confirm Logout</h3>
-            <p className={modalText}>Are you sure you want to logout?</p>
+            <h3 className={modalTitle}>Sign Out?</h3>
+            <p className={modalText}>
+              Are you sure you want to sign out of the Admin Portal?
+            </p>
             <div className={modalActions}>
               <button
                 onClick={() => setShowLogoutConfirm(false)}
@@ -247,11 +265,8 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
               >
                 Cancel
               </button>
-              <button
-                onClick={handleLogout}
-                className={modalButtonDanger}
-              >
-                Logout
+              <button onClick={handleLogout} className={modalButtonDanger}>
+                Sign Out
               </button>
             </div>
           </motion.div>

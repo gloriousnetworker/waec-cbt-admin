@@ -10,13 +10,9 @@ import {
   examsTitle,
   examsSubtitle,
   modalOverlay,
-  modalContainer,
-  modalTitle,
-  modalText,
   modalActions,
   modalButtonSecondary,
-  modalButtonDanger
-} from '../styles';
+} from '../../styles/styles';
 
 export default function Subscription({ setActiveSection }) {
   const { fetchWithAuth } = useAuth();
@@ -36,8 +32,7 @@ export default function Subscription({ setActiveSection }) {
   useEffect(() => {
     fetchData();
     const urlParams = new URLSearchParams(window.location.search);
-    const paymentRef = urlParams.get('payment_ref');
-    if (paymentRef) {
+    if (urlParams.get('payment_ref')) {
       toast.success('Payment completed! Your subscription is being activated...');
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -50,183 +45,87 @@ export default function Subscription({ setActiveSection }) {
         fetchWithAuth('/admin/subscription/plans'),
         fetchWithAuth('/admin/subscription/status'),
         fetchWithAuth('/admin/subscription/payments'),
-        fetchWithAuth('/admin/payment/methods')
+        fetchWithAuth('/admin/payment/methods'),
       ]);
-
-      if (plansRes.ok) {
-        const plansData = await plansRes.json();
-        setPlans(plansData.plans || {});
-      }
-
-      if (statusRes.ok) {
-        const statusData = await statusRes.json();
-        setSubscriptionStatus(statusData.status || { active: false });
-        setCurrentSubscription(statusData.subscription);
-      }
-
-      if (paymentsRes.ok) {
-        const paymentsData = await paymentsRes.json();
-        setPayments(paymentsData.payments || []);
-      }
-
-      if (methodsRes.ok) {
-        const methodsData = await methodsRes.json();
-        setPaymentMethods(methodsData.methods || []);
-      }
-    } catch (error) {
-      toast.error('Failed to load subscription data');
-    } finally {
-      setLoading(false);
-    }
+      if (plansRes.ok)    setPlans((await plansRes.json()).plans || {});
+      if (statusRes.ok)   { const d = await statusRes.json(); setSubscriptionStatus(d.status || { active: false }); setCurrentSubscription(d.subscription); }
+      if (paymentsRes.ok) setPayments((await paymentsRes.json()).payments || []);
+      if (methodsRes.ok)  setPaymentMethods((await methodsRes.json()).methods || []);
+    } catch { toast.error('Failed to load subscription data'); }
+    finally { setLoading(false); }
   };
 
   const handleInitializePayment = async () => {
     if (!selectedPlan) return;
-
     setProcessing(true);
     const toastId = toast.loading('Initializing payment...');
-
     try {
       const response = await fetchWithAuth('/admin/subscription/initialize', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          plan: selectedPlan,
-          paymentMethod: selectedMethod 
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan, paymentMethod: selectedMethod }),
       });
-
       const data = await response.json();
-
       if (response.ok) {
         toast.success('Payment initialized! Redirecting...', { id: toastId });
-        
-        sessionStorage.setItem('pendingPayment', JSON.stringify({
-          reference: data.payment.reference,
-          plan: selectedPlan,
-          amount: plans[selectedPlan]?.price
-        }));
-        
+        sessionStorage.setItem('pendingPayment', JSON.stringify({ reference: data.payment.reference, plan: selectedPlan, amount: plans[selectedPlan]?.price }));
         window.location.href = data.payment.authorizationUrl;
       } else {
         toast.error(data.message || 'Failed to initialize payment', { id: toastId });
         setShowPaymentModal(false);
       }
-    } catch (error) {
-      toast.error('Network error', { id: toastId });
-      setShowPaymentModal(false);
-    } finally {
-      setProcessing(false);
-    }
+    } catch { toast.error('Network error', { id: toastId }); setShowPaymentModal(false); }
+    finally { setProcessing(false); }
   };
 
-  const handleViewPaymentDetails = (payment) => {
-    setSelectedPayment(payment);
+  const formatDate = (ts) => {
+    if (!ts) return 'N/A';
+    if (ts._seconds) return new Date(ts._seconds * 1000).toLocaleDateString();
+    return new Date(ts).toLocaleDateString();
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    if (timestamp._seconds) {
-      return new Date(timestamp._seconds * 1000).toLocaleDateString();
-    }
-    if (timestamp instanceof Date) {
-      return timestamp.toLocaleDateString();
-    }
-    return new Date(timestamp).toLocaleDateString();
-  };
-
-  const formatDateTime = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    if (timestamp._seconds) {
-      return new Date(timestamp._seconds * 1000).toLocaleString();
-    }
-    if (timestamp instanceof Date) {
-      return timestamp.toLocaleString();
-    }
-    return new Date(timestamp).toLocaleString();
+  const formatDateTime = (ts) => {
+    if (!ts) return 'N/A';
+    if (ts._seconds) return new Date(ts._seconds * 1000).toLocaleString();
+    return new Date(ts).toLocaleString();
   };
 
   const getStatusBadge = (status) => {
-    switch(status) {
-      case 'completed': return 'bg-green-100 text-green-600';
-      case 'pending': return 'bg-yellow-100 text-yellow-600';
-      case 'failed': return 'bg-red-100 text-red-600';
-      default: return 'bg-gray-100 text-gray-600';
+    switch (status) {
+      case 'completed': return 'bg-success-light text-success';
+      case 'pending':   return 'bg-warning-light text-warning-dark';
+      case 'failed':    return 'bg-danger-light text-danger';
+      default:          return 'bg-surface-subtle text-content-secondary';
     }
   };
 
-  const getPlanPeriod = (planKey, plan) => {
+  const getPlanPeriod = (key, plan) => {
     if (!plan) return '';
-    if (plan.days === 30) return '/month';
+    if (plan.days === 30)  return '/month';
     if (plan.days === 120) return '/term';
     if (plan.days === 365) return '/year';
     return '';
   };
 
-  const getPlanFeatures = (planKey, plan) => {
-    const features = {
-      monthly: [
-        `✓ Up to ${plan.studentLimit || 50} students`,
-        '✓ Basic analytics',
-        '✓ Email support',
-        '✓ Question bank access',
-        '✓ Practice mode',
-        '✗ Bulk import',
-        '✗ Advanced exam scheduling',
-        '✗ Custom branding'
-      ],
-      termly: [
-        `✓ Up to ${plan.studentLimit || 200} students`,
-        '✓ Advanced analytics',
-        '✓ Priority support',
-        '✓ Question bank access',
-        '✓ Bulk import',
-        '✓ Exam scheduling',
-        '✓ Practice mode',
-        '✗ Custom branding'
-      ],
-      yearly: [
-        `✓ Up to ${plan.studentLimit || 500} students`,
-        '✓ All analytics features',
-        '✓ 24/7 priority support',
-        '✓ Full question bank',
-        '✓ Bulk import',
-        '✓ Advanced exam scheduling',
-        '✓ Custom branding',
-        '✓ API access'
-      ],
-      unlimited: [
-        `✓ Unlimited students for one year`,
-        '✓ All analytics features',
-        '✓ Dedicated support',
-        '✓ Full question bank',
-        '✓ Bulk import',
-        '✓ Advanced exam scheduling',
-        '✓ Custom branding',
-        '✓ API access',
-        '✓ White-label solution',
-        '⭐ BEST VALUE'
-      ]
+  const getPlanFeatures = (key, plan) => {
+    const f = {
+      monthly:   [`Up to ${plan.studentLimit || 50} students`, 'Basic analytics', 'Email support', 'Question bank access', 'Practice mode'],
+      termly:    [`Up to ${plan.studentLimit || 200} students`, 'Advanced analytics', 'Priority support', 'Question bank + bulk import', 'Exam scheduling'],
+      yearly:    [`Up to ${plan.studentLimit || 500} students`, 'All analytics features', '24/7 priority support', 'Full question bank', 'Custom branding + API access'],
+      unlimited: ['Unlimited students for one year', 'All analytics & features', 'Dedicated support', 'White-label solution', 'Full API access'],
     };
-    return features[planKey] || [];
+    return f[key] || [];
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(amount);
 
   if (loading) {
     return (
       <div className={examsContainer}>
-        <div className="flex items-center justify-center h-64">
-          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center justify-center h-64 gap-3">
+          <div className="w-12 h-12 border-4 border-brand-primary-lt border-t-brand-primary rounded-full animate-spin" />
+          <p className="text-sm text-content-muted">Loading subscription data...</p>
         </div>
       </div>
     );
@@ -241,35 +140,28 @@ export default function Subscription({ setActiveSection }) {
         <p className={examsSubtitle}>Choose the best plan for your school</p>
       </div>
 
+      {/* ── Active subscription banner ── */}
       {currentSubscription && subscriptionStatus.active && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="bg-success-light border border-success rounded-xl p-5 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <span className="text-3xl">✅</span>
               <div>
-                <h3 className="text-[16px] leading-[120%] font-[600] text-green-700 font-playfair">
-                  Active Subscription: {subscriptionStatus.planName || currentSubscription.plan?.charAt(0).toUpperCase() + currentSubscription.plan?.slice(1)} Plan
+                <h3 className="text-sm font-bold text-success">
+                  Active Subscription — {subscriptionStatus.planName || (currentSubscription.plan?.charAt(0).toUpperCase() + currentSubscription.plan?.slice(1))} Plan
                 </h3>
-                <p className="text-[13px] text-green-600 font-playfair mt-1">
-                  Started: {formatDate(currentSubscription.startDate)} • 
-                  Expires: {formatDate(currentSubscription.expiryDate)} • {subscriptionStatus.daysLeft || 0} days remaining
+                <p className="text-xs text-success mt-0.5">
+                  Started: {formatDate(currentSubscription.startDate)} · Expires: {formatDate(currentSubscription.expiryDate)} · {subscriptionStatus.daysLeft || 0} days remaining
                 </p>
-                <p className="text-[12px] text-green-600 font-playfair mt-1">
-                  Student Usage: {subscriptionStatus.studentCount || 0} / {subscriptionStatus.studentLimit === null ? '∞' : subscriptionStatus.studentLimit} students
-                  {subscriptionStatus.remainingStudents !== null && subscriptionStatus.remainingStudents > 0 && (
-                    <span className="ml-2 text-green-500">({subscriptionStatus.remainingStudents} slots left)</span>
-                  )}
+                <p className="text-xs text-success mt-0.5">
+                  Students: {subscriptionStatus.studentCount || 0} / {subscriptionStatus.studentLimit === null ? '∞' : subscriptionStatus.studentLimit}
+                  {subscriptionStatus.remainingStudents > 0 && ` (${subscriptionStatus.remainingStudents} slots left)`}
                 </p>
-                {currentSubscription.paymentReference && (
-                  <p className="text-[11px] text-green-500 font-playfair mt-1">
-                    Reference: {currentSubscription.paymentReference}
-                  </p>
-                )}
               </div>
             </div>
             <button
               onClick={() => setShowHistoryModal(true)}
-              className="px-4 py-2 bg-white text-[#10b981] border border-[#10b981] rounded-lg hover:bg-[#F0FDF4] transition-colors text-sm font-[600]"
+              className="px-4 py-2 bg-white text-success border border-success rounded-lg hover:bg-success-light transition-colors text-sm font-semibold min-h-[40px] flex-shrink-0"
             >
               View Payment History
             </button>
@@ -277,15 +169,14 @@ export default function Subscription({ setActiveSection }) {
         </div>
       )}
 
+      {/* ── Inactive banner ── */}
       {!subscriptionStatus.active && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8">
+        <div className="bg-warning-light border border-warning rounded-xl p-5 mb-8">
           <div className="flex items-center gap-3">
             <span className="text-3xl">⚠️</span>
             <div>
-              <h3 className="text-[16px] leading-[120%] font-[600] text-yellow-700 font-playfair">
-                No Active Subscription
-              </h3>
-              <p className="text-[13px] text-yellow-600 font-playfair mt-1">
+              <h3 className="text-sm font-bold text-warning-dark">No Active Subscription</h3>
+              <p className="text-xs text-warning-dark mt-0.5 opacity-80">
                 {subscriptionStatus.reason || 'Please activate a subscription to continue using all features'}
               </p>
             </div>
@@ -293,89 +184,70 @@ export default function Subscription({ setActiveSection }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {planOrder.map((key) => {
+      {/* ── Plan cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        {planOrder.map((key, i) => {
           const plan = plans[key];
           if (!plan) return null;
-          
+
           const isCurrentPlan = currentSubscription?.plan === key && subscriptionStatus.active;
-          const isUnlimited = key === 'unlimited';
-          const period = getPlanPeriod(key, plan);
-          
+          const isUnlimited   = key === 'unlimited';
+          const period        = getPlanPeriod(key, plan);
+
           return (
             <motion.div
               key={key}
-              whileHover={{ y: -4 }}
-              className={`bg-white rounded-xl border-2 p-6 relative ${
-                isCurrentPlan
-                  ? 'border-[#10b981] bg-[#F0FDF4]'
-                  : isUnlimited
-                  ? 'border-[#8B5CF6] hover:border-[#7C3AED]'
-                  : 'border-gray-200 hover:border-[#10b981]'
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08, duration: 0.3, ease: 'easeOut' }}
+              whileHover={{ y: -4, transition: { duration: 0.15 } }}
+              className={`bg-white rounded-xl border-2 p-6 relative flex flex-col transition-shadow hover:shadow-card-md ${
+                isCurrentPlan ? 'border-brand-primary bg-brand-primary-lt'
+                  : isUnlimited ? 'border-brand-gold'
+                  : 'border-border hover:border-brand-primary'
               }`}
             >
+              {/* Best Value badge */}
               {isUnlimited && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#8B5CF6] text-white px-3 py-1 rounded-full text-[10px] font-[600]">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-gold text-white px-3 py-1 rounded-full text-[10px] font-bold tracking-wide">
                   BEST VALUE
                 </div>
               )}
-              
-              <div className="text-center mb-4">
-                <h3 className="text-[20px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair">
-                  {plan.name}
-                </h3>
-                <div className="mt-3">
-                  <span className={`text-[32px] leading-[100%] font-[700] font-playfair ${
-                    isUnlimited ? 'text-[#8B5CF6]' : 'text-[#10b981]'
-                  }`}>
+
+              <div className="text-center mb-5">
+                <h3 className="text-lg font-bold text-content-primary">{plan.name}</h3>
+                <div className="mt-2">
+                  <span className={`text-3xl font-bold ${isUnlimited ? 'text-brand-gold' : 'text-brand-primary'}`}>
                     {formatCurrency(plan.price)}
                   </span>
-                  {period && (
-                    <span className="text-[12px] text-[#626060] font-playfair">{period}</span>
-                  )}
+                  {period && <span className="text-xs text-content-muted ml-1">{period}</span>}
                 </div>
                 {plan.studentLimit ? (
-                  <p className="text-[13px] text-[#626060] mt-2 font-playfair">
-                    Up to {plan.studentLimit} students
-                  </p>
+                  <p className="text-xs text-content-muted mt-1.5">Up to {plan.studentLimit} students</p>
                 ) : (
-                  <p className="text-[13px] text-[#8B5CF6] mt-2 font-playfair font-[600]">
-                    Unlimited students
-                  </p>
+                  <p className="text-xs font-semibold text-brand-gold mt-1.5">Unlimited students</p>
                 )}
-                <p className="text-[11px] text-[#9CA3AF] mt-1 font-playfair">
-                  {plan.description}
-                </p>
-                <p className="text-[10px] text-[#626060] mt-1 font-playfair">
-                  {plan.days} days validity
-                </p>
+                <p className="text-[10px] text-content-muted mt-1">{plan.days} days validity</p>
               </div>
 
-              <div className="space-y-2 mb-6">
-                {getPlanFeatures(key, plan).map((benefit, index) => (
-                  <div key={index} className={`flex items-center gap-2 text-[11px] font-playfair ${
-                    benefit.includes('✗') ? 'text-[#9CA3AF]' : 'text-[#1E1E1E]'
-                  }`}>
-                    <span className={benefit.includes('✓') ? 'text-[#10b981]' : benefit.includes('⭐') ? 'text-[#8B5CF6] font-[600]' : 'text-[#9CA3AF]'}>
-                      {benefit.includes('✓') ? '✓' : benefit.includes('✗') ? '✗' : ''}
-                    </span>
-                    <span>{benefit.replace(/[✓✗⭐]\s/, '')}</span>
-                  </div>
+              <ul className="space-y-2 mb-6 flex-1">
+                {getPlanFeatures(key, plan).map((feat, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-xs text-content-secondary">
+                    <span className={`mt-0.5 flex-shrink-0 ${isUnlimited ? 'text-brand-gold' : 'text-brand-primary'}`}>✓</span>
+                    {feat}
+                  </li>
                 ))}
-              </div>
+              </ul>
 
               <button
-                onClick={() => {
-                  setSelectedPlan(key);
-                  setShowPaymentModal(true);
-                }}
+                onClick={() => { setSelectedPlan(key); setShowPaymentModal(true); }}
                 disabled={isCurrentPlan}
-                className={`w-full py-3 rounded-lg font-[600] text-[13px] leading-[100%] font-playfair transition-colors ${
+                className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors min-h-[40px] ${
                   isCurrentPlan
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    ? 'bg-surface-muted text-content-muted cursor-not-allowed'
                     : isUnlimited
-                    ? 'bg-[#8B5CF6] text-white hover:bg-[#7C3AED]'
-                    : 'bg-[#10b981] text-white hover:bg-[#059669]'
+                    ? 'bg-brand-gold text-white hover:bg-warning-dark'
+                    : 'bg-brand-primary text-white hover:bg-brand-primary-dk'
                 }`}
               >
                 {isCurrentPlan ? 'Current Plan' : 'Select Plan'}
@@ -385,108 +257,74 @@ export default function Subscription({ setActiveSection }) {
         })}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-8">
-        <h2 className="text-[18px] leading-[120%] font-[600] text-[#1E1E1E] mb-6 font-playfair">Frequently Asked Questions</h2>
+      {/* ── FAQ ── */}
+      <div className="bg-white rounded-xl border border-border shadow-card p-6 sm:p-8">
+        <h2 className="text-lg font-bold text-content-primary mb-6">Frequently Asked Questions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">How do payments work?</h3>
-            <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">
-              We use Paystack for secure payments. You'll be redirected to Paystack to complete your payment using card, bank transfer, or USSD.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">Can I upgrade my plan?</h3>
-            <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">
-              Yes, you can upgrade at any time. The remaining value will be prorated and applied to your new plan.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">What happens when I reach my student limit?</h3>
-            <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">
-              You won't be able to add more students until you upgrade to a higher plan or delete existing students.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">Is there a refund policy?</h3>
-            <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">
-              We offer a 14-day money-back guarantee if you're not satisfied with our service.
-            </p>
-          </div>
+          {[
+            { q: 'How do payments work?',               a: 'We use Paystack for secure payments. You\'ll be redirected to complete your payment using card, bank transfer, or USSD.' },
+            { q: 'Can I upgrade my plan?',              a: 'Yes, you can upgrade at any time. The remaining value will be prorated and applied to your new plan.' },
+            { q: 'What happens at my student limit?',   a: 'You won\'t be able to add more students until you upgrade your plan or remove existing students.' },
+            { q: 'Is there a refund policy?',           a: 'We offer a 14-day money-back guarantee if you\'re not satisfied with our service.' },
+          ].map(({ q, a }) => (
+            <div key={q}>
+              <h3 className="text-sm font-bold text-content-primary mb-1.5">{q}</h3>
+              <p className="text-sm text-content-muted leading-relaxed">{a}</p>
+            </div>
+          ))}
         </div>
       </div>
 
+      {/* ── Modals ── */}
       <AnimatePresence>
+        {/* Payment modal */}
         {showPaymentModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={modalOverlay}
-            onClick={() => setShowPaymentModal(false)}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className={modalOverlay} onClick={() => setShowPaymentModal(false)}
           >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-md w-full mx-4"
+            <motion.div initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92 }}
+              className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-card-lg"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className={modalTitle}>Complete Payment</h3>
-              
-              <div className="mb-6">
-                <div className="p-4 bg-gray-50 rounded-lg mb-4">
-                  <p className="text-[12px] text-[#626060] mb-1 font-playfair">Selected Plan</p>
-                  <p className="text-[16px] font-[600] text-[#1E1E1E] font-playfair">
-                    {plans[selectedPlan]?.name} Plan
-                  </p>
-                  <p className="text-[20px] font-[700] text-[#10b981] font-playfair mt-2">
+              <h3 className="text-lg font-bold text-content-primary mb-4">Complete Payment</h3>
+
+              <div className="mb-5">
+                <div className="p-4 bg-brand-primary-lt rounded-xl mb-4">
+                  <p className="text-xs text-content-muted mb-1">Selected Plan</p>
+                  <p className="text-base font-bold text-content-primary">{plans[selectedPlan]?.name} Plan</p>
+                  <p className={`text-2xl font-bold mt-1 ${selectedPlan === 'unlimited' ? 'text-brand-gold' : 'text-brand-primary'}`}>
                     {formatCurrency(plans[selectedPlan]?.price)}
                   </p>
-                  <p className="text-[11px] text-[#626060] mt-1">
-                    {plans[selectedPlan]?.days} days validity
-                  </p>
+                  <p className="text-xs text-content-muted mt-1">{plans[selectedPlan]?.days} days validity</p>
                   {plans[selectedPlan]?.studentLimit ? (
-                    <p className="text-[12px] text-[#626060] mt-2">
-                      Student Limit: {plans[selectedPlan].studentLimit} students
-                    </p>
+                    <p className="text-xs text-content-secondary mt-1">Limit: {plans[selectedPlan].studentLimit} students</p>
                   ) : (
-                    <p className="text-[12px] text-[#8B5CF6] mt-2 font-[600]">
-                      Unlimited students
-                    </p>
+                    <p className="text-xs font-semibold text-brand-gold mt-1">Unlimited students</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">
+                  <label className="block text-xs font-semibold text-content-secondary mb-1.5 uppercase tracking-wide">
                     Payment Method
                   </label>
                   <select
                     value={selectedMethod}
                     onChange={(e) => setSelectedMethod(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-sm text-content-primary bg-white"
                   >
-                    {paymentMethods.map(method => (
-                      <option key={method.id} value={method.id}>
-                        {method.icon} {method.name} - {method.description}
-                      </option>
+                    {paymentMethods.map((m) => (
+                      <option key={m.id} value={m.id}>{m.icon} {m.name} — {m.description}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
               <div className={modalActions}>
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className={modalButtonSecondary}
-                >
-                  Cancel
-                </button>
+                <button onClick={() => setShowPaymentModal(false)} className={modalButtonSecondary}>Cancel</button>
                 <button
                   onClick={handleInitializePayment}
                   disabled={processing}
-                  className={`px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair ${
-                    processing ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
+                  className={`px-5 py-2.5 ${selectedPlan === 'unlimited' ? 'bg-brand-gold hover:bg-warning-dark' : 'bg-brand-primary hover:bg-brand-primary-dk'} text-white rounded-lg transition-colors text-sm font-semibold min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {processing ? 'Processing...' : 'Proceed to Payment'}
                 </button>
@@ -495,104 +333,74 @@ export default function Subscription({ setActiveSection }) {
           </motion.div>
         )}
 
+        {/* Payment history modal */}
         {showHistoryModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className={modalOverlay}
-            onClick={() => setShowHistoryModal(false)}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className={modalOverlay} onClick={() => setShowHistoryModal(false)}
           >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            <motion.div initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92 }}
+              className="bg-white rounded-xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-card-lg"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className={modalTitle}>Payment History</h3>
-                <button
-                  onClick={() => setShowHistoryModal(false)}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
-                >
-                  ×
-                </button>
+                <h3 className="text-lg font-bold text-content-primary">Payment History</h3>
+                <button onClick={() => setShowHistoryModal(false)} className="text-content-muted hover:text-content-primary text-xl leading-none">×</button>
               </div>
 
-              <div className="space-y-4 mb-6">
+              <div className="space-y-3 mb-6">
                 {payments.length === 0 ? (
-                  <p className="text-center text-[13px] text-[#626060] py-8">No payment history found</p>
+                  <p className="text-center text-sm text-content-muted py-8">No payment history found</p>
                 ) : (
                   payments.map((payment, index) => (
                     <motion.div
                       key={payment.id || index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
+                      transition={{ delay: index * 0.04 }}
+                      className="border border-border rounded-xl p-4 hover:shadow-card transition-all cursor-pointer"
                       onClick={() => setSelectedPayment(selectedPayment?.id === payment.id ? null : payment)}
                     >
-                      <div className="flex justify-between items-start mb-3">
+                      <div className="flex justify-between items-start mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-[14px] font-[600] text-[#1E1E1E] font-playfair">
+                            <h4 className="text-sm font-bold text-content-primary">
                               {payment.plan?.charAt(0).toUpperCase() + payment.plan?.slice(1)} Plan
                             </h4>
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-[500] ${getStatusBadge(payment.status)}`}>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold ${getStatusBadge(payment.status)}`}>
                               {payment.status}
                             </span>
                           </div>
-                          <p className="text-[11px] text-[#626060] font-playfair">
-                            Reference: {payment.reference || 'N/A'}
-                          </p>
+                          <p className="text-xs text-content-muted">Ref: {payment.reference || 'N/A'}</p>
                         </div>
-                        <span className="text-[14px] font-[600] text-[#10b981]">
-                          {formatCurrency(payment.amount)}
-                        </span>
+                        <span className="text-sm font-bold text-brand-primary">{formatCurrency(payment.amount)}</span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-[11px] text-[#626060] font-playfair">
-                        <div>
-                          <span className="font-[500]">Method:</span> {payment.paymentMethod}
-                        </div>
-                        <div>
-                          <span className="font-[500]">Date:</span> {formatDateTime(payment.createdAt)}
-                        </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-content-muted">
+                        <div><span className="font-medium">Method:</span> {payment.paymentMethod}</div>
+                        <div><span className="font-medium">Date:</span> {formatDateTime(payment.createdAt)}</div>
                       </div>
 
                       {selectedPayment?.id === payment.id && payment.verificationData && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
-                          className="mt-4 pt-4 border-t border-gray-200"
+                          className="mt-4 pt-4 border-t border-border"
                         >
-                          <h5 className="text-[12px] font-[600] text-[#1E1E1E] mb-2 font-playfair">Payment Details</h5>
-                          <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-[11px]">
-                            <div className="flex justify-between">
-                              <span className="text-[#626060]">Gateway Response:</span>
-                              <span className="font-[500] text-[#10b981]">{payment.verificationData.gateway_response}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-[#626060]">Channel:</span>
-                              <span>{payment.verificationData.channel}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-[#626060]">Card Type:</span>
-                              <span>{payment.verificationData.authorization?.card_type}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-[#626060]">Last 4:</span>
-                              <span>****{payment.verificationData.authorization?.last4}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-[#626060]">Bank:</span>
-                              <span>{payment.verificationData.authorization?.bank}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-[#626060]">Paid At:</span>
-                              <span>{formatDateTime(payment.verificationData.paid_at)}</span>
-                            </div>
+                          <p className="text-xs font-bold text-content-primary mb-2">Payment Details</p>
+                          <div className="bg-surface-muted rounded-lg p-3 space-y-1.5 text-xs">
+                            {[
+                              ['Gateway Response', payment.verificationData.gateway_response],
+                              ['Channel',          payment.verificationData.channel],
+                              ['Card Type',        payment.verificationData.authorization?.card_type],
+                              ['Last 4',           `****${payment.verificationData.authorization?.last4}`],
+                              ['Bank',             payment.verificationData.authorization?.bank],
+                              ['Paid At',          formatDateTime(payment.verificationData.paid_at)],
+                            ].map(([label, value]) => (
+                              <div key={label} className="flex justify-between">
+                                <span className="text-content-muted">{label}:</span>
+                                <span className="text-content-primary font-medium">{value}</span>
+                              </div>
+                            ))}
                           </div>
                         </motion.div>
                       )}
@@ -602,12 +410,7 @@ export default function Subscription({ setActiveSection }) {
               </div>
 
               <div className={modalActions}>
-                <button
-                  onClick={() => setShowHistoryModal(false)}
-                  className={modalButtonSecondary}
-                >
-                  Close
-                </button>
+                <button onClick={() => setShowHistoryModal(false)} className={modalButtonSecondary}>Close</button>
               </div>
             </motion.div>
           </motion.div>

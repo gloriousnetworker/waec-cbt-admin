@@ -2,8 +2,6 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../context/AuthContext';
-import toast from 'react-hot-toast';
 import {
   examsContainer,
   examsHeader,
@@ -12,51 +10,65 @@ import {
   homeStatsGrid,
   homeStatCard,
   homeStatCardTop,
+  homeStatCardIconWrap,
   homeStatCardIcon,
   homeStatCardValue,
   homeStatCardLabel,
   homeContentGrid,
   homeCard,
-  homeCardTitle
-} from '../styles';
+  homeCardTitle,
+} from '../../styles/styles';
+
+// Stat card gradients — matching Home.jsx palette
+const PERF_GRADIENTS = [
+  'linear-gradient(135deg, #1F2A49 0%, #3A4F7A 100%)',
+  'linear-gradient(135deg, #059669 0%, #1F2A49 100%)',
+  'linear-gradient(135deg, #1F2A49 0%, #2d3f6b 100%)',
+];
+
+// Safe Firestore Timestamp / ISO string → formatted date
+const formatDate = (value) => {
+  if (!value) return 'N/A';
+  try {
+    if (typeof value === 'object' && value._seconds) {
+      return new Date(value._seconds * 1000).toLocaleDateString();
+    }
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+  } catch {
+    return 'N/A';
+  }
+};
+
+const scoreColor  = (s) => s >= 75 ? 'text-success'      : s >= 50 ? 'text-warning'      : 'text-danger';
+const scoreBg     = (s) => s >= 75 ? 'bg-success'         : s >= 50 ? 'bg-warning'         : 'bg-danger';
+const scoreBadge  = (s) => s >= 75 ? 'bg-success-light text-success' : s >= 50 ? 'bg-warning-light text-warning-dark' : 'bg-danger-light text-danger';
+
+// ── Safe localStorage read ────────────────────────────────────────────────────
+const safeParseLS = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw || raw === 'undefined' || raw === 'null') return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
 
 export default function Performance({ setActiveSection }) {
-  const { fetchWithAuth } = useAuth();
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [studentPerformance, setStudentPerformance] = useState(null);
-  const [studentExams, setStudentExams] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [studentExams,    setStudentExams]    = useState([]);
 
   useEffect(() => {
-    const storedStudent = localStorage.getItem('selected_student');
-    const storedPerformance = localStorage.getItem('student_performance');
-    const storedExams = localStorage.getItem('student_exams');
-    
-    if (storedStudent) {
-      setSelectedStudent(JSON.parse(storedStudent));
-      setStudentPerformance(storedPerformance ? JSON.parse(storedPerformance) : null);
-      setStudentExams(storedExams ? JSON.parse(storedExams) : []);
+    const student = safeParseLS('selected_student');
+    const exams   = safeParseLS('student_exams');
+    if (student) {
+      setSelectedStudent(student);
+      setStudentExams(Array.isArray(exams) ? exams : []);
     }
   }, []);
 
-  const fetchStudentDetails = async (studentId) => {
-    setLoading(true);
-    try {
-      const response = await fetchWithAuth(`/admin/students/${studentId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setStudentPerformance(data.performance);
-        setStudentExams(data.exams || []);
-      } else {
-        toast.error('Failed to fetch student details');
-      }
-    } catch (error) {
-      toast.error('Failed to fetch student details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ── Empty state ──────────────────────────────────────────────────────────────
   if (!selectedStudent) {
     return (
       <div className={examsContainer}>
@@ -64,152 +76,182 @@ export default function Performance({ setActiveSection }) {
           <h1 className={examsTitle}>Performance Analytics</h1>
           <p className={examsSubtitle}>Select a student to view their performance</p>
         </div>
-        <div className="bg-white rounded-lg p-12 text-center">
+        <div className="bg-white rounded-xl border border-border shadow-card p-10 sm:p-14 text-center">
           <div className="text-6xl mb-4">📊</div>
-          <h3 className="text-[18px] leading-[120%] font-[600] text-[#1E1E1E] mb-2 font-playfair">No Student Selected</h3>
-          <p className="text-[14px] leading-[140%] font-[400] text-[#626060] mb-4 font-playfair">
+          <h3 className="text-lg font-bold text-content-primary mb-2">No Student Selected</h3>
+          <p className="text-sm text-content-muted mb-6 max-w-xs mx-auto">
             Please select a student from the Students page to view their performance analytics.
           </p>
           <button
             onClick={() => setActiveSection('students')}
-            className="px-6 py-3 bg-[#10b981] text-white rounded-lg hover:bg-[#059669] transition-colors font-playfair text-[14px] leading-[100%] font-[600]"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dk transition-colors text-sm font-semibold min-h-[44px]"
           >
-            Go to Students
+            Go to Students →
           </button>
         </div>
       </div>
     );
   }
 
-  if (loading) {
-    return (
-      <div className={examsContainer}>
-        <div className="flex items-center justify-center h-64">
-          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
-    );
-  }
+  // ── Compute stats from exams array (API has no separate performance field) ───
+  const completedExams = studentExams.filter(e => e.status === 'completed');
 
-  const subjects = studentPerformance?.subjects ? Object.entries(studentPerformance.subjects).map(([name, data]) => ({
+  const totalExams   = completedExams.length;
+  const averageScore = totalExams > 0
+    ? Math.round(completedExams.reduce((sum, e) => sum + (e.percentage ?? 0), 0) / totalExams)
+    : 0;
+
+  // Group by subject name across all completed exams
+  const subjectMap = {};
+  completedExams.forEach((exam) => {
+    (exam.subjects ?? []).forEach((sub) => {
+      const name = sub.subjectName || 'Unknown';
+      if (!subjectMap[name]) subjectMap[name] = { totalScore: 0, attempts: 0 };
+      subjectMap[name].totalScore += exam.percentage ?? 0;
+      subjectMap[name].attempts  += 1;
+    });
+  });
+  const subjects = Object.entries(subjectMap).map(([name, d]) => ({
     name,
-    avgScore: data.totalScore && data.attempts ? Math.round(data.totalScore / data.attempts) : 0,
-    totalExams: data.attempts || 0
-  })) : [];
+    avgScore:   Math.round(d.totalScore / d.attempts),
+    totalExams: d.attempts,
+  }));
 
-  const totalExams = studentPerformance?.totalExams || 0;
-  const averageScore = studentPerformance?.averageScore ? Math.round(studentPerformance.averageScore) : 0;
+  // ── Student identity ─────────────────────────────────────────────────────────
+  const fullName    = [selectedStudent.firstName, selectedStudent.lastName].filter(Boolean).join(' ') || 'Student';
+  const initials    = fullName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'ST';
+  const studentClass = selectedStudent.class || selectedStudent.className || '';
+  const loginId     = selectedStudent.loginId || '';
+  const email       = selectedStudent.email   || '';
+  const subMeta     = [studentClass, loginId, email].filter(Boolean).join(' · ');
+
+  const statCards = [
+    { icon: '📚', value: totalExams,         label: 'Total Exams',   gradient: PERF_GRADIENTS[0] },
+    { icon: '📈', value: `${averageScore}%`, label: 'Average Score', gradient: PERF_GRADIENTS[1] },
+    { icon: '📖', value: subjects.length,    label: 'Subjects',      gradient: PERF_GRADIENTS[2] },
+  ];
 
   return (
     <div className={examsContainer}>
+
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className={examsHeader}>
-        <div className="flex items-center gap-4 mb-2">
-          <button
-            onClick={() => setActiveSection('students')}
-            className="text-[#10b981] text-[14px] leading-[100%] font-[500] hover:underline"
+        <button
+          onClick={() => setActiveSection('students')}
+          className="inline-flex items-center gap-1 text-sm font-medium text-brand-primary hover:underline mb-3"
+        >
+          ← Back to Students
+        </button>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white text-base font-bold flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #141C33 100%)' }}
           >
-            ← Back to Students
-          </button>
-          <h1 className={examsTitle}>Performance Analytics</h1>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#10b981] flex items-center justify-center text-white text-[18px] leading-[100%] font-[600] font-playfair">
-              {selectedStudent.firstName?.[0]}{selectedStudent.lastName?.[0]}
-            </div>
-            <div>
-              <p className="text-[18px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
-                {selectedStudent.firstName} {selectedStudent.lastName}
-              </p>
-              <p className="text-[13px] leading-[100%] font-[400] text-[#626060] font-playfair mt-1">
-                {selectedStudent.class} • {selectedStudent.loginId} • {selectedStudent.email}
-              </p>
-            </div>
+            {initials}
+          </div>
+          <div>
+            <h1 className={examsTitle}>{fullName}</h1>
+            {subMeta && <p className="text-sm text-content-muted mt-0.5">{subMeta}</p>}
           </div>
         </div>
       </div>
 
+      {/* ── KPI stat cards ──────────────────────────────────────────────────── */}
       <div className={homeStatsGrid}>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className={homeStatCard}>
-          <div className={homeStatCardTop}>
-            <span className={homeStatCardIcon}>📚</span>
-            <span className={homeStatCardValue}>{totalExams}</span>
-          </div>
-          <p className={homeStatCardLabel}>Total Exams</p>
-        </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className={homeStatCard}>
-          <div className={homeStatCardTop}>
-            <span className={homeStatCardIcon}>📈</span>
-            <span className={homeStatCardValue}>{averageScore}%</span>
-          </div>
-          <p className={homeStatCardLabel}>Average Score</p>
-        </motion.div>
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className={homeStatCard}>
-          <div className={homeStatCardTop}>
-            <span className={homeStatCardIcon}>📖</span>
-            <span className={homeStatCardValue}>{subjects.length}</span>
-          </div>
-          <p className={homeStatCardLabel}>Subjects</p>
-        </motion.div>
+        {statCards.map(({ icon, value, label, gradient }, i) => (
+          <motion.div
+            key={label}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 * (i + 1) }}
+            className={homeStatCard}
+            style={{ background: gradient }}
+          >
+            <div className={homeStatCardTop}>
+              <div className={homeStatCardIconWrap}>
+                <span className={homeStatCardIcon}>{icon}</span>
+              </div>
+            </div>
+            <p className={homeStatCardValue}>{value}</p>
+            <p className={homeStatCardLabel}>{label}</p>
+          </motion.div>
+        ))}
       </div>
 
+      {/* ── Content grid ────────────────────────────────────────────────────── */}
       <div className={homeContentGrid}>
+
+        {/* Subject Performance */}
         <div className={homeCard}>
           <h2 className={homeCardTitle}>Subject Performance</h2>
-          <div className="space-y-4">
-            {subjects.length > 0 ? (
-              subjects.map((subject) => (
-                <div key={subject.name} className="p-4 bg-[#F9FAFB] rounded-lg">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">{subject.name}</span>
-                    <span className={`text-[14px] leading-[100%] font-[600] ${
-                      subject.avgScore >= 75 ? 'text-[#10b981]' : subject.avgScore >= 50 ? 'text-[#F59E0B]' : 'text-[#DC2626]'
-                    } font-playfair`}>
+          {subjects.length > 0 ? (
+            <div className="space-y-4 mt-4">
+              {subjects.map((subject) => (
+                <div key={subject.name} className="p-4 bg-surface-muted rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-semibold text-content-primary">{subject.name}</span>
+                    <span className={`text-sm font-bold ${scoreColor(subject.avgScore)}`}>
                       {subject.avgScore}%
                     </span>
                   </div>
-                  <div className="flex gap-4 text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mb-2">
-                    <span>Exams: {subject.totalExams}</span>
-                  </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${
-                        subject.avgScore >= 75 ? 'bg-[#10b981]' : subject.avgScore >= 50 ? 'bg-[#F59E0B]' : 'bg-[#DC2626]'
-                      }`}
+                  <p className="text-xs text-content-muted mb-2">
+                    {subject.totalExams} exam{subject.totalExams !== 1 ? 's' : ''}
+                  </p>
+                  <div className="h-2 bg-border rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${scoreBg(subject.avgScore)}`}
                       style={{ width: `${subject.avgScore}%` }}
                     />
                   </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-center text-[#626060] py-4">No exam data available</p>
-            )}
-          </div>
-        </div>
-
-        {studentExams.length > 0 && (
-          <div className={homeCard}>
-            <h2 className={homeCardTitle}>Recent Exams</h2>
-            <div className="space-y-3">
-              {studentExams.slice(0, 5).map((exam) => (
-                <div key={exam.id} className="p-3 border-b border-gray-100 last:border-0">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[13px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">{exam.subject}</span>
-                    <span className={`px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500] ${
-                      exam.score >= 75 ? 'bg-green-100 text-green-600' : exam.score >= 50 ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'
-                    }`}>
-                      {exam.score}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                    <span>{exam.examType || 'Standard'}</span>
-                    <span>{exam.endTime ? new Date(exam.endTime._seconds * 1000).toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-4xl mb-3">📭</p>
+              <p className="text-sm text-content-muted">No completed exams yet</p>
+            </div>
+          )}
+        </div>
+
+        {/* Recent Exams */}
+        <div className={homeCard}>
+          <h2 className={homeCardTitle}>Recent Exams</h2>
+          {completedExams.length > 0 ? (
+            <div className="divide-y divide-border mt-4">
+              {completedExams.slice(0, 5).map((exam, idx) => {
+                const subjectNames = (exam.subjects ?? []).map(s => s.subjectName).filter(Boolean).join(', ') || 'General';
+                const pct = exam.percentage ?? 0;
+                return (
+                  <div key={exam.id ?? idx} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex justify-between items-start gap-2 mb-1">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-content-primary leading-snug truncate">
+                          {exam.title || 'Untitled Exam'}
+                        </p>
+                        <p className="text-xs text-content-muted mt-0.5">{subjectNames}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${scoreBadge(pct)}`}>
+                        {pct}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-content-muted mt-1">
+                      <span>{exam.questionCount ?? 0} questions · {exam.score ?? 0}/{exam.totalMarks ?? 0} marks</span>
+                      <span>{formatDate(exam.endTime)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-4xl mb-3">📝</p>
+              <p className="text-sm text-content-muted">No completed exams yet</p>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

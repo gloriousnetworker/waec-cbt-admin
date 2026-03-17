@@ -1,7 +1,7 @@
 // components/dashboard-content/Help.jsx
 'use client';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Help() {
@@ -103,8 +103,8 @@ export default function Help() {
   return (
     <div className="max-w-7xl mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 font-playfair">Help & Support</h1>
-        <p className="text-gray-600 mt-2 font-playfair">Get assistance and learn how to use the platform</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-content-primary">Help & Support</h1>
+        <p className="text-content-secondary mt-2">Get assistance and learn how to use the platform</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -115,34 +115,34 @@ export default function Help() {
             className={`bg-gradient-to-r ${guide.color} rounded-xl p-6 text-white cursor-pointer`}
           >
             <div className="text-3xl mb-4">{guide.icon}</div>
-            <h3 className="text-xl font-bold mb-2 font-playfair">{guide.title}</h3>
-            <p className="text-white/90 mb-4 font-playfair">{guide.description}</p>
-            <button className="px-4 py-2 bg-white text-gray-800 font-medium rounded-lg hover:bg-gray-100 transition font-playfair">
+            <h3 className="text-xl font-bold mb-2">{guide.title}</h3>
+            <p className="text-white/90 mb-4">{guide.description}</p>
+            <button className="px-4 py-2 bg-white text-content-primary font-medium rounded-lg hover:bg-surface-subtle transition">
               Learn More →
             </button>
           </motion.div>
         ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-6 font-playfair">Frequently Asked Questions</h2>
+      <div className="bg-white rounded-xl border border-border shadow-card p-6 mb-8">
+        <h2 className="text-xl font-bold text-content-primary mb-6">Frequently Asked Questions</h2>
         <div className="space-y-4">
           {faqs.map((faq) => (
-            <div key={faq.id} className="border border-gray-200 rounded-lg overflow-hidden">
+            <div key={faq.id} className="border border-border rounded-lg overflow-hidden">
               <button
                 onClick={() => setActiveFaq(activeFaq === faq.id ? null : faq.id)}
-                className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+                className="flex items-center justify-between w-full p-4 text-left hover:bg-surface-muted"
               >
-                <span className="font-medium text-gray-800 font-playfair">{faq.question}</span>
-                <span className="text-gray-500 text-xl">{activeFaq === faq.id ? '−' : '+'}</span>
+                <span className="font-medium text-content-primary">{faq.question}</span>
+                <span className="text-content-muted text-xl">{activeFaq === faq.id ? '−' : '+'}</span>
               </button>
               {activeFaq === faq.id && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="p-4 border-t border-gray-200 bg-gray-50"
+                  className="p-4 border-t border-border bg-surface-muted"
                 >
-                  <p className="text-gray-600 font-playfair">{faq.answer}</p>
+                  <p className="text-content-secondary">{faq.answer}</p>
                 </motion.div>
               )}
             </div>
@@ -151,19 +151,19 @@ export default function Help() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-6 font-playfair">Contact Support</h2>
+        <div className="bg-white rounded-xl border border-border shadow-card p-6">
+          <h2 className="text-xl font-bold text-content-primary mb-6">Contact Support</h2>
           <div className="space-y-4">
             {contactMethods.map((method, index) => (
-              <div key={index} className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+              <div key={index} className="flex items-center p-4 border border-border rounded-lg hover:bg-surface-muted transition">
                 <div className="text-2xl mr-4">{method.icon}</div>
                 <div className="flex-1">
-                  <div className="font-medium text-gray-800 font-playfair">{method.type}</div>
-                  <div className="text-sm text-gray-600 font-playfair">{method.address}</div>
+                  <div className="font-medium text-content-primary">{method.type}</div>
+                  <div className="text-sm text-content-secondary">{method.address}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs text-gray-500 font-playfair">Response:</div>
-                  <div className="text-sm font-medium text-gray-700 font-playfair">{method.response}</div>
+                  <div className="text-xs text-content-muted">Response:</div>
+                  <div className="text-sm font-medium text-content-primary">{method.response}</div>
                 </div>
               </div>
             ))}
@@ -171,27 +171,27 @@ export default function Help() {
 
           <button
             onClick={() => setShowContactForm(true)}
-            className="mt-6 w-full py-3 bg-[#10b981] text-white font-medium rounded-lg hover:bg-[#059669] transition font-playfair"
+            className="mt-6 w-full py-3 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-primary-dk transition"
           >
             Send Message to Support
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-6 font-playfair">System Information</h2>
+        <div className="bg-white rounded-xl border border-border shadow-card p-6">
+          <h2 className="text-xl font-bold text-content-primary mb-6">System Information</h2>
           <div className="space-y-4">
             <div className="p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-medium text-blue-800 mb-2 font-playfair">Current Version</h3>
-              <p className="text-sm text-blue-600 font-playfair">CBT System v2.5.0</p>
+              <h3 className="font-medium text-blue-800 mb-2">Current Version</h3>
+              <p className="text-sm text-blue-600">CBT System v2.5.0</p>
             </div>
             <div className="p-4 bg-green-50 rounded-lg">
-              <h3 className="font-medium text-green-800 mb-2 font-playfair">Last Update</h3>
-              <p className="text-sm text-green-600 font-playfair">March 1, 2026</p>
+              <h3 className="font-medium text-green-800 mb-2">Last Update</h3>
+              <p className="text-sm text-green-600">March 1, 2026</p>
             </div>
             <div className="p-4 bg-purple-50 rounded-lg">
-              <h3 className="font-medium text-purple-800 mb-2 font-playfair">Documentation</h3>
-              <p className="text-sm text-purple-600 mb-2 font-playfair">Access detailed user guides and API documentation</p>
-              <button className="text-purple-700 text-sm font-medium hover:underline font-playfair">
+              <h3 className="font-medium text-purple-800 mb-2">Documentation</h3>
+              <p className="text-sm text-purple-600 mb-2">Access detailed user guides and API documentation</p>
+              <button className="text-purple-700 text-sm font-medium hover:underline">
                 View Documentation →
               </button>
             </div>
@@ -199,15 +199,15 @@ export default function Help() {
         </div>
       </div>
 
-      <div className="mt-8 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-xl p-8 text-white">
+      <div className="mt-8 bg-brand-primary rounded-xl p-8 text-white">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="mb-4 md:mb-0">
-            <h3 className="text-2xl font-bold mb-2 font-playfair">Need immediate assistance?</h3>
-            <p className="text-white/90 font-playfair">Our support team is available 24/7 to help you</p>
+            <h3 className="text-2xl font-bold mb-2">Need immediate assistance?</h3>
+            <p className="text-white/90">Our support team is available 24/7 to help you</p>
           </div>
           <button
             onClick={() => setShowContactForm(true)}
-            className="px-8 py-3 bg-white text-[#10b981] font-bold rounded-lg hover:bg-gray-100 transition font-playfair"
+            className="px-8 py-3 bg-white text-brand-primary font-bold rounded-lg hover:bg-surface-subtle transition"
           >
             Contact Support Now
           </button>
@@ -230,27 +230,27 @@ export default function Help() {
               className="bg-white rounded-xl p-6 max-w-lg w-full"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-xl font-bold text-gray-800 mb-4 font-playfair">Contact Support</h3>
+              <h3 className="text-xl font-bold text-content-primary mb-4">Contact Support</h3>
               <form onSubmit={handleContactSubmit}>
                 <div className="space-y-4 mb-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 font-playfair">Subject</label>
+                    <label className="block text-sm font-medium text-content-primary mb-2">Subject</label>
                     <input
                       type="text"
                       value={contactForm.subject}
                       onChange={(e) => setContactForm({...contactForm, subject: e.target.value})}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] font-playfair"
+                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       placeholder="Brief description of your issue"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 font-playfair">Message</label>
+                    <label className="block text-sm font-medium text-content-primary mb-2">Message</label>
                     <textarea
                       value={contactForm.message}
                       onChange={(e) => setContactForm({...contactForm, message: e.target.value})}
                       rows="4"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981] font-playfair"
+                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       placeholder="Describe your issue in detail..."
                       required
                     />
@@ -260,13 +260,13 @@ export default function Help() {
                   <button
                     type="button"
                     onClick={() => setShowContactForm(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-[13px] font-playfair"
+                    className="px-4 py-2 border border-border rounded-md hover:bg-surface-muted text-[13px]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] text-[13px] font-playfair"
+                    className="px-6 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk text-[13px]"
                   >
                     Send Message
                   </button>

@@ -17,7 +17,7 @@ import {
   modalActions,
   modalButtonSecondary,
   modalButtonDanger
-} from '../styles';
+} from '../../styles/styles';
 
 export default function Students({ setActiveSection }) {
   const router = useRouter();
@@ -31,18 +31,29 @@ export default function Students({ setActiveSection }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [addingSubject, setAddingSubject] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const LIMIT = 50;
 
   useEffect(() => {
-    fetchStudents();
     fetchSubjects();
   }, []);
 
+  useEffect(() => {
+    fetchStudents();
+  }, [page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
+
   const fetchStudents = async () => {
     try {
-      const response = await fetchWithAuth('/admin/students');
+      const response = await fetchWithAuth(`/admin/students?limit=${LIMIT}&page=${page}`);
       if (response.ok) {
         const data = await response.json();
         setStudents(data.students || []);
+        setTotalCount(data.total || (data.students || []).length);
       }
     } catch (error) {
       toast.error('Failed to fetch students');
@@ -217,7 +228,7 @@ export default function Students({ setActiveSection }) {
     return (
       <div className={examsContainer}>
         <div className="flex items-center justify-center h-64">
-          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-brand-primary-lt border-t-brand-primary rounded-full animate-spin"></div>
         </div>
       </div>
     );
@@ -230,145 +241,157 @@ export default function Students({ setActiveSection }) {
         <p className={examsSubtitle}>Register, manage and monitor your students</p>
       </div>
 
-      <div className="mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="w-full md:w-96">
+      <div className="mb-6 flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
+        <div className="flex-1 min-w-0">
           <input
             type="text"
             placeholder="Search students by name, email, login ID or NIN..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] font-playfair text-[13px]"
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-sm text-content-primary placeholder-content-muted bg-white transition-all min-h-[44px]"
           />
         </div>
         <button
           onClick={() => router.push('/dashboard/student-registration')}
-          className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors font-playfair text-[13px] leading-[100%] font-[600]"
+          className="px-4 py-2.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dk transition-colors text-sm font-semibold min-h-[44px] whitespace-nowrap flex-shrink-0"
         >
           + Add New Student
         </button>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Student</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Login ID / NIN</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Class</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Subjects</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Exam Mode</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Status</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Registered</th>
-              <th className="px-6 py-4 text-left text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredStudents.map((student) => (
-              <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#10b981] flex items-center justify-center text-white text-[14px] leading-[100%] font-[600] font-playfair">
-                      {getInitials(student)}
-                    </div>
-                    <div>
-                      <div className="font-[600] text-[13px] leading-[100%] text-[#1E1E1E] font-playfair">
-                        {student.firstName} {student.lastName}
-                      </div>
-                      <div className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mt-1">
-                        {student.email}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{student.loginId}</div>
-                  {student.nin && (
-                    <div className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair mt-1">NIN: {student.nin}</div>
-                  )}
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-[13px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">{student.class}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
-                    {student.subjects?.map(subject => (
-                      <div key={subject} className="flex items-center gap-1 bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500]">
-                        {subject}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveSubject(student, subject);
-                          }}
-                          className="hover:text-red-600 ml-1"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedStudent(student);
-                        setShowAddSubjectModal(true);
-                      }}
-                      className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-[9px] leading-[100%] font-[500] hover:bg-gray-200"
-                    >
-                      + Add
-                    </button>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <button
-                    onClick={() => handleToggleExamMode(student)}
-                    className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${
-                      student.examMode ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {student.examMode ? 'On' : 'Off'}
-                  </button>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${
-                    student.status === 'active' ? 'bg-[#D1FAE5] text-[#10b981]' : 'bg-[#FEE2E2] text-[#DC2626]'
-                  }`}>
-                    {student.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">
-                    {formatDate(student.createdAt)}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleViewStudent(student)}
-                      className="text-[#10b981] text-[12px] leading-[100%] font-[500] hover:underline"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => handleEditStudent(student)}
-                      className="text-[#10b981] text-[12px] leading-[100%] font-[500] hover:underline"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedStudent(student);
-                        setShowDeleteModal(true);
-                      }}
-                      className="text-[#DC2626] text-[12px] leading-[100%] font-[500] hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
+      {/* Table — horizontally scrollable on mobile */}
+      <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
+            <thead className="bg-surface-muted border-b border-border">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-content-secondary uppercase tracking-wide">Student</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-content-secondary uppercase tracking-wide">Login ID / NIN</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-content-secondary uppercase tracking-wide">Class</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-content-secondary uppercase tracking-wide">Subjects</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-content-secondary uppercase tracking-wide">Exam Mode</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-content-secondary uppercase tracking-wide">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-content-secondary uppercase tracking-wide">Registered</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-content-secondary uppercase tracking-wide">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredStudents.map((student) => (
+                <tr key={student.id} className="border-b border-border hover:bg-surface-subtle transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold" style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #141C33 100%)' }}>
+                        {getInitials(student)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm text-content-primary truncate">
+                          {student.firstName} {student.lastName}
+                        </div>
+                        <div className="text-xs text-content-muted truncate mt-0.5">
+                          {student.email}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="text-sm font-medium text-content-primary">{student.loginId}</div>
+                    {student.nin && (
+                      <div className="text-xs text-content-muted mt-0.5">NIN: {student.nin}</div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm font-medium text-content-primary">{student.class}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1 max-w-[160px]">
+                      {student.subjects?.slice(0, 3).map(subject => (
+                        <div key={subject} className="flex items-center gap-0.5 bg-brand-primary-lt text-brand-primary px-2 py-0.5 rounded-full text-[10px] font-medium">
+                          {subject}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleRemoveSubject(student, subject); }}
+                            className="hover:text-danger ml-0.5 leading-none"
+                            aria-label={`Remove ${subject}`}
+                          >×</button>
+                        </div>
+                      ))}
+                      {(student.subjects?.length || 0) > 3 && (
+                        <span className="text-[10px] text-content-muted">+{student.subjects.length - 3}</span>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedStudent(student); setShowAddSubjectModal(true); }}
+                        className="bg-surface-subtle text-content-secondary px-2 py-0.5 rounded-full text-[10px] font-medium hover:bg-brand-primary-lt hover:text-brand-primary transition-colors"
+                      >+ Add</button>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => handleToggleExamMode(student)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors min-h-[28px] ${
+                        student.examMode
+                          ? 'bg-success-light text-success-dark'
+                          : 'bg-surface-subtle text-content-secondary'
+                      }`}
+                      aria-label={`Toggle exam mode for ${student.firstName} ${student.lastName}`}
+                    >
+                      {student.examMode ? 'On' : 'Off'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      student.status === 'active'
+                        ? 'bg-success-light text-success-dark'
+                        : 'bg-danger-light text-danger-dark'
+                    }`}>
+                      {student.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-xs text-content-muted whitespace-nowrap">
+                      {formatDate(student.createdAt)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleViewStudent(student)}
+                        className="text-brand-primary text-xs font-semibold hover:underline min-h-[32px] px-1"
+                      >View</button>
+                      <button
+                        onClick={() => handleEditStudent(student)}
+                        className="text-brand-accent text-xs font-semibold hover:underline min-h-[32px] px-1"
+                      >Edit</button>
+                      <button
+                        onClick={() => { setSelectedStudent(student); setShowDeleteModal(true); }}
+                        className="text-danger text-xs font-semibold hover:underline min-h-[32px] px-1"
+                      >Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {totalCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-4 border-t border-border gap-3">
+          <p className="text-sm text-content-muted">
+            Page {page} of {Math.ceil(totalCount / LIMIT)} · {totalCount} total students
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+            >Previous</button>
+            <button
+              onClick={() => setPage(p => Math.min(Math.ceil(totalCount / LIMIT), p + 1))}
+              disabled={page >= Math.ceil(totalCount / LIMIT)}
+              className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+            >Next</button>
+          </div>
+        </div>
+      )}
 
       <AnimatePresence>
         {showDeleteModal && (
@@ -424,7 +447,7 @@ export default function Students({ setActiveSection }) {
                 <select
                   value={selectedSubject}
                   onChange={(e) => setSelectedSubject(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-sm"
                 >
                   <option value="">Select a subject</option>
                   {availableSubjects.map(subject => (
@@ -445,7 +468,7 @@ export default function Students({ setActiveSection }) {
                 <button
                   onClick={handleAddSubject}
                   disabled={!selectedSubject || addingSubject}
-                  className={`px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair ${(!selectedSubject || addingSubject) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-sm font-semibold ${(!selectedSubject || addingSubject) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {addingSubject ? 'Adding...' : 'Add Subject'}
                 </button>

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo.)",
+      "Bash(\"c:\\\\Users\\\\Udofot.tsx\\\\Desktop\\\\MegaTechSolutions\\\\CBT-WAEC-SIMULATION-APP\\\\waec-cbt-admin\\\\PLAN.md\")"
+    ]
+  }
+}

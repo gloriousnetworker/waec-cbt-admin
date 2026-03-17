@@ -6,22 +6,22 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const chatContainer = "fixed bottom-6 right-6 z-[100]";
-const chatWindow = "absolute bottom-20 right-0 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden";
-const chatHeader = "bg-[#10b981] text-white p-4 flex justify-between items-center";
-const chatHeaderTitle = "text-[16px] leading-[100%] font-[600] font-playfair";
-const chatHeaderClose = "text-white hover:text-gray-200 cursor-pointer text-xl";
-const chatMessages = "h-96 overflow-y-auto p-4 space-y-4";
+const chatWindow = "absolute bottom-20 right-0 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col max-h-[calc(100vh-120px)]";
+const chatHeader = "bg-brand-primary text-white p-4 flex justify-between items-center flex-shrink-0";
+const chatHeaderTitle = "text-[16px] font-semibold font-inter";
+const chatHeaderClose = "text-white hover:text-white/70 cursor-pointer text-xl";
+const chatMessages = "flex-1 overflow-y-auto min-h-0 p-4 space-y-4";
 const chatMessage = "flex flex-col";
 const chatMessageSent = "items-end";
 const chatMessageReceived = "items-start";
-const chatBubble = "max-w-[80%] p-3 rounded-lg text-[13px] leading-[140%] font-[500] font-playfair";
-const chatBubbleSent = "bg-[#10b981] text-white rounded-br-none";
-const chatBubbleReceived = "bg-gray-100 text-[#1E1E1E] rounded-bl-none";
-const chatTime = "text-[9px] leading-[100%] font-[400] text-[#9CA3AF] mt-1 font-playfair";
-const chatInput = "border-t border-gray-200 p-4 flex gap-2";
-const chatInputField = "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair";
-const chatSendButton = "px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors font-playfair text-[13px] leading-[100%] font-[600]";
-const notificationBadge = "absolute -top-2 -right-2 bg-red-500 text-white text-[10px] min-w-[20px] h-5 rounded-full flex items-center justify-center px-1 font-[600] animate-pulse";
+const chatBubble = "max-w-[80%] p-3 rounded-lg text-sm font-medium font-inter";
+const chatBubbleSent = "bg-brand-primary text-white rounded-br-none";
+const chatBubbleReceived = "bg-surface-subtle text-content-primary rounded-bl-none";
+const chatTime = "text-[9px] text-content-muted mt-1 font-inter";
+const chatInput = "border-t border-border p-4 flex gap-2 flex-shrink-0";
+const chatInputField = "flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary text-[13px] font-inter";
+const chatSendButton = "px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors font-inter text-sm font-semibold";
+const notificationBadge = "absolute -top-2 -right-2 bg-red-500 text-white text-[10px] min-w-[20px] h-5 rounded-full flex items-center justify-center px-1 font-semibold animate-pulse";
 
 export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
   const { user, fetchWithAuth } = useAuth();
@@ -114,7 +114,7 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
         initial={{ opacity: 0, y: 50, scale: 0.3 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
-        className="bg-white rounded-lg shadow-lg border-l-4 border-[#10b981] p-4 max-w-sm cursor-pointer"
+        className="bg-white rounded-lg shadow-lg border-l-4 border-brand-primary p-4 max-w-sm cursor-pointer"
         onClick={() => {
           toast.dismiss(t.id);
           if (!isOpen) {
@@ -128,17 +128,17 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
         }}
       >
         <div className="flex items-start gap-3">
-          <div className="bg-[#10b981] rounded-full p-2 flex-shrink-0">
+          <div className="bg-brand-primary rounded-full p-2 flex-shrink-0">
             <span className="text-white text-sm">💬</span>
           </div>
           <div className="flex-1">
-            <p className="text-[13px] font-[600] text-[#1E1E1E] font-playfair mb-1">
+            <p className="text-sm font-semibold text-content-primary mb-1">
               New message from Support
             </p>
-            <p className="text-[12px] text-[#626060] font-playfair line-clamp-2">
+            <p className="text-xs text-content-muted line-clamp-2">
               {message.content}
             </p>
-            <p className="text-[10px] text-[#10b981] mt-2 font-playfair">
+            <p className="text-[10px] text-brand-primary mt-2">
               Ticket: {ticket.subject}
             </p>
           </div>
@@ -277,8 +277,8 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
       case 'open': return 'bg-yellow-100 text-yellow-600';
       case 'in_progress': return 'bg-blue-100 text-blue-600';
       case 'resolved': return 'bg-green-100 text-green-600';
-      case 'closed': return 'bg-gray-100 text-gray-600';
-      default: return 'bg-gray-100 text-gray-600';
+      case 'closed': return 'bg-surface-subtle text-content-muted';
+      default: return 'bg-surface-subtle text-content-muted';
     }
   };
 
@@ -291,7 +291,7 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
         animate={{ scale: 1 }}
         whileHover={{ scale: 1.1 }}
         onClick={onClose}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-[#10b981] rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-[#059669] transition-colors z-[100]"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-brand-primary rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:bg-brand-primary-dk transition-colors z-[100]"
       >
         <span className="text-white text-2xl">💬</span>
         {unreadCount > 0 && (
@@ -315,7 +315,7 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
           <div className={chatHeader}>
             <div className="flex items-center gap-2">
               {view === 'chat' && selectedTicket ? (
-                <button onClick={handleBackToList} className="text-white hover:text-gray-200 mr-2 text-lg">
+                <button onClick={handleBackToList} className="text-white hover:text-white/70 mr-2 text-lg">
                   ←
                 </button>
               ) : (
@@ -337,12 +337,12 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
                     : 'Support Tickets'}
                 </h3>
                 {view === 'chat' && selectedTicket && (
-                  <p className="text-[10px] leading-[100%] font-[400] text-white/70 mt-1 font-playfair">
+                  <p className="text-[10px] text-white/70 mt-1">
                     Ticket #{selectedTicket.id} • {selectedTicket.status}
                   </p>
                 )}
                 {view === 'list' && (
-                  <p className="text-[10px] leading-[100%] font-[400] text-white/70 mt-1 font-playfair">
+                  <p className="text-[10px] text-white/70 mt-1">
                     {tickets.length} active ticket{tickets.length !== 1 ? 's' : ''}
                   </p>
                 )}
@@ -352,14 +352,14 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
           </div>
 
           {loading && view === 'list' ? (
-            <div className="h-96 flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex-1 flex items-center justify-center min-h-[200px]">
+              <div className="w-8 h-8 border-4 border-brand-primary-lt border-t-brand-primary rounded-full animate-spin"></div>
             </div>
           ) : view === 'list' ? (
-            <div className="h-96 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               {tickets.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[13px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">No active tickets</p>
+                  <p className="text-sm text-content-muted">No active tickets</p>
                 </div>
               ) : (
                 tickets.map((ticket) => {
@@ -373,39 +373,39 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
                       key={ticket.id}
                       whileHover={{ backgroundColor: '#F5F5F5' }}
                       onClick={() => handleSelectTicket(ticket)}
-                      className={`p-4 border-b border-gray-100 cursor-pointer relative ${hasUnread ? 'bg-[#F0FDF4]' : ''}`}
+                      className={`p-4 border-b border-border cursor-pointer relative ${hasUnread ? 'bg-[#F0FDF4]' : ''}`}
                     >
                       {hasUnread && (
-                        <div className="absolute right-4 top-4 w-2 h-2 bg-[#10b981] rounded-full"></div>
+                        <div className="absolute right-4 top-4 w-2 h-2 bg-brand-primary rounded-full"></div>
                       )}
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h4 className={`text-[14px] leading-[100%] font-[600] ${hasUnread ? 'text-[#10b981]' : 'text-[#1E1E1E]'} font-playfair truncate max-w-[150px]`}>
+                            <h4 className={`text-sm font-semibold ${hasUnread ? 'text-brand-primary' : 'text-content-primary'} truncate max-w-[150px]`}>
                               {ticket.subject}
                             </h4>
-                            <span className={`px-1.5 py-0.5 rounded-full text-[8px] leading-[100%] font-[500] ${getStatusColor(ticket.status)}`}>
+                            <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium ${getStatusColor(ticket.status)}`}>
                               {ticket.status === 'in_progress' ? 'In Progress' : ticket.status}
                             </span>
                           </div>
-                          <p className="text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
+                          <p className="text-[11px] text-content-muted mb-1">
                             Ticket #{ticket.id}
                           </p>
-                          <p className="text-[12px] leading-[140%] font-[500] text-[#1E1E1E] font-playfair line-clamp-2">
+                          <p className="text-xs font-medium text-content-primary line-clamp-2">
                             {ticket.description}
                           </p>
                           <div className="flex justify-between items-center mt-2">
-                            <p className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                            <p className="text-[10px] text-content-muted">
                               {ticket.messages?.length || 0} messages • {ticket.priority} priority
                             </p>
                             {lastMessage && (
-                              <p className="text-[8px] text-[#9CA3AF] font-playfair">
+                              <p className="text-[8px] text-content-muted">
                                 {formatDateTime(lastMessage.timestamp)}
                               </p>
                             )}
                           </div>
                           {hasUnread && (
-                            <p className="text-[10px] text-[#10b981] font-[500] mt-1">
+                            <p className="text-[10px] text-brand-primary font-medium mt-1">
                               Click to respond →
                             </p>
                           )}
@@ -418,19 +418,19 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
             </div>
           ) : selectedTicket && (
             <>
-              <div className={`px-4 py-2 border-b border-gray-200 ${
-                selectedTicket.status === 'resolved' ? 'bg-green-50' : 'bg-gray-50'
+              <div className={`px-4 py-2 border-b border-border ${
+                selectedTicket.status === 'resolved' ? 'bg-green-50' : 'bg-surface-subtle'
               }`}>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-[12px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair mb-1">
+                    <p className="text-xs font-semibold text-content-primary mb-1">
                       {selectedTicket.subject}
                     </p>
-                    <p className="text-[10px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                    <p className="text-[10px] text-content-muted">
                       Category: {selectedTicket.category} • Priority: {selectedTicket.priority}
                     </p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-[8px] leading-[100%] font-[500] ${getStatusColor(selectedTicket.status)}`}>
+                  <span className={`px-2 py-1 rounded-full text-[8px] font-medium ${getStatusColor(selectedTicket.status)}`}>
                     {selectedTicket.status === 'in_progress' ? 'In Progress' : selectedTicket.status}
                   </span>
                 </div>
@@ -445,17 +445,17 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
                       className={`${chatMessage} ${isAdmin ? chatMessageSent : chatMessageReceived}`}
                     >
                       <div className={`${chatBubble} ${isAdmin ? chatBubbleSent : chatBubbleReceived}`}>
-                        <p className="text-[8px] leading-[100%] font-[600] mb-1 opacity-70">
+                        <p className="text-[8px] font-semibold mb-1 opacity-70">
                           {isAdmin ? 'You' : 'Support Team'}
                         </p>
-                        <p className="text-[13px] leading-[140%] font-[500]">{msg.content}</p>
+                        <p className="text-sm font-medium">{msg.content}</p>
                       </div>
                       <div className={chatTime}>{formatTime(msg.timestamp)}</div>
                     </div>
                   );
                 })}
                 {(!selectedTicket.messages || selectedTicket.messages.length === 0) && (
-                  <p className="text-center text-[12px] text-[#626060] py-4">No messages yet. Start the conversation!</p>
+                  <p className="text-center text-xs text-content-muted py-4">No messages yet. Start the conversation!</p>
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -466,7 +466,7 @@ export default function SupportChat({ isOpen, onClose, initialTicket = null }) {
                     type="text"
                     value="This ticket is closed"
                     disabled
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-400 text-[13px] font-playfair cursor-not-allowed"
+                    className="flex-1 px-3 py-2 border border-border rounded-md bg-surface-subtle text-content-muted text-sm cursor-not-allowed"
                   />
                 ) : (
                   <>

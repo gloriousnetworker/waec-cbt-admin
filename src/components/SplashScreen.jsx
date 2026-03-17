@@ -100,10 +100,10 @@ export default function SplashScreen() {
               <h2 className="text-[20px] leading-[120%] font-[700] tracking-[-0.03em] text-[#2563EB] mb-2 font-playfair">
                 Kogi State College of Education
               </h2>
-              <p className="text-[11px] leading-[140%] font-[400] text-[#626060] font-playfair mb-1">
+              <p className="text-[11px] text-content-muted mb-1">
                 Admin Portal
               </p>
-              <p className="text-[9px] leading-[140%] font-[400] text-[#B0B0B0] font-playfair">
+              <p className="text-[9px] text-content-muted">
                 Powered by Mega Tech Solutions © {currentYear} All rights reserved
               </p>
             </motion.div>

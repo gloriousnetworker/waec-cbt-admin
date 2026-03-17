@@ -1,4 +1,4 @@
-// app/dashboard/page.jsx (updated with section param handling)
+// app/dashboard/page.jsx
 'use client';
 
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -20,19 +20,21 @@ import Help from '../../components/dashboard-content/Help';
 import Subscription from '../../components/dashboard-content/Subscription';
 import Exams from '../../components/dashboard-content/Exams';
 import SupportChat from '../../components/SupportChat';
+import {
+  dashboardContainer,
+  dashboardMain,
+  dashboardContent,
+  dashboardInner,
+  dashboardLoading,
+  dashboardLoadingInner,
+  dashboardLoadingSpinner,
+  dashboardLoadingText,
+} from '../../styles/styles';
 import toast from 'react-hot-toast';
 
-const dashboardContainer = "min-h-screen bg-[#F9FAFB]";
-const dashboardMain = "flex";
-const dashboardContent = "flex-1 min-h-screen overflow-y-auto";
-const dashboardInner = "max-w-7xl mx-auto px-4 py-6";
-const dashboardLoading = "fixed inset-0 bg-white flex items-center justify-center z-50";
-const dashboardLoadingInner = "text-center";
-const dashboardLoadingSpinner = "w-16 h-16 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-4";
-const dashboardLoadingText = "text-[14px] leading-[100%] font-[500] text-[#626060] font-playfair";
-
 function DashboardContent() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Default open on desktop, closed on mobile
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pageLoading, setPageLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('home');
   const [showSupportChat, setShowSupportChat] = useState(false);
@@ -40,11 +42,17 @@ function DashboardContent() {
   const { isAuthenticated, authChecked } = useAuth();
   const searchParams = useSearchParams();
 
+  // Close sidebar by default on mobile
+  useEffect(() => {
+    const initSidebar = () => {
+      if (window.innerWidth < 1024) setSidebarOpen(false);
+    };
+    initSidebar();
+  }, []);
+
   useEffect(() => {
     if (authChecked && isAuthenticated) {
-      const timer = setTimeout(() => {
-        setPageLoading(false);
-      }, 100);
+      const timer = setTimeout(() => setPageLoading(false), 100);
       return () => clearTimeout(timer);
     }
   }, [authChecked, isAuthenticated]);
@@ -53,15 +61,10 @@ function DashboardContent() {
   useEffect(() => {
     const section = searchParams.get('section');
     const paymentRef = searchParams.get('payment_ref');
-    
     if (section) {
       setActiveSection(section);
-      
-      // Show success message if coming from payment
       if (section === 'subscription' && paymentRef) {
         toast.success('Payment completed successfully! Your subscription is now active.');
-        
-        // Clean up URL
         const url = new URL(window.location.href);
         url.searchParams.delete('payment_ref');
         url.searchParams.delete('section');
@@ -82,26 +85,21 @@ function DashboardContent() {
 
   useEffect(() => {
     const handleOpenChat = (event) => {
-      if (event.detail) {
-        setPendingTicket(event.detail);
-      }
+      if (event.detail) setPendingTicket(event.detail);
       setShowSupportChat(true);
     };
-
     window.addEventListener('openChatWithTicket', handleOpenChat);
     return () => window.removeEventListener('openChatWithTicket', handleOpenChat);
   }, []);
 
   const handleNavigation = (section) => {
     setActiveSection(section);
-    setSidebarOpen(false);
+    // Auto-close sidebar on mobile after navigation
+    if (window.innerWidth < 1024) setSidebarOpen(false);
   };
 
   const handleOpenChat = (ticketId = null) => {
-    if (ticketId) {
-      const ticket = { id: ticketId };
-      setPendingTicket(ticket);
-    }
+    if (ticketId) setPendingTicket({ id: ticketId });
     setShowSupportChat(true);
   };
 
@@ -112,18 +110,18 @@ function DashboardContent() {
 
   const renderSection = () => {
     switch (activeSection) {
-      case 'home': return <DashboardHome setActiveSection={handleNavigation} />;
-      case 'students': return <Students setActiveSection={handleNavigation} />;
-      case 'subjects': return <Subjects setActiveSection={handleNavigation} />;
-      case 'questions': return <Questions setActiveSection={handleNavigation} />;
+      case 'home':         return <DashboardHome setActiveSection={handleNavigation} />;
+      case 'students':    return <Students setActiveSection={handleNavigation} />;
+      case 'subjects':    return <Subjects setActiveSection={handleNavigation} />;
+      case 'questions':   return <Questions setActiveSection={handleNavigation} />;
       case 'performance': return <Performance setActiveSection={handleNavigation} />;
-      case 'results': return <Results setActiveSection={handleNavigation} />;
-      case 'support': return <Support setActiveSection={handleNavigation} onOpenChat={handleOpenChat} />;
-      case 'settings': return <Settings setActiveSection={handleNavigation} />;
-      case 'help': return <Help setActiveSection={handleNavigation} />;
-      case 'subscription': return <Subscription setActiveSection={handleNavigation} />;
-      case 'exams': return <Exams setActiveSection={handleNavigation} />;
-      default: return <DashboardHome setActiveSection={handleNavigation} />;
+      case 'results':     return <Results setActiveSection={handleNavigation} />;
+      case 'support':     return <Support setActiveSection={handleNavigation} onOpenChat={handleOpenChat} />;
+      case 'settings':    return <Settings setActiveSection={handleNavigation} />;
+      case 'help':        return <Help setActiveSection={handleNavigation} />;
+      case 'subscription':return <Subscription setActiveSection={handleNavigation} />;
+      case 'exams':       return <Exams setActiveSection={handleNavigation} />;
+      default:            return <DashboardHome setActiveSection={handleNavigation} />;
     }
   };
 
@@ -131,8 +129,8 @@ function DashboardContent() {
     return (
       <div className={dashboardLoading}>
         <div className={dashboardLoadingInner}>
-          <div className={dashboardLoadingSpinner}></div>
-          <p className={dashboardLoadingText}>Loading admin dashboard...</p>
+          <div className={dashboardLoadingSpinner} />
+          <p className={dashboardLoadingText}>Loading Einstein's CBT Admin...</p>
         </div>
       </div>
     );
@@ -140,37 +138,42 @@ function DashboardContent() {
 
   return (
     <div className={dashboardContainer}>
-      <DashboardNavbar 
+      {/* Navbar — full width, sticky at top, z-50 */}
+      <DashboardNavbar
         activeSection={activeSection}
         setActiveSection={handleNavigation}
-        onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
+        onMenuClick={() => setSidebarOpen(prev => !prev)}
         onSupportClick={() => setShowSupportChat(true)}
       />
-      
+
+      {/* Body row: sidebar + content */}
       <div className={dashboardMain}>
-        <DashboardSidebar 
-          isOpen={sidebarOpen} 
+        <DashboardSidebar
+          isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           activeSection={activeSection}
           setActiveSection={handleNavigation}
           onSupportClick={() => setShowSupportChat(true)}
         />
-        
-        <main className={dashboardContent}>
-          <motion.div
-            key={activeSection}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-            className={dashboardInner}
-          >
-            {renderSection()}
-          </motion.div>
+
+        {/* Main content — shifts right on desktop when sidebar is open */}
+        <main className={`${dashboardContent} transition-[margin-left] duration-300 ease-in-out ${sidebarOpen ? 'lg:ml-64' : ''}`}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className={dashboardInner}
+            >
+              {renderSection()}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 
-      <SupportChat 
+      <SupportChat
         isOpen={showSupportChat}
         onClose={handleCloseChat}
         initialTicket={pendingTicket}
@@ -179,17 +182,19 @@ function DashboardContent() {
   );
 }
 
+const LoadingFallback = () => (
+  <div className={dashboardLoading}>
+    <div className={dashboardLoadingInner}>
+      <div className={dashboardLoadingSpinner} />
+      <p className={dashboardLoadingText}>Loading Einstein's CBT Admin...</p>
+    </div>
+  </div>
+);
+
 export default function DashboardPage() {
   return (
     <ProtectedRoute>
-      <Suspense fallback={
-        <div className={dashboardLoading}>
-          <div className={dashboardLoadingInner}>
-            <div className={dashboardLoadingSpinner}></div>
-            <p className={dashboardLoadingText}>Loading admin dashboard...</p>
-          </div>
-        </div>
-      }>
+      <Suspense fallback={<LoadingFallback />}>
         <DashboardContent />
       </Suspense>
     </ProtectedRoute>

@@ -16,7 +16,12 @@ import {
   modalActions,
   modalButtonSecondary,
   modalButtonDanger
-} from '../styles';
+} from '../../styles/styles';
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.25, ease: 'easeOut' } }),
+};
 
 export default function Exams({ setActiveSection }) {
   const { user, fetchWithAuth } = useAuth();
@@ -25,6 +30,9 @@ export default function Exams({ setActiveSection }) {
   const [questions, setQuestions] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [examsPage, setExamsPage] = useState(1);
+  const [examsTotalCount, setExamsTotalCount] = useState(0);
+  const EXAMS_LIMIT = 50;
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -70,7 +78,7 @@ export default function Exams({ setActiveSection }) {
     setLoading(true);
     try {
       const [examsRes, subjectsRes, studentsRes, questionsRes] = await Promise.all([
-        fetchWithAuth('/admin/exam-setups'),
+        fetchWithAuth(`/admin/exam-setups?limit=${EXAMS_LIMIT}&page=${examsPage}`),
         fetchWithAuth('/admin/subjects'),
         fetchWithAuth('/admin/students'),
         fetchWithAuth('/admin/questions')
@@ -79,6 +87,7 @@ export default function Exams({ setActiveSection }) {
       if (examsRes.ok) {
         const examsData = await examsRes.json();
         setExams(examsData.exams || []);
+        setExamsTotalCount(examsData.total || (examsData.exams || []).length);
       }
       
       if (subjectsRes.ok) {
@@ -455,10 +464,10 @@ export default function Exams({ setActiveSection }) {
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'active': return 'bg-green-100 text-green-600';
-      case 'draft': return 'bg-gray-100 text-gray-600';
+      case 'active': return 'bg-success-light text-success';
+      case 'draft': return 'bg-surface-subtle text-content-secondary';
       case 'completed': return 'bg-blue-100 text-blue-600';
-      default: return 'bg-gray-100 text-gray-600';
+      default: return 'bg-surface-subtle text-content-secondary';
     }
   };
 
@@ -484,37 +493,37 @@ export default function Exams({ setActiveSection }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">📝</span>
-            <span className="text-[24px] leading-[100%] font-[700] text-[#1E1E1E] font-playfair">{stats.total}</span>
+            <span className="text-[24px] leading-[100%] font-[700] text-content-primary">{stats.total}</span>
           </div>
-          <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">Total Exams</p>
+          <p className="text-[12px] leading-[100%] font-[400] text-content-muted">Total Exams</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">🟢</span>
-            <span className="text-[24px] leading-[100%] font-[700] text-[#1E1E1E] font-playfair">{stats.active}</span>
+            <span className="text-[24px] leading-[100%] font-[700] text-content-primary">{stats.active}</span>
           </div>
-          <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">Active</p>
+          <p className="text-[12px] leading-[100%] font-[400] text-content-muted">Active</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">📄</span>
-            <span className="text-[24px] leading-[100%] font-[700] text-[#1E1E1E] font-playfair">{stats.draft}</span>
+            <span className="text-[24px] leading-[100%] font-[700] text-content-primary">{stats.draft}</span>
           </div>
-          <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">Draft</p>
+          <p className="text-[12px] leading-[100%] font-[400] text-content-muted">Draft</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[32px]">✅</span>
-            <span className="text-[24px] leading-[100%] font-[700] text-[#1E1E1E] font-playfair">{stats.completed}</span>
+            <span className="text-[24px] leading-[100%] font-[700] text-content-primary">{stats.completed}</span>
           </div>
-          <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair">Completed</p>
+          <p className="text-[12px] leading-[100%] font-[400] text-content-muted">Completed</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      <div className="bg-white rounded-xl border border-border p-6 mb-6">
         <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
           <div className="flex-1 w-full lg:w-auto">
             <input
@@ -522,14 +531,14 @@ export default function Exams({ setActiveSection }) {
               placeholder="Search exams by title..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+              className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
             />
           </div>
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">
             <select
               value={filterClass}
               onChange={(e) => setFilterClass(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Classes</option>
               {classes.map(cls => (
@@ -539,7 +548,7 @@ export default function Exams({ setActiveSection }) {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+              className="px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
             >
               <option value="all">All Status</option>
               <option value="draft">Draft</option>
@@ -548,7 +557,7 @@ export default function Exams({ setActiveSection }) {
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2.5 bg-[#10b981] text-white rounded-lg hover:bg-[#059669] transition-colors font-[600] text-[13px] font-playfair whitespace-nowrap"
+              className="px-6 py-2.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dk transition-colors font-[600] text-[13px] whitespace-nowrap"
             >
               + Create Exam
             </button>
@@ -557,17 +566,18 @@ export default function Exams({ setActiveSection }) {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-12 h-12 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[14px] text-[#626060] font-playfair">Loading exams...</p>
+        <div className="bg-white rounded-xl border border-border p-12 text-center">
+          <div className="w-12 h-12 border-4 border-brand-primary-lt border-t-brand-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[14px] text-content-muted">Loading exams...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {filteredExams.map((exam) => (
+          {filteredExams.map((exam, i) => (
             <motion.div
               key={exam.id}
               whileHover={{ y: -2 }}
-              className="bg-white rounded-xl border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-all"
+              custom={i} variants={cardVariants} initial="hidden" animate="visible"
+              className="bg-white rounded-xl border border-border p-6 cursor-pointer hover:shadow-card-md transition-all"
               onClick={() => {
                 setSelectedExam(exam);
                 setShowDetailsModal(true);
@@ -576,7 +586,7 @@ export default function Exams({ setActiveSection }) {
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3 className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">
+                    <h3 className="text-[16px] leading-[120%] font-[600] text-content-primary">
                       {exam.title}
                     </h3>
                     <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(exam.status)}`}>
@@ -586,24 +596,24 @@ export default function Exams({ setActiveSection }) {
                       {exam.class}
                     </span>
                   </div>
-                  <p className="text-[12px] leading-[100%] font-[400] text-[#626060] font-playfair mb-1">
+                  <p className="text-[12px] leading-[100%] font-[400] text-content-muted mb-1">
                     {exam.subjects?.length || 0} subject(s) • {exam.subjects?.reduce((sum, s) => sum + (s.questionCount || 0), 0)} questions
                   </p>
-                  <p className="text-[13px] leading-[140%] font-[400] text-[#1E1E1E] font-playfair line-clamp-2">
+                  <p className="text-[13px] leading-[140%] font-[400] text-content-primary line-clamp-2">
                     {exam.description || 'No description provided'}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair">
+                  <p className="text-[11px] leading-[100%] font-[400] text-content-muted">
                     Starts: {formatDateOnly(exam.startDateTime)}
                   </p>
-                  <p className="text-[11px] leading-[100%] font-[400] text-[#9CA3AF] font-playfair mt-1">
+                  <p className="text-[11px] leading-[100%] font-[400] text-content-muted mt-1">
                     Ends: {formatDateOnly(exam.endDateTime)}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 text-[11px] leading-[100%] font-[400] text-[#626060] font-playfair">
+              <div className="flex items-center gap-4 text-[11px] leading-[100%] font-[400] text-content-muted">
                 <span>📊 Total Marks: {exam.totalMarks}</span>
                 <span>✅ Pass Mark: {exam.passMark}%</span>
                 <span>👥 {exam.assignedStudents?.length || 0} students</span>
@@ -645,7 +655,7 @@ export default function Exams({ setActiveSection }) {
                       });
                       setShowEditModal(true);
                     }}
-                    className="ml-2 px-3 py-1 bg-yellow-100 text-yellow-600 rounded-md text-[10px] font-[600] hover:bg-yellow-200"
+                    className="ml-2 px-3 py-1 bg-warning-light text-warning-dark rounded-md text-[10px] font-[600] hover:bg-yellow-200"
                   >
                     Edit
                   </button>
@@ -654,10 +664,34 @@ export default function Exams({ setActiveSection }) {
             </motion.div>
           ))}
           {filteredExams.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <p className="text-[14px] text-[#626060] font-playfair">No exams found</p>
+            <div className="bg-white rounded-xl border border-border p-12 text-center">
+              <p className="text-[14px] text-content-muted">No exams found</p>
             </div>
           )}
+        </div>
+      )}
+
+      {examsTotalCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-4 border-t border-border gap-3">
+          <p className="text-sm text-content-muted">
+            Page {examsPage} of {Math.ceil(examsTotalCount / EXAMS_LIMIT)} · {examsTotalCount} total exams
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setExamsPage(p => Math.max(1, p - 1))}
+              disabled={examsPage === 1}
+              className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setExamsPage(p => Math.min(Math.ceil(examsTotalCount / EXAMS_LIMIT), p + 1))}
+              disabled={examsPage >= Math.ceil(examsTotalCount / EXAMS_LIMIT)}
+              className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[44px]"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
 
@@ -681,23 +715,23 @@ export default function Exams({ setActiveSection }) {
               <div className="space-y-4 mb-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Exam Title *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Exam Title *</label>
                     <input
                       type="text"
                       name="title"
                       value={formData.title}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                       placeholder="e.g., First Term Examination"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Class *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Class *</label>
                     <select
                       name="class"
                       value={formData.class}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     >
                       <option value="">Select Class</option>
                       {classes.map(cls => (
@@ -708,24 +742,24 @@ export default function Exams({ setActiveSection }) {
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Description</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Description</label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
                     rows="2"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     placeholder="Brief description of the exam"
                   />
                 </div>
 
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Subjects *</label>
+                    <label className="text-[12px] leading-[100%] font-[500] text-content-primary">Subjects *</label>
                     <button
                       type="button"
                       onClick={addSubject}
-                      className="text-[11px] text-[#10b981] font-[600] hover:underline"
+                      className="text-[11px] text-brand-primary font-[600] hover:underline"
                     >
                       + Add Subject
                     </button>
@@ -738,7 +772,7 @@ export default function Exams({ setActiveSection }) {
                         <select
                           value={subject.subjectId}
                           onChange={(e) => handleSubjectChange(index, 'subjectId', e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                          className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                         >
                           <option value="">Select Subject</option>
                           {subjects.map(s => {
@@ -753,10 +787,14 @@ export default function Exams({ setActiveSection }) {
                         <input
                           type="number"
                           value={subject.questionCount}
-                          onChange={(e) => handleSubjectChange(index, 'questionCount', parseInt(e.target.value))}
+                          onChange={(e) => {
+                            const raw = parseInt(e.target.value, 10);
+                            if (isNaN(raw)) { handleSubjectChange(index, 'questionCount', ''); return; }
+                            handleSubjectChange(index, 'questionCount', Math.min(Math.max(1, raw), availableQuestions || 100));
+                          }}
                           min="1"
                           max={availableQuestions || 100}
-                          className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                          className="w-24 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                           placeholder="Count"
                         />
                         {formData.subjects.length > 1 && (
@@ -769,7 +807,7 @@ export default function Exams({ setActiveSection }) {
                           </button>
                         )}
                         {subject.subjectId && (
-                          <span className="text-[11px] text-[#626060] self-center whitespace-nowrap">
+                          <span className="text-[11px] text-content-muted self-center whitespace-nowrap">
                             ~{estimatedMarks} marks
                           </span>
                         )}
@@ -785,18 +823,18 @@ export default function Exams({ setActiveSection }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Duration (mins) *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Duration (mins) *</label>
                     <input
                       type="number"
                       name="duration"
                       value={formData.duration}
                       onChange={handleInputChange}
                       min="15"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Pass Mark (%) *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Pass Mark (%) *</label>
                     <input
                       type="number"
                       name="passMark"
@@ -804,64 +842,64 @@ export default function Exams({ setActiveSection }) {
                       onChange={handleInputChange}
                       min="0"
                       max="100"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Start Date *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Start Date *</label>
                     <input
                       type="date"
                       name="startDate"
                       value={formData.startDate}
                       onChange={handleInputChange}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Start Time</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Start Time</label>
                     <input
                       type="time"
                       name="startTime"
                       value={formData.startTime}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">End Date *</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">End Date *</label>
                     <input
                       type="date"
                       name="endDate"
                       value={formData.endDate}
                       onChange={handleInputChange}
                       min={formData.startDate || new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">End Time</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">End Time</label>
                     <input
                       type="time"
                       name="endTime"
                       value={formData.endTime}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Instructions</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Instructions</label>
                   <textarea
                     name="instructions"
                     value={formData.instructions}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     placeholder="Instructions for students..."
                   />
                 </div>
@@ -873,9 +911,9 @@ export default function Exams({ setActiveSection }) {
                       name="shuffleQuestions"
                       checked={formData.shuffleQuestions}
                       onChange={handleInputChange}
-                      className="w-4 h-4 text-[#10b981]"
+                      className="w-4 h-4 text-brand-primary"
                     />
-                    <span className="text-[13px] text-[#1E1E1E] font-playfair">Shuffle questions</span>
+                    <span className="text-[13px] text-content-primary">Shuffle questions</span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
@@ -883,9 +921,9 @@ export default function Exams({ setActiveSection }) {
                       name="showResults"
                       checked={formData.showResults}
                       onChange={handleInputChange}
-                      className="w-4 h-4 text-[#10b981]"
+                      className="w-4 h-4 text-brand-primary"
                     />
-                    <span className="text-[13px] text-[#1E1E1E] font-playfair">Show results immediately</span>
+                    <span className="text-[13px] text-content-primary">Show results immediately</span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
@@ -893,9 +931,9 @@ export default function Exams({ setActiveSection }) {
                       name="allowRetake"
                       checked={formData.allowRetake}
                       onChange={handleInputChange}
-                      className="w-4 h-4 text-[#10b981]"
+                      className="w-4 h-4 text-brand-primary"
                     />
-                    <span className="text-[13px] text-[#1E1E1E] font-playfair">Allow retake</span>
+                    <span className="text-[13px] text-content-primary">Allow retake</span>
                   </label>
                 </div>
               </div>
@@ -909,7 +947,7 @@ export default function Exams({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleCreateExam}
-                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Create Exam
                 </button>
@@ -936,45 +974,45 @@ export default function Exams({ setActiveSection }) {
               <h3 className={modalTitle}>Edit Exam</h3>
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Exam Title</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Exam Title</label>
                   <input
                     type="text"
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Duration (mins)</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Duration (mins)</label>
                     <input
                       type="number"
                       name="duration"
                       value={formData.duration}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Pass Mark (%)</label>
+                    <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Pass Mark (%)</label>
                     <input
                       type="number"
                       name="passMark"
                       value={formData.passMark}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair">Instructions</label>
+                  <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Instructions</label>
                   <textarea
                     name="instructions"
                     value={formData.instructions}
                     onChange={handleInputChange}
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#10b981] text-[13px] font-playfair"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                   />
                 </div>
               </div>
@@ -987,7 +1025,7 @@ export default function Exams({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleUpdateExam}
-                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Update Exam
                 </button>
@@ -1017,14 +1055,14 @@ export default function Exams({ setActiveSection }) {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-[20px] leading-[120%] font-[700] text-[#1E1E1E] font-playfair">
+                    <h3 className="text-[20px] leading-[120%] font-[700] text-content-primary">
                       {selectedExam.title}
                     </h3>
                     <span className={`px-2 py-1 rounded-full text-[10px] leading-[100%] font-[500] ${getStatusColor(selectedExam.status)}`}>
                       {selectedExam.status}
                     </span>
                   </div>
-                  <p className="text-[13px] leading-[100%] font-[400] text-[#626060] font-playfair">
+                  <p className="text-[13px] leading-[100%] font-[400] text-content-muted">
                     Class: {selectedExam.class}
                   </p>
                 </div>
@@ -1033,38 +1071,38 @@ export default function Exams({ setActiveSection }) {
                     setShowDetailsModal(false);
                     setSelectedExam(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
+                  className="text-content-muted hover:text-content-secondary text-xl"
                 >
                   ×
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-[11px] leading-[100%] font-[400] text-[#626060] mb-1 font-playfair">Duration</p>
-                  <p className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">{selectedExam.duration} minutes</p>
+                <div className="p-4 bg-surface-muted rounded-lg">
+                  <p className="text-[11px] leading-[100%] font-[400] text-content-muted mb-1">Duration</p>
+                  <p className="text-[16px] leading-[120%] font-[600] text-content-primary">{selectedExam.duration} minutes</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-[11px] leading-[100%] font-[400] text-[#626060] mb-1 font-playfair">Total Marks</p>
-                  <p className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">{selectedExam.totalMarks}</p>
+                <div className="p-4 bg-surface-muted rounded-lg">
+                  <p className="text-[11px] leading-[100%] font-[400] text-content-muted mb-1">Total Marks</p>
+                  <p className="text-[16px] leading-[120%] font-[600] text-content-primary">{selectedExam.totalMarks}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-[11px] leading-[100%] font-[400] text-[#626060] mb-1 font-playfair">Pass Mark</p>
-                  <p className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">{selectedExam.passMark}%</p>
+                <div className="p-4 bg-surface-muted rounded-lg">
+                  <p className="text-[11px] leading-[100%] font-[400] text-content-muted mb-1">Pass Mark</p>
+                  <p className="text-[16px] leading-[120%] font-[600] text-content-primary">{selectedExam.passMark}%</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-[11px] leading-[100%] font-[400] text-[#626060] mb-1 font-playfair">Assigned Students</p>
-                  <p className="text-[16px] leading-[120%] font-[600] text-[#1E1E1E] font-playfair">{selectedExam.assignedStudents?.length || 0}</p>
+                <div className="p-4 bg-surface-muted rounded-lg">
+                  <p className="text-[11px] leading-[100%] font-[400] text-content-muted mb-1">Assigned Students</p>
+                  <p className="text-[16px] leading-[120%] font-[600] text-content-primary">{selectedExam.assignedStudents?.length || 0}</p>
                 </div>
               </div>
 
               <div className="mb-6">
-                <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">Subjects</h4>
+                <h4 className="text-[14px] leading-[100%] font-[600] text-content-primary mb-2">Subjects</h4>
                 <div className="space-y-2">
                   {selectedExam.subjects?.map((subject, index) => (
-                    <div key={index} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
-                      <span className="text-[13px] font-[600] text-[#1E1E1E] font-playfair">{subject.subjectName}</span>
-                      <span className="text-[12px] text-[#626060] font-playfair">
+                    <div key={index} className="p-3 bg-surface-muted rounded-lg flex justify-between items-center">
+                      <span className="text-[13px] font-[600] text-content-primary">{subject.subjectName}</span>
+                      <span className="text-[12px] text-content-muted">
                         {subject.questionCount} questions • {subject.totalMarks} marks
                       </span>
                     </div>
@@ -1073,12 +1111,12 @@ export default function Exams({ setActiveSection }) {
               </div>
 
               <div className="mb-6">
-                <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">Schedule</h4>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair">
+                <h4 className="text-[14px] leading-[100%] font-[600] text-content-primary mb-2">Schedule</h4>
+                <div className="p-4 bg-surface-muted rounded-lg">
+                  <p className="text-[12px] leading-[140%] font-[400] text-content-muted">
                     <span className="font-[600]">Starts:</span> {formatDate(selectedExam.startDateTime)}
                   </p>
-                  <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair mt-1">
+                  <p className="text-[12px] leading-[140%] font-[400] text-content-muted mt-1">
                     <span className="font-[600]">Ends:</span> {formatDate(selectedExam.endDateTime)}
                   </p>
                 </div>
@@ -1086,8 +1124,8 @@ export default function Exams({ setActiveSection }) {
 
               {selectedExam.description && (
                 <div className="mb-6">
-                  <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">Description</h4>
-                  <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-[14px] leading-[100%] font-[600] text-content-primary mb-2">Description</h4>
+                  <p className="text-[12px] leading-[140%] font-[400] text-content-muted bg-surface-muted p-4 rounded-lg">
                     {selectedExam.description}
                   </p>
                 </div>
@@ -1095,14 +1133,14 @@ export default function Exams({ setActiveSection }) {
 
               {selectedExam.instructions && (
                 <div className="mb-6">
-                  <h4 className="text-[14px] leading-[100%] font-[600] text-[#1E1E1E] mb-2 font-playfair">Instructions</h4>
-                  <p className="text-[12px] leading-[140%] font-[400] text-[#626060] font-playfair bg-gray-50 p-4 rounded-lg">
+                  <h4 className="text-[14px] leading-[100%] font-[600] text-content-primary mb-2">Instructions</h4>
+                  <p className="text-[12px] leading-[140%] font-[400] text-content-muted bg-surface-muted p-4 rounded-lg">
                     {selectedExam.instructions}
                   </p>
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4 border-t border-gray-200 flex-wrap">
+              <div className="flex gap-3 pt-4 border-t border-border flex-wrap">
                 <button
                   onClick={() => {
                     setShowDetailsModal(false);
@@ -1120,7 +1158,7 @@ export default function Exams({ setActiveSection }) {
                         setShowDetailsModal(false);
                         setShowStudentSelectModal(true);
                       }}
-                      className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                      className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                     >
                       Assign Students
                     </button>
@@ -1130,7 +1168,7 @@ export default function Exams({ setActiveSection }) {
                         setSelectedStudents([]);
                         setShowActivateModal(true);
                       }}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-[13px] leading-[100%] font-[600]"
                     >
                       Activate for All
                     </button>
@@ -1139,7 +1177,7 @@ export default function Exams({ setActiveSection }) {
                         setShowDetailsModal(false);
                         setShowDeleteModal(true);
                       }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-[13px] leading-[100%] font-[600]"
                     >
                       Delete
                     </button>
@@ -1153,7 +1191,7 @@ export default function Exams({ setActiveSection }) {
                         setShowDetailsModal(false);
                         fetchExamResults(selectedExam.id);
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-[13px] leading-[100%] font-[600]"
                     >
                       View Results
                     </button>
@@ -1162,7 +1200,7 @@ export default function Exams({ setActiveSection }) {
                         setShowDetailsModal(false);
                         setShowDeactivateModal(true);
                       }}
-                      className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                      className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-[13px] leading-[100%] font-[600]"
                     >
                       Deactivate
                     </button>
@@ -1175,7 +1213,7 @@ export default function Exams({ setActiveSection }) {
                       setShowDetailsModal(false);
                       fetchExamResults(selectedExam.id);
                     }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-[13px] leading-[100%] font-[600]"
                   >
                     View Results
                   </button>
@@ -1205,11 +1243,11 @@ export default function Exams({ setActiveSection }) {
               <div className="mb-4 flex items-center justify-between">
                 <button
                   onClick={handleSelectAllInClass}
-                  className="text-[12px] text-[#10b981] font-[600] hover:underline"
+                  className="text-[12px] text-brand-primary font-[600] hover:underline"
                 >
                   {selectAllInClass ? 'Deselect All in Class' : 'Select All in Class'}
                 </button>
-                <p className="text-[12px] text-[#626060]">
+                <p className="text-[12px] text-content-muted">
                   {selectedStudents.length} students selected
                 </p>
               </div>
@@ -1220,19 +1258,19 @@ export default function Exams({ setActiveSection }) {
                   .map(student => (
                   <label
                     key={student.id}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
+                    className="flex items-center gap-3 p-3 hover:bg-surface-muted rounded-lg cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={selectedStudents.includes(student.id)}
                       onChange={() => handleToggleStudent(student.id)}
-                      className="w-4 h-4 text-[#10b981]"
+                      className="w-4 h-4 text-brand-primary"
                     />
                     <div className="flex-1">
-                      <p className="text-[13px] leading-[100%] font-[600] text-[#1E1E1E] font-playfair">
+                      <p className="text-[13px] leading-[100%] font-[600] text-content-primary">
                         {student.firstName} {student.lastName}
                       </p>
-                      <p className="text-[11px] leading-[100%] font-[400] text-[#626060] mt-1 font-playfair">
+                      <p className="text-[11px] leading-[100%] font-[400] text-content-muted mt-1">
                         Class: {student.class} • Login ID: {student.loginId}
                       </p>
                     </div>
@@ -1250,7 +1288,7 @@ export default function Exams({ setActiveSection }) {
                 <button
                   onClick={handleAssignStudents}
                   disabled={selectedStudents.length === 0}
-                  className={`px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair ${
+                  className={`px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600] ${
                     selectedStudents.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
@@ -1292,7 +1330,7 @@ export default function Exams({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleActivateExam}
-                  className="px-4 py-2 bg-[#10b981] text-white rounded-md hover:bg-[#059669] transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Confirm Activation
                 </button>
@@ -1329,7 +1367,7 @@ export default function Exams({ setActiveSection }) {
                 </button>
                 <button
                   onClick={handleDeactivateExam}
-                  className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-[13px] leading-[100%] font-[600] font-playfair"
+                  className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-[13px] leading-[100%] font-[600]"
                 >
                   Confirm Deactivation
                 </button>
@@ -1400,62 +1438,62 @@ export default function Exams({ setActiveSection }) {
                     setShowResultsModal(false);
                     setExamResults(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
+                  className="text-content-muted hover:text-content-secondary text-xl"
                 >
                   ×
                 </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-[11px] text-[#626060] mb-1 font-playfair">Total Students</p>
-                  <p className="text-[20px] font-[700] text-[#1E1E1E] font-playfair">{examResults.summary.totalStudents}</p>
+                <div className="bg-surface-muted p-4 rounded-lg">
+                  <p className="text-[11px] text-content-muted mb-1">Total Students</p>
+                  <p className="text-[20px] font-[700] text-content-primary">{examResults.summary.totalStudents}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-[11px] text-[#626060] mb-1 font-playfair">Submitted</p>
-                  <p className="text-[20px] font-[700] text-[#1E1E1E] font-playfair">{examResults.summary.submittedCount}</p>
+                <div className="bg-surface-muted p-4 rounded-lg">
+                  <p className="text-[11px] text-content-muted mb-1">Submitted</p>
+                  <p className="text-[20px] font-[700] text-content-primary">{examResults.summary.submittedCount}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-[11px] text-[#626060] mb-1 font-playfair">Average Score</p>
-                  <p className="text-[20px] font-[700] text-[#1E1E1E] font-playfair">{Math.round(examResults.summary.averageScore)}%</p>
+                <div className="bg-surface-muted p-4 rounded-lg">
+                  <p className="text-[11px] text-content-muted mb-1">Average Score</p>
+                  <p className="text-[20px] font-[700] text-content-primary">{Math.round(examResults.summary.averageScore)}%</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-[11px] text-[#626060] mb-1 font-playfair">Pass Rate</p>
-                  <p className="text-[20px] font-[700] text-[#10b981] font-playfair">{Math.round(examResults.summary.passRate)}%</p>
+                <div className="bg-surface-muted p-4 rounded-lg">
+                  <p className="text-[11px] text-content-muted mb-1">Pass Rate</p>
+                  <p className="text-[20px] font-[700] text-brand-primary">{Math.round(examResults.summary.passRate)}%</p>
                 </div>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-surface-muted border-b border-border">
                     <tr>
-                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Student</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Class</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Score</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Percentage</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Correct</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Wrong</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-[#626060]">Submitted</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-content-muted">Student</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-content-muted">Class</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-content-muted">Score</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-content-muted">Percentage</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-content-muted">Correct</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-content-muted">Wrong</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-[600] text-content-muted">Submitted</th>
                     </tr>
                   </thead>
                   <tbody>
                     {examResults.results.map((result, index) => (
-                      <tr key={index} className="border-b border-gray-100">
+                      <tr key={index} className="border-b border-border">
                         <td className="px-4 py-3">
-                          <span className="text-[12px] font-[500] text-[#1E1E1E]">{result.studentName}</span>
+                          <span className="text-[12px] font-[500] text-content-primary">{result.studentName}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[12px] text-[#626060]">{result.studentClass}</span>
+                          <span className="text-[12px] text-content-muted">{result.studentClass}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-[12px] font-[500]">{result.score}/{result.totalMarks}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded-full text-[10px] font-[600] ${
-                            result.percentage >= 75 ? 'bg-green-100 text-green-600' :
+                            result.percentage >= 75 ? 'bg-success-light text-success' :
                             result.percentage >= 60 ? 'bg-blue-100 text-blue-600' :
-                            result.percentage >= 50 ? 'bg-yellow-100 text-yellow-600' :
-                            'bg-red-100 text-red-600'
+                            result.percentage >= 50 ? 'bg-warning-light text-warning-dark' :
+                            'bg-danger-light text-danger'
                           }`}>
                             {Math.round(result.percentage)}%
                           </span>
@@ -1467,7 +1505,7 @@ export default function Exams({ setActiveSection }) {
                           <span className="text-[12px] text-red-600">{result.wrongAnswers || 0}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[11px] text-[#626060]">
+                          <span className="text-[11px] text-content-muted">
                             {result.submittedAt ? new Date(result.submittedAt._seconds * 1000).toLocaleDateString() : 'N/A'}
                           </span>
                         </td>
