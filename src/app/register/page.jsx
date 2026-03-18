@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
@@ -15,7 +16,7 @@ export default function RegisterPage() {
     name: '',
     schoolName: '',
     schoolAddress: '',
-    schoolPhone: ''
+    schoolPhone: '',
   })
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -26,81 +27,52 @@ export default function RegisterPage() {
   const currentYear = new Date().getFullYear()
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/dashboard')
-    }
+    if (isAuthenticated) router.replace('/dashboard')
   }, [isAuthenticated, router])
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
-    
     if (name === 'password') {
-      // Calculate password strength
-      let strength = 0
-      if (value.length >= 8) strength++
-      if (value.match(/[a-z]/)) strength++
-      if (value.match(/[A-Z]/)) strength++
-      if (value.match(/[0-9]/)) strength++
-      if (value.match(/[^a-zA-Z0-9]/)) strength++
-      setPasswordStrength(strength)
+      let s = 0
+      if (value.length >= 8) s++
+      if (value.match(/[a-z]/)) s++
+      if (value.match(/[A-Z]/)) s++
+      if (value.match(/[0-9]/)) s++
+      if (value.match(/[^a-zA-Z0-9]/)) s++
+      setPasswordStrength(s)
     }
   }
 
   const validateForm = () => {
     if (!formData.email || !formData.email.includes('@')) {
-      toast.error('Please enter a valid email address')
-      return false
+      toast.error('Please enter a valid email address'); return false
     }
     if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters long')
-      return false
+      toast.error('Password must be at least 6 characters'); return false
     }
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match')
-      return false
+      toast.error('Passwords do not match'); return false
     }
-    if (!formData.name) {
-      toast.error('Please enter your full name')
-      return false
-    }
-    if (!formData.schoolName) {
-      toast.error('Please enter your school name')
-      return false
-    }
-    if (!formData.schoolAddress) {
-      toast.error('Please enter your school address')
-      return false
-    }
-    if (!formData.schoolPhone) {
-      toast.error('Please enter your school phone number')
-      return false
-    }
+    if (!formData.name) { toast.error('Please enter your full name'); return false }
+    if (!formData.schoolName) { toast.error('Please enter your school name'); return false }
+    if (!formData.schoolAddress) { toast.error('Please enter your school address'); return false }
+    if (!formData.schoolPhone) { toast.error('Please enter your school phone number'); return false }
     return true
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
     if (!validateForm()) return
-    
     setLoading(true)
     const registerToast = toast.loading('Creating your school account...')
-    
     try {
       const { confirmPassword, ...registerData } = formData
       const result = await register(registerData)
-      
       if (result.success) {
-        toast.success('Registration successful! Please check your email to verify your account.', { id: registerToast })
-        
-        // Store email for reference
+        toast.success('Registration successful! Check your email to verify your account.', { id: registerToast })
         sessionStorage.setItem('registeredEmail', formData.email)
-        
-        // Redirect to verification pending page
-        setTimeout(() => {
-          router.push(`/verify-email/pending?email=${encodeURIComponent(formData.email)}`)
-        }, 2000)
+        setTimeout(() => router.push(`/verify-email/pending?email=${encodeURIComponent(formData.email)}`), 2000)
       } else {
         toast.error(result.message || 'Registration failed', { id: registerToast })
         setLoading(false)
@@ -112,235 +84,380 @@ export default function RegisterPage() {
     }
   }
 
-  const getStrengthColor = () => {
-    const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500']
-    return colors[passwordStrength] || 'bg-gray-300'
-  }
+  // Password strength helpers
+  const strengthColors = ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#22c55e']
+  const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong']
+  const strengthColor = formData.password ? strengthColors[passwordStrength] ?? strengthColors[0] : null
+  const strengthLabel = formData.password ? strengthLabels[passwordStrength] ?? 'Very Weak' : null
 
-  const getStrengthText = () => {
-    const texts = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong']
-    return texts[passwordStrength] || 'Too Weak'
-  }
+  // Shared input style
+  const inputCls = [
+    'w-full px-0 py-2.5 bg-transparent text-white text-sm font-medium',
+    'border-0 border-b transition-colors duration-200 focus:outline-none',
+    'placeholder:text-white/25 disabled:opacity-40',
+  ].join(' ')
+
+  const labelCls = 'block mb-1.5 text-xs font-medium uppercase tracking-wider text-white/60'
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] py-8 px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-2xl mx-auto"
-      >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link href="/login" className="inline-block mb-4">
-            <span className="text-[#2563EB] text-sm font-playfair hover:underline">← Back to Login</span>
-          </Link>
-          <h1 className="text-[32px] leading-[120%] font-[700] tracking-[-0.03em] text-[#2563EB] mb-2 font-playfair">
-            Register Your School
-          </h1>
-          <p className="text-[14px] leading-[140%] font-[400] text-[#626060] font-playfair">
-            Join the Einstein CBT Platform and start managing your exams digitally
-          </p>
+    <div
+      className="min-h-screen flex items-start justify-center overflow-x-hidden relative py-10 px-4"
+      style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #1a2340 50%, #141C33 100%)' }}
+    >
+      {/* Ghost logo watermark */}
+      <div className="fixed inset-0 flex items-center justify-center pointer-events-none select-none">
+        <div className="relative w-[600px] h-[600px]" style={{ opacity: 0.04 }}>
+          <Image src="/logo.png" alt="" fill className="object-contain" priority />
         </div>
+      </div>
 
-        {/* Registration Form */}
+      {/* Radial centre glow */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 800px 600px at 50% 40%, rgba(58,79,122,0.28) 0%, transparent 70%)' }}
+      />
+
+      {/* Content */}
+      <motion.div
+        initial={{ opacity: 0, y: 22 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
+        className="w-full max-w-xl relative z-10"
+      >
+
+        {/* ── Logo block ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08, duration: 0.4 }}
+          className="flex flex-col items-center mb-8"
+        >
+          <div className="relative mb-4">
+            <div
+              className="absolute inset-0 rounded-full blur-2xl scale-[2]"
+              style={{ background: 'rgba(58,79,122,0.40)' }}
+            />
+            <Image
+              src="/logo.png"
+              alt="Einstein's CBT App"
+              width={80}
+              height={80}
+              priority
+              className="relative z-10 object-contain drop-shadow-2xl"
+              style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.40))' }}
+            />
+          </div>
+
+          <h1 className="text-2xl font-bold tracking-tight text-white text-center font-playfair">
+            Einstein's CBT Admin
+          </h1>
+          <p className="text-sm text-white/60 text-center mt-1">
+            Register your school to get started
+          </p>
+
+          {/* Badge */}
+          <div
+            className="mt-3 px-3 py-1 rounded-full border text-xs font-semibold text-white/80 tracking-widest uppercase"
+            style={{ borderColor: 'rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)' }}
+          >
+            School Registration
+          </div>
+        </motion.div>
+
+        {/* ── Form card ── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl shadow-xl p-8"
+          transition={{ delay: 0.16, duration: 0.4 }}
+          className="rounded-2xl p-6 sm:p-8"
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            backdropFilter: 'blur(12px)',
+          }}
         >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Admin Information */}
+          <form onSubmit={handleSubmit} className="space-y-8">
+
+            {/* ── Section: Admin Info ── */}
             <div>
-              <h2 className="text-[18px] font-[600] text-[#1E1E1E] mb-4 font-playfair">Administrator Information</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-2 text-[13px] font-[500] text-[#1E1E1E] font-playfair">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
+              <h2 className="font-playfair text-base font-bold text-white mb-5 flex items-center gap-2">
+                <span
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
+                  style={{ background: 'rgba(255,179,0,0.15)', color: '#FFB300' }}
+                >1</span>
+                Administrator Information
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
+                {/* Full Name */}
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>Full Name <span className="text-[#FFB300]">*</span></label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-[14px] font-[400] text-[#1E1E1E] font-playfair focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all"
-                    placeholder="Enter your full name"
+                    className={inputCls}
+                    style={{ borderBottomColor: 'rgba(255,255,255,0.20)', caretColor: 'white' }}
+                    onFocus={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.80)'}
+                    onBlur={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.20)'}
+                    placeholder="Your full name"
                     disabled={loading}
+                    autoComplete="name"
                   />
                 </div>
 
-                <div>
-                  <label className="block mb-2 text-[13px] font-[500] text-[#1E1E1E] font-playfair">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
+                {/* Email */}
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>Email Address <span className="text-[#FFB300]">*</span></label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-[14px] font-[400] text-[#1E1E1E] font-playfair focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all"
+                    className={inputCls}
+                    style={{ borderBottomColor: 'rgba(255,255,255,0.20)', caretColor: 'white' }}
+                    onFocus={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.80)'}
+                    onBlur={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.20)'}
                     placeholder="admin@yourschool.edu.ng"
                     disabled={loading}
+                    autoComplete="email"
                   />
                 </div>
 
+                {/* Password */}
                 <div>
-                  <label className="block mb-2 text-[13px] font-[500] text-[#1E1E1E] font-playfair">
-                    Password <span className="text-red-500">*</span>
-                  </label>
+                  <label className={labelCls}>Password <span className="text-[#FFB300]">*</span></label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-[14px] font-[400] text-[#1E1E1E] font-playfair focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all"
+                      className={`${inputCls} pr-10`}
+                      style={{ borderBottomColor: 'rgba(255,255,255,0.20)', caretColor: 'white' }}
+                      onFocus={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.80)'}
+                      onBlur={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.20)'}
                       placeholder="Create a strong password"
                       disabled={loading}
+                      autoComplete="new-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#626060] hover:text-[#2563EB] transition-colors"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 text-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      style={{ color: 'rgba(255,255,255,0.40)' }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.90)'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.40)'}
+                      tabIndex={-1}
                     >
                       {showPassword ? '👁️' : '👁️‍🗨️'}
                     </button>
                   </div>
-                  
-                  {/* Password Strength Meter */}
+
+                  {/* Strength meter */}
                   {formData.password && (
                     <div className="mt-2">
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${getStrengthColor()} transition-all duration-300`}
-                            style={{ width: `${(passwordStrength + 1) * 20}%` }}
+                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.12)' }}>
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{
+                              width: `${(passwordStrength + 1) * 20}%`,
+                              background: strengthColor,
+                            }}
                           />
                         </div>
-                        <span className="text-[11px] font-[500] text-[#626060]">
-                          {getStrengthText()}
+                        <span className="text-xs font-medium" style={{ color: strengthColor }}>
+                          {strengthLabel}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#9CA3AF]">
-                        Use at least 8 characters with a mix of letters, numbers & symbols
+                      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                        Use 8+ characters with letters, numbers & symbols
                       </p>
                     </div>
                   )}
                 </div>
 
+                {/* Confirm Password */}
                 <div>
-                  <label className="block mb-2 text-[13px] font-[500] text-[#1E1E1E] font-playfair">
-                    Confirm Password <span className="text-red-500">*</span>
-                  </label>
+                  <label className={labelCls}>Confirm Password <span className="text-[#FFB300]">*</span></label>
                   <div className="relative">
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-[14px] font-[400] text-[#1E1E1E] font-playfair focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all"
+                      className={`${inputCls} pr-10`}
+                      style={{
+                        borderBottomColor: formData.confirmPassword && formData.password !== formData.confirmPassword
+                          ? '#ef4444'
+                          : 'rgba(255,255,255,0.20)',
+                        caretColor: 'white',
+                      }}
+                      onFocus={e => {
+                        if (!(formData.confirmPassword && formData.password !== formData.confirmPassword)) {
+                          e.target.style.borderBottomColor = 'rgba(255,255,255,0.80)'
+                        }
+                      }}
+                      onBlur={e => {
+                        e.target.style.borderBottomColor =
+                          formData.confirmPassword && formData.password !== formData.confirmPassword
+                            ? '#ef4444'
+                            : 'rgba(255,255,255,0.20)'
+                      }}
                       placeholder="Re-enter your password"
                       disabled={loading}
+                      autoComplete="new-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#626060] hover:text-[#2563EB] transition-colors"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 text-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      style={{ color: 'rgba(255,255,255,0.40)' }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.90)'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.40)'}
+                      tabIndex={-1}
                     >
                       {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
                     </button>
                   </div>
                   {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                    <p className="mt-1 text-[11px] text-red-500">Passwords do not match</p>
+                    <p className="mt-1 text-xs text-red-400">Passwords do not match</p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* School Information */}
-            <div className="pt-4 border-t border-gray-200">
-              <h2 className="text-[18px] font-[600] text-[#1E1E1E] mb-4 font-playfair">School Information</h2>
-              <div className="space-y-4">
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }} />
+
+            {/* ── Section: School Info ── */}
+            <div>
+              <h2 className="font-playfair text-base font-bold text-white mb-5 flex items-center gap-2">
+                <span
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
+                  style={{ background: 'rgba(255,179,0,0.15)', color: '#FFB300' }}
+                >2</span>
+                School Information
+              </h2>
+
+              <div className="space-y-6">
+                {/* School Name */}
                 <div>
-                  <label className="block mb-2 text-[13px] font-[500] text-[#1E1E1E] font-playfair">
-                    School Name <span className="text-red-500">*</span>
-                  </label>
+                  <label className={labelCls}>School Name <span className="text-[#FFB300]">*</span></label>
                   <input
                     type="text"
                     name="schoolName"
                     value={formData.schoolName}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-[14px] font-[400] text-[#1E1E1E] font-playfair focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all"
-                    placeholder="Enter your school name"
+                    className={inputCls}
+                    style={{ borderBottomColor: 'rgba(255,255,255,0.20)', caretColor: 'white' }}
+                    onFocus={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.80)'}
+                    onBlur={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.20)'}
+                    placeholder="e.g. Government Secondary School, Lokoja"
                     disabled={loading}
                   />
                 </div>
 
+                {/* School Address */}
                 <div>
-                  <label className="block mb-2 text-[13px] font-[500] text-[#1E1E1E] font-playfair">
-                    School Address <span className="text-red-500">*</span>
-                  </label>
+                  <label className={labelCls}>School Address <span className="text-[#FFB300]">*</span></label>
                   <textarea
                     name="schoolAddress"
                     value={formData.schoolAddress}
                     onChange={handleChange}
-                    rows="3"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-[14px] font-[400] text-[#1E1E1E] font-playfair focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all resize-none"
-                    placeholder="Enter complete school address"
+                    rows={2}
+                    className={`${inputCls} resize-none`}
+                    style={{ borderBottomColor: 'rgba(255,255,255,0.20)', caretColor: 'white' }}
+                    onFocus={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.80)'}
+                    onBlur={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.20)'}
+                    placeholder="Complete school address"
                     disabled={loading}
                   />
                 </div>
 
+                {/* Phone */}
                 <div>
-                  <label className="block mb-2 text-[13px] font-[500] text-[#1E1E1E] font-playfair">
-                    School Phone Number <span className="text-red-500">*</span>
-                  </label>
+                  <label className={labelCls}>School Phone Number <span className="text-[#FFB300]">*</span></label>
                   <input
                     type="tel"
                     name="schoolPhone"
                     value={formData.schoolPhone}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-[14px] font-[400] text-[#1E1E1E] font-playfair focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] transition-all"
-                    placeholder="+234 123 456 7890"
+                    className={inputCls}
+                    style={{ borderBottomColor: 'rgba(255,255,255,0.20)', caretColor: 'white' }}
+                    onFocus={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.80)'}
+                    onBlur={e => e.target.style.borderBottomColor = 'rgba(255,255,255,0.20)'}
+                    placeholder="+234 800 000 0000"
                     disabled={loading}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Terms and Submit */}
-            <div className="pt-4">
-              <p className="text-[12px] text-[#9CA3AF] mb-4 font-playfair">
+            {/* ── Terms + Submit ── */}
+            <div className="pt-2">
+              <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.40)' }}>
                 By registering, you agree to our{' '}
-                <Link href="/terms" className="text-[#2563EB] hover:underline">Terms of Service</Link>
+                <Link href="/terms" className="font-medium underline underline-offset-2" style={{ color: 'rgba(255,255,255,0.70)' }}>
+                  Terms of Service
+                </Link>
                 {' '}and{' '}
-                <Link href="/privacy" className="text-[#2563EB] hover:underline">Privacy Policy</Link>
+                <Link href="/privacy" className="font-medium underline underline-offset-2" style={{ color: 'rgba(255,255,255,0.70)' }}>
+                  Privacy Policy
+                </Link>
               </p>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-[#2563EB] text-white text-[16px] font-[600] rounded-lg hover:bg-[#1D4ED8] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2 transition-all font-playfair disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3.5 bg-white text-sm font-bold rounded-xl hover:bg-brand-primary-lt focus:outline-none focus:ring-2 focus:ring-white/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:-translate-y-0.5 min-h-[48px]"
+                style={{ color: '#1F2A49' }}
               >
-                {loading ? 'Creating Account...' : 'Register School'}
+                {loading ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-[#1F2A49]/30 border-t-[#1F2A49] rounded-full animate-spin" />
+                    Creating Account...
+                  </span>
+                ) : (
+                  'Create School Account →'
+                )}
               </button>
             </div>
           </form>
         </motion.div>
 
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <p className="text-[10px] leading-[140%] font-[400] text-[#9CA3AF] font-playfair">
+        {/* ── Login link + footer ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.28, duration: 0.4 }}
+          className="text-center mt-6"
+        >
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
             Already have an account?{' '}
-            <Link href="/login" className="text-[#2563EB] hover:underline">
-              Sign in
+            <Link
+              href="/login"
+              className="font-semibold transition-colors"
+              style={{ color: 'rgba(255,255,255,0.80)' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'white'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.80)'}
+            >
+              Sign in →
             </Link>
           </p>
-          <p className="text-[8px] leading-[140%] font-[400] text-[#9CA3AF] font-playfair mt-4">
-            Powered by Mega Tech Solutions © {currentYear} All rights reserved
-          </p>
-        </div>
+
+          <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Einstein's CBT App · Admin Portal v2.0
+            </p>
+            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.20)' }}>
+              Powered by Mega Tech Solutions © {currentYear}
+            </p>
+          </div>
+        </motion.div>
+
       </motion.div>
     </div>
   )
