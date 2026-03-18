@@ -29,6 +29,7 @@ function SettingsContent() {
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [showDisable2FAModal, setShowDisable2FAModal] = useState(false);
   const [twoFAQRCode, setTwoFAQRCode] = useState('');
+  const [twoFASecret, setTwoFASecret] = useState('');
   const [twoFAToken, setTwoFAToken] = useState(['', '', '', '', '', '']);
   const [loading2FA, setLoading2FA] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -104,8 +105,11 @@ function SettingsContent() {
       const data = await response.json();
       if (response.ok) {
         setTwoFAQRCode(data.qrCode);
+        setTwoFASecret(data.secret || '');
         setShow2FAModal(true);
-        toast.success('Scan the QR code with Google Authenticator', { id: toastId });
+        toast.dismiss(toastId);
+      } else if (response.status === 400 && data.message?.includes('already enabled')) {
+        toast.error('2FA is already active on this account. Disable it first to reconfigure.', { id: toastId });
       } else {
         toast.error(data.message || 'Failed to setup 2FA', { id: toastId });
       }
@@ -121,13 +125,15 @@ function SettingsContent() {
       const response = await fetchWithAuth('/auth/verify-2fa-setup', { method: 'POST', body: JSON.stringify({ token }) });
       const data = await response.json();
       if (response.ok) {
-        toast.success('2FA enabled successfully', { id: toastId });
+        toast.success('2FA enabled successfully! Your account is now protected.', { id: toastId });
         setShow2FAModal(false);
         setTwoFAToken(['', '', '', '', '', '']);
+        setTwoFASecret('');
         await refreshUser();
       } else {
-        toast.error(data.message || 'Invalid code', { id: toastId });
+        toast.error(data.message || 'Invalid code — please try again', { id: toastId });
         setTwoFAToken(['', '', '', '', '', '']);
+        document.getElementById('2fa-0')?.focus();
       }
     } catch { toast.error('Verification failed', { id: toastId }); }
   };
@@ -510,43 +516,92 @@ function SettingsContent() {
         {/* Setup 2FA */}
         {show2FAModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
           >
             <motion.div initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92 }}
-              className="bg-white rounded-xl p-6 max-w-md w-full shadow-card-lg"
+              className="bg-white rounded-xl p-6 max-w-md w-full shadow-card-lg my-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-bold text-content-primary mb-2">Setup Two-Factor Authentication</h3>
-              <p className="text-sm text-content-muted mb-5">
-                Scan this QR code with Google Authenticator or Authy.
+              <h3 className="text-lg font-bold text-content-primary mb-1">Setup Two-Factor Authentication</h3>
+              <p className="text-xs text-content-muted mb-5">
+                2FA will only activate after you confirm the code below.
               </p>
-              {twoFAQRCode && (
-                <div className="flex justify-center mb-5">
-                  <img src={twoFAQRCode} alt="2FA QR Code" className="w-48 h-48 rounded-lg border border-border" />
+
+              {/* Step 1 — QR Code */}
+              <div className="mb-5">
+                <p className={`${labelCls} mb-2`}>Step 1 — Scan with your authenticator app</p>
+                {twoFAQRCode && (
+                  <div className="flex justify-center">
+                    <img src={twoFAQRCode} alt="2FA QR Code" className="w-44 h-44 rounded-lg border border-border" />
+                  </div>
+                )}
+                <p className="text-xs text-center text-content-muted mt-2">
+                  Use Google Authenticator, Authy, or any TOTP app
+                </p>
+              </div>
+
+              {/* Manual entry secret */}
+              {twoFASecret && (
+                <div className="mb-5 p-3 bg-surface-subtle border border-border rounded-lg">
+                  <p className="text-xs font-semibold text-content-secondary mb-1.5">
+                    Can't scan? Enter this key manually in your app:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs font-mono text-content-primary bg-white border border-border rounded px-2.5 py-2 break-all select-all">
+                      {twoFASecret}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(twoFASecret);
+                        toast.success('Secret key copied!');
+                      }}
+                      className="flex-shrink-0 px-2.5 py-2 border border-border rounded-lg text-xs font-medium text-content-secondary hover:bg-surface-subtle transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
                 </div>
               )}
+
+              {/* Step 2 — Enter code */}
               <div className="mb-6">
-                <label className={labelCls}>Enter 6-digit code from authenticator</label>
-                <div className="flex gap-2 justify-center mt-2">
+                <p className={`${labelCls} mb-2`}>Step 2 — Enter the 6-digit code to confirm</p>
+                <div className="flex gap-2 justify-center">
                   {twoFAToken.map((digit, index) => (
                     <input
                       key={index}
                       id={`2fa-${index}`}
                       type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={digit}
                       onChange={(e) => handle2FAChange(index, e.target.value)}
                       onKeyDown={(e) => handle2FAKeyDown(index, e)}
                       maxLength={1}
-                      className="w-12 h-12 text-center border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-lg font-bold text-content-primary"
+                      className="w-11 h-12 text-center border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-lg font-bold text-content-primary transition-all"
                     />
                   ))}
                 </div>
+                <p className="text-xs text-center text-content-muted mt-2">
+                  2FA activates only when this code is verified successfully
+                </p>
               </div>
+
               <div className="flex justify-end gap-3">
-                <button onClick={() => { setShow2FAModal(false); setTwoFAToken(['','','','','','']); }} className={btnSecondary}>
+                <button
+                  onClick={() => { setShow2FAModal(false); setTwoFAToken(['','','','','','']); setTwoFASecret(''); }}
+                  className={btnSecondary}
+                >
                   Cancel
                 </button>
-                <button onClick={handleVerify2FA} className={btnPrimary}>Verify & Enable</button>
+                <button
+                  onClick={handleVerify2FA}
+                  disabled={twoFAToken.join('').length !== 6}
+                  className={btnPrimary}
+                >
+                  Verify & Enable 2FA
+                </button>
               </div>
             </motion.div>
           </motion.div>

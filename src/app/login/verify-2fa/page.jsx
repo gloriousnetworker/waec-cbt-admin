@@ -76,7 +76,7 @@ function Verify2FAContent() {
     const verifyToast = toast.loading('Verifying code...')
     try {
       const result = await verifyTwoFactor(userId, token, tempToken)
-      if (result.success && result.tokens) {
+      if (result.success) {
         toast.success('Verification successful!', { id: verifyToast })
         setTimeout(() => router.push('/dashboard'), 1500)
       } else {

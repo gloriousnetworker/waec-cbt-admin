@@ -13,9 +13,9 @@ This is a multi-tenant Computer-Based Testing (CBT) simulation platform modelled
 
 | Role | Frontend App | Auth Method |
 |------|-------------|-------------|
-| Super Admin | `https://mts-waec-super-admin.vercel.app` | Email + Password + 2FA (optional) |
-| Admin (School) | `https://waec-cbt-admin.vercel.app` | Email + Password + 2FA (optional) |
-| Student | `https://waec-cbt-simulator.vercel.app` / `https://einsteinscbt.vercel.app` | Login ID or NIN + Password |
+| Super Admin | `https://einsteinssuperadmin.vercel.app` | Email + Password + 2FA (optional) |
+| Admin (School) | `https://einsteinsadmin.vercel.app` | Email + Password + 2FA (optional) |
+| Student | `https://einsteinscbt.vercel.app` | Login ID or NIN + Password |
 
 ---
 
@@ -42,10 +42,9 @@ The following origins are whitelisted. Any other origin will receive a CORS erro
 ```
 http://localhost:3000
 http://localhost:3001
-https://mts-waec-super-admin.vercel.app
-https://waec-cbt-simulator.vercel.app
-https://waec-cbt-admin.vercel.app
 https://einsteinscbt.vercel.app
+https://einsteinsadmin.vercel.app
+https://einsteinssuperadmin.vercel.app
 ```
 To add a new frontend domain, it must be added to `server.js` `allowedOrigins` array.
 
@@ -1400,7 +1399,7 @@ FIREBASE_CLIENT_EMAIL=<service account email>
 GMAIL_USER=<gmail address>
 GMAIL_APP_PASSWORD=<Google App Password>
 EMAIL_SERVICE=gmail
-FRONTEND_URL=https://waec-cbt-admin.vercel.app
+FRONTEND_URL=https://einsteinsadmin.vercel.app
 
 # Paystack
 PAYSTACK_SECRET_KEY=<sk_live_...>
