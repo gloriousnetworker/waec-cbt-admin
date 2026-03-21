@@ -9,7 +9,7 @@ import ProtectedRoute from '../ProtectedRoute';
 // Shared input class
 const inputCls = 'w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-sm text-content-primary bg-white disabled:bg-surface-muted disabled:text-content-muted transition-all';
 const labelCls = 'block text-xs font-semibold text-content-secondary mb-1.5 uppercase tracking-wide';
-const cardCls  = 'bg-white rounded-xl border border-border shadow-card p-6';
+const cardCls  = 'bg-white rounded-xl border border-border shadow-card p-4 sm:p-6';
 const btnPrimary = 'px-5 py-2.5 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dk transition-colors text-sm font-semibold min-h-[40px] disabled:opacity-50';
 const btnSecondary = 'px-4 py-2.5 border border-border rounded-lg hover:bg-surface-subtle text-sm font-medium text-content-secondary transition-colors min-h-[40px]';
 
@@ -262,7 +262,7 @@ function SettingsContent() {
         </div>
 
         {isEditing && (
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border">
+          <div className="flex flex-wrap justify-end gap-3 mt-6 pt-4 border-t border-border">
             <button onClick={() => setIsEditing(false)} className={btnSecondary}>Cancel</button>
             <button onClick={handleProfileUpdate} disabled={loading} className={btnPrimary}>
               {loading ? 'Saving...' : 'Save Changes'}
@@ -335,7 +335,7 @@ function SettingsContent() {
             </div>
           ))}
         </div>
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end">
           <button onClick={() => saveSettings('/settings/notifications', notificationSettings, 'Notification settings')} className={btnPrimary}>
             Save Notification Settings
           </button>
@@ -365,7 +365,7 @@ function SettingsContent() {
             </div>
           ))}
         </div>
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end">
           <button onClick={() => saveSettings('/settings/exam', examSettings, 'Exam settings')} className={btnPrimary}>
             Save Exam Settings
           </button>
@@ -412,7 +412,7 @@ function SettingsContent() {
           ))}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end">
           <button onClick={() => saveSettings('/settings/appearance', appearanceSettings, 'Appearance settings')} className={btnPrimary}>
             Save Appearance
           </button>
@@ -422,7 +422,7 @@ function SettingsContent() {
   };
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="max-w-7xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-content-primary">Settings</h1>
         <p className="text-sm text-content-muted mt-1">Manage your account and preferences</p>
@@ -488,7 +488,7 @@ function SettingsContent() {
       {/* ── Danger Zone ── */}
       <div className="mt-8 bg-danger-light border border-danger rounded-xl p-6">
         <h3 className="text-base font-bold text-danger mb-3">⚠️ Danger Zone</h3>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-danger">Delete Account</p>
             <p className="text-xs text-danger mt-0.5 opacity-80">Permanently delete your account and all associated data</p>
@@ -531,7 +531,7 @@ function SettingsContent() {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-wrap justify-end gap-3">
                 <button onClick={() => setShowPasswordModal(false)} className={btnSecondary}>Cancel</button>
                 <button onClick={handlePasswordChange} disabled={loading} className={btnPrimary}>
                   {loading ? 'Updating...' : 'Update Password'}
@@ -616,7 +616,7 @@ function SettingsContent() {
                 </p>
               </div>
 
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-wrap justify-end gap-3">
                 <button
                   onClick={() => { setShow2FAModal(false); setTwoFAToken(['','','','','','']); setTwoFASecret(''); }}
                   className={btnSecondary}
@@ -677,7 +677,7 @@ function SettingsContent() {
                   />
                 ))}
               </div>
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-wrap justify-end gap-3">
                 <button
                   onClick={() => { setShowDisable2FAModal(false); setDisableToken(['', '', '', '', '', '']); }}
                   className={btnSecondary}

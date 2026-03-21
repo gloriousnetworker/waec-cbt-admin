@@ -768,7 +768,7 @@ export default function Exams({ setActiveSection }) {
                     const availableQuestions = getQuestionCountForSubject(subject.subjectId);
                     const estimatedMarks = getTotalMarksForSubject(subject.subjectId, subject.questionCount);
                     return (
-                      <div key={index} className="flex gap-3 mb-3">
+                      <div key={index} className="flex flex-col sm:flex-row gap-2 mb-3">
                         <select
                           value={subject.subjectId}
                           onChange={(e) => handleSubjectChange(index, 'subjectId', e.target.value)}
@@ -784,33 +784,35 @@ export default function Exams({ setActiveSection }) {
                             );
                           })}
                         </select>
-                        <input
-                          type="number"
-                          value={subject.questionCount}
-                          onChange={(e) => {
-                            const raw = parseInt(e.target.value, 10);
-                            if (isNaN(raw)) { handleSubjectChange(index, 'questionCount', ''); return; }
-                            handleSubjectChange(index, 'questionCount', Math.min(Math.max(1, raw), availableQuestions || 100));
-                          }}
-                          min="1"
-                          max={availableQuestions || 100}
-                          className="w-24 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
-                          placeholder="Count"
-                        />
-                        {formData.subjects.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeSubject(index)}
-                            className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
-                          >
-                            ✕
-                          </button>
-                        )}
-                        {subject.subjectId && (
-                          <span className="text-[11px] text-content-muted self-center whitespace-nowrap">
-                            ~{estimatedMarks} marks
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={subject.questionCount}
+                            onChange={(e) => {
+                              const raw = parseInt(e.target.value, 10);
+                              if (isNaN(raw)) { handleSubjectChange(index, 'questionCount', ''); return; }
+                              handleSubjectChange(index, 'questionCount', Math.min(Math.max(1, raw), availableQuestions || 100));
+                            }}
+                            min="1"
+                            max={availableQuestions || 100}
+                            className="w-24 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
+                            placeholder="Count"
+                          />
+                          {subject.subjectId && (
+                            <span className="text-[11px] text-content-muted whitespace-nowrap">
+                              ~{estimatedMarks} marks
+                            </span>
+                          )}
+                          {formData.subjects.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeSubject(index)}
+                              className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md flex-shrink-0"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
