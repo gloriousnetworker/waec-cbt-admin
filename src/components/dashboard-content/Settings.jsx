@@ -421,9 +421,27 @@ function SettingsContent() {
       {/* ── Layout: sidebar tabs + content ── */}
       <div className="flex flex-col lg:flex-row gap-6">
 
-        {/* Tab sidebar */}
+        {/* Tab sidebar — horizontal scroll on mobile, vertical list on desktop */}
         <div className="lg:w-56 flex-shrink-0">
-          <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
+          {/* Mobile: horizontal pill tabs */}
+          <div className="flex lg:hidden overflow-x-auto gap-2 pb-1 scrollbar-none">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap min-h-[44px] ${
+                  activeTab === tab.id
+                    ? 'bg-brand-primary text-white font-semibold'
+                    : 'bg-white border border-border text-content-secondary hover:bg-surface-subtle'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+          {/* Desktop: vertical list */}
+          <div className="hidden lg:block bg-white rounded-xl border border-border shadow-card overflow-hidden">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -482,7 +500,7 @@ function SettingsContent() {
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           >
             <motion.div initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92 }}
-              className="bg-white rounded-xl p-6 max-w-md w-full shadow-card-lg"
+              className="bg-white rounded-xl p-5 sm:p-6 max-w-md w-full shadow-card-lg max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-content-primary mb-4">Change Password</h3>
@@ -519,7 +537,7 @@ function SettingsContent() {
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
           >
             <motion.div initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92 }}
-              className="bg-white rounded-xl p-6 max-w-md w-full shadow-card-lg my-4"
+              className="bg-white rounded-xl p-5 sm:p-6 max-w-md w-full shadow-card-lg max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-content-primary mb-1">Setup Two-Factor Authentication</h3>
@@ -613,7 +631,7 @@ function SettingsContent() {
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           >
             <motion.div initial={{ scale: 0.92, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92 }}
-              className="bg-white rounded-xl p-6 max-w-md w-full shadow-card-lg"
+              className="bg-white rounded-xl p-5 sm:p-6 max-w-md w-full shadow-card-lg max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-content-primary mb-2">Disable Two-Factor Authentication</h3>

@@ -10,16 +10,12 @@ import {
   examsTitle,
   examsSubtitle,
   modalOverlay,
-  modalContainer,
   modalTitle,
-  modalText,
   modalActions,
   modalButtonSecondary,
-  modalButtonDanger,
-  buttonPrimary
 } from '../../styles/styles';
 
-export default function Support({ setActiveSection, onOpenChat }) {
+export default function Support({ onOpenChat }) {
   const { fetchWithAuth } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -325,7 +321,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4"
+              className="bg-white rounded-xl p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Create New Support Ticket</h3>

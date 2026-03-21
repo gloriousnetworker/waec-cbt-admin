@@ -814,12 +814,12 @@ export default function Questions({ setActiveSection }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-lg p-4 sm:p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Create New Question</h3>
               <div className="space-y-4 mb-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Subject</label>
                     <input
@@ -884,7 +884,7 @@ export default function Questions({ setActiveSection }) {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Marks *</label>
                     <input
@@ -984,7 +984,7 @@ export default function Questions({ setActiveSection }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-lg p-4 sm:p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Bulk Import Questions</h3>
@@ -1120,12 +1120,12 @@ export default function Questions({ setActiveSection }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-lg p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-lg p-4 sm:p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Edit Question</h3>
               <div className="space-y-4 mb-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Mode</label>
                     <select
@@ -1190,7 +1190,7 @@ export default function Questions({ setActiveSection }) {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Marks *</label>
                     <input

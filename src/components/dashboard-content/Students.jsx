@@ -259,8 +259,75 @@ export default function Students({ setActiveSection }) {
         </button>
       </div>
 
-      {/* Table — horizontally scrollable on mobile */}
-      <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
+      {/* ── Mobile card view (< sm) ─────────────────────────── */}
+      <div className="sm:hidden space-y-3">
+        {filteredStudents.length === 0 ? (
+          <div className="bg-white rounded-xl border border-border p-10 text-center">
+            <p className="text-sm text-content-muted">No students found</p>
+          </div>
+        ) : filteredStudents.map((student) => (
+          <div key={student.id} className="bg-white rounded-xl border border-border shadow-card p-4">
+            {/* Header row */}
+            <div className="flex items-start gap-3 mb-3">
+              <div
+                className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold"
+                style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #141C33 100%)' }}
+              >
+                {getInitials(student)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm text-content-primary">{student.firstName} {student.lastName}</div>
+                <div className="text-xs text-content-muted truncate">{student.email}</div>
+                <div className="text-xs text-content-muted mt-0.5">ID: {student.loginId}{student.nin ? ` · NIN: ${student.nin}` : ''}</div>
+              </div>
+              <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                student.status === 'active' ? 'bg-success-light text-success-dark' : 'bg-danger-light text-danger-dark'
+              }`}>{student.status}</span>
+            </div>
+
+            {/* Meta row */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-3 text-xs">
+              <div><span className="text-content-muted">Class: </span><span className="font-medium text-content-primary">{student.class}</span></div>
+              <div><span className="text-content-muted">Registered: </span><span className="font-medium text-content-primary">{formatDate(student.createdAt)}</span></div>
+            </div>
+
+            {/* Subjects */}
+            <div className="flex flex-wrap gap-1 mb-3">
+              {student.subjects?.slice(0, 4).map(subject => (
+                <div key={subject} className="flex items-center gap-0.5 bg-brand-primary-lt text-brand-primary px-2 py-0.5 rounded-full text-[10px] font-medium">
+                  {subject}
+                  <button onClick={(e) => { e.stopPropagation(); handleRemoveSubject(student, subject); }} className="hover:text-danger ml-0.5 leading-none" aria-label={`Remove ${subject}`}>×</button>
+                </div>
+              ))}
+              {(student.subjects?.length || 0) > 4 && <span className="text-[10px] text-content-muted">+{student.subjects.length - 4}</span>}
+              <button
+                onClick={() => { setSelectedStudent(student); setShowAddSubjectModal(true); }}
+                className="bg-surface-subtle text-content-secondary px-2 py-0.5 rounded-full text-[10px] font-medium hover:bg-brand-primary-lt hover:text-brand-primary transition-colors"
+              >+ Add</button>
+            </div>
+
+            {/* Actions row */}
+            <div className="flex items-center justify-between pt-2.5 border-t border-border">
+              <button
+                onClick={() => handleToggleExamMode(student)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors min-h-[36px] ${
+                  student.examMode ? 'bg-success-light text-success-dark' : 'bg-surface-subtle text-content-secondary'
+                }`}
+              >
+                Exam: {student.examMode ? 'On' : 'Off'}
+              </button>
+              <div className="flex gap-1">
+                <button onClick={() => handleViewStudent(student)} className="text-brand-primary text-xs font-semibold min-h-[36px] px-2.5 rounded-lg hover:bg-brand-primary-lt transition-colors">View</button>
+                <button onClick={() => handleEditStudent(student)} className="text-brand-accent text-xs font-semibold min-h-[36px] px-2.5 rounded-lg hover:bg-surface-subtle transition-colors">Edit</button>
+                <button onClick={() => { setSelectedStudent(student); setShowDeleteModal(true); }} className="text-danger text-xs font-semibold min-h-[36px] px-2.5 rounded-lg hover:bg-danger-light transition-colors">Delete</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Desktop table (≥ sm) ─────────────────────────────── */}
+      <div className="hidden sm:block bg-white rounded-xl border border-border shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead className="bg-surface-muted border-b border-border">
@@ -284,86 +351,43 @@ export default function Students({ setActiveSection }) {
                         {getInitials(student)}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold text-sm text-content-primary truncate">
-                          {student.firstName} {student.lastName}
-                        </div>
-                        <div className="text-xs text-content-muted truncate mt-0.5">
-                          {student.email}
-                        </div>
+                        <div className="font-semibold text-sm text-content-primary truncate">{student.firstName} {student.lastName}</div>
+                        <div className="text-xs text-content-muted truncate mt-0.5">{student.email}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-sm font-medium text-content-primary">{student.loginId}</div>
-                    {student.nin && (
-                      <div className="text-xs text-content-muted mt-0.5">NIN: {student.nin}</div>
-                    )}
+                    {student.nin && <div className="text-xs text-content-muted mt-0.5">NIN: {student.nin}</div>}
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm font-medium text-content-primary">{student.class}</span>
-                  </td>
+                  <td className="px-4 py-3"><span className="text-sm font-medium text-content-primary">{student.class}</span></td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1 max-w-[160px]">
                       {student.subjects?.slice(0, 3).map(subject => (
                         <div key={subject} className="flex items-center gap-0.5 bg-brand-primary-lt text-brand-primary px-2 py-0.5 rounded-full text-[10px] font-medium">
                           {subject}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleRemoveSubject(student, subject); }}
-                            className="hover:text-danger ml-0.5 leading-none"
-                            aria-label={`Remove ${subject}`}
-                          >×</button>
+                          <button onClick={(e) => { e.stopPropagation(); handleRemoveSubject(student, subject); }} className="hover:text-danger ml-0.5 leading-none" aria-label={`Remove ${subject}`}>×</button>
                         </div>
                       ))}
-                      {(student.subjects?.length || 0) > 3 && (
-                        <span className="text-[10px] text-content-muted">+{student.subjects.length - 3}</span>
-                      )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setSelectedStudent(student); setShowAddSubjectModal(true); }}
-                        className="bg-surface-subtle text-content-secondary px-2 py-0.5 rounded-full text-[10px] font-medium hover:bg-brand-primary-lt hover:text-brand-primary transition-colors"
-                      >+ Add</button>
+                      {(student.subjects?.length || 0) > 3 && <span className="text-[10px] text-content-muted">+{student.subjects.length - 3}</span>}
+                      <button onClick={(e) => { e.stopPropagation(); setSelectedStudent(student); setShowAddSubjectModal(true); }} className="bg-surface-subtle text-content-secondary px-2 py-0.5 rounded-full text-[10px] font-medium hover:bg-brand-primary-lt hover:text-brand-primary transition-colors">+ Add</button>
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => handleToggleExamMode(student)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors min-h-[28px] ${
-                        student.examMode
-                          ? 'bg-success-light text-success-dark'
-                          : 'bg-surface-subtle text-content-secondary'
-                      }`}
-                      aria-label={`Toggle exam mode for ${student.firstName} ${student.lastName}`}
-                    >
-                      {student.examMode ? 'On' : 'Off'}
-                    </button>
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors min-h-[28px] ${student.examMode ? 'bg-success-light text-success-dark' : 'bg-surface-subtle text-content-secondary'}`}
+                    >{student.examMode ? 'On' : 'Off'}</button>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      student.status === 'active'
-                        ? 'bg-success-light text-success-dark'
-                        : 'bg-danger-light text-danger-dark'
-                    }`}>
-                      {student.status}
-                    </span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${student.status === 'active' ? 'bg-success-light text-success-dark' : 'bg-danger-light text-danger-dark'}`}>{student.status}</span>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs text-content-muted whitespace-nowrap">
-                      {formatDate(student.createdAt)}
-                    </span>
-                  </td>
+                  <td className="px-4 py-3"><span className="text-xs text-content-muted whitespace-nowrap">{formatDate(student.createdAt)}</span></td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleViewStudent(student)}
-                        className="text-brand-primary text-xs font-semibold hover:underline min-h-[32px] px-1"
-                      >View</button>
-                      <button
-                        onClick={() => handleEditStudent(student)}
-                        className="text-brand-accent text-xs font-semibold hover:underline min-h-[32px] px-1"
-                      >Edit</button>
-                      <button
-                        onClick={() => { setSelectedStudent(student); setShowDeleteModal(true); }}
-                        className="text-danger text-xs font-semibold hover:underline min-h-[32px] px-1"
-                      >Delete</button>
+                      <button onClick={() => handleViewStudent(student)} className="text-brand-primary text-xs font-semibold hover:underline min-h-[32px] px-1">View</button>
+                      <button onClick={() => handleEditStudent(student)} className="text-brand-accent text-xs font-semibold hover:underline min-h-[32px] px-1">Edit</button>
+                      <button onClick={() => { setSelectedStudent(student); setShowDeleteModal(true); }} className="text-danger text-xs font-semibold hover:underline min-h-[32px] px-1">Delete</button>
                     </div>
                   </td>
                 </tr>

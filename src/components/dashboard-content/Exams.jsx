@@ -708,12 +708,12 @@ export default function Exams({ setActiveSection }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-xl p-4 sm:p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Create New Exam</h3>
               <div className="space-y-4 mb-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Exam Title *</label>
                     <input
@@ -821,7 +821,7 @@ export default function Exams({ setActiveSection }) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Duration (mins) *</label>
                     <input
@@ -847,7 +847,7 @@ export default function Exams({ setActiveSection }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Start Date *</label>
                     <input
@@ -968,7 +968,7 @@ export default function Exams({ setActiveSection }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4"
+              className="bg-white rounded-xl p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Edit Exam</h3>
@@ -983,7 +983,7 @@ export default function Exams({ setActiveSection }) {
                     className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-2 text-[12px] leading-[100%] font-[500] text-content-primary">Duration (mins)</label>
                     <input
@@ -1049,7 +1049,7 @@ export default function Exams({ setActiveSection }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-xl p-4 sm:p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-start mb-6">
@@ -1077,7 +1077,7 @@ export default function Exams({ setActiveSection }) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div className="p-4 bg-surface-muted rounded-lg">
                   <p className="text-[11px] leading-[100%] font-[400] text-content-muted mb-1">Duration</p>
                   <p className="text-[16px] leading-[120%] font-[600] text-content-primary">{selectedExam.duration} minutes</p>
@@ -1235,7 +1235,7 @@ export default function Exams({ setActiveSection }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-xl p-4 sm:p-6 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className={modalTitle}>Assign Students to {selectedExam.title}</h3>
@@ -1428,7 +1428,7 @@ export default function Exams({ setActiveSection }) {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-xl p-4 sm:p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto my-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-start mb-6">
