@@ -210,7 +210,7 @@ function SettingsContent() {
           <h2 className="text-lg font-bold text-content-primary">Profile Information</h2>
           <button
             onClick={() => setIsEditing(!isEditing)}
-            className="px-4 py-2 border border-brand-primary text-brand-primary rounded-lg hover:bg-brand-primary-lt transition-colors text-sm font-semibold min-h-[38px]"
+            className="w-full sm:w-auto px-4 py-2 border border-brand-primary text-brand-primary rounded-lg hover:bg-brand-primary-lt transition-colors text-sm font-semibold min-h-[38px]"
           >
             {isEditing ? 'Cancel' : 'Edit Profile'}
           </button>
@@ -282,7 +282,7 @@ function SettingsContent() {
               title: 'Password',
               desc: 'Change your password regularly for account safety',
               action: (
-                <button onClick={() => setShowPasswordModal(true)} className={btnPrimary}>
+                <button onClick={() => setShowPasswordModal(true)} className={`${btnPrimary} w-full sm:w-auto`}>
                   Change Password
                 </button>
               ),
@@ -291,11 +291,11 @@ function SettingsContent() {
               title: 'Two-Factor Authentication',
               desc: user?.twoFactorEnabled ? '2FA is currently enabled on your account' : 'Add an extra layer of security to your account',
               action: user?.twoFactorEnabled ? (
-                <button onClick={() => setShowDisable2FAModal(true)} className="px-4 py-2.5 bg-danger text-white rounded-lg hover:bg-danger-dark transition-colors text-sm font-semibold min-h-[40px]">
+                <button onClick={() => setShowDisable2FAModal(true)} className="w-full sm:w-auto px-4 py-2.5 bg-danger text-white rounded-lg hover:bg-danger-dark transition-colors text-sm font-semibold min-h-[40px]">
                   Disable 2FA
                 </button>
               ) : (
-                <button onClick={handleSetup2FA} disabled={loading2FA} className={btnPrimary}>
+                <button onClick={handleSetup2FA} disabled={loading2FA} className={`${btnPrimary} w-full sm:w-auto`}>
                   {loading2FA ? 'Setting up...' : 'Enable 2FA'}
                 </button>
               ),
@@ -324,7 +324,7 @@ function SettingsContent() {
             { key: 'studyReminders',label: 'Study Reminders',         desc: 'Daily study session reminders' },
           ].map((s) => (
             <div key={s.key} className="flex items-center justify-between p-4 border border-border rounded-xl">
-              <div>
+              <div className="min-w-0 flex-1 mr-4">
                 <p className="text-sm font-semibold text-content-primary">{s.label}</p>
                 <p className="text-xs text-content-muted mt-0.5">{s.desc}</p>
               </div>
@@ -336,7 +336,7 @@ function SettingsContent() {
           ))}
         </div>
         <div className="flex flex-wrap justify-end">
-          <button onClick={() => saveSettings('/settings/notifications', notificationSettings, 'Notification settings')} className={btnPrimary}>
+          <button onClick={() => saveSettings('/settings/notifications', notificationSettings, 'Notification settings')} className={`${btnPrimary} w-full sm:w-auto`}>
             Save Notification Settings
           </button>
         </div>
@@ -354,7 +354,7 @@ function SettingsContent() {
             { key: 'tabWarning',  label: 'Tab Switch Warning',     desc: 'Warn when switching browser tabs during exams' },
           ].map((s) => (
             <div key={s.key} className="flex items-center justify-between p-4 border border-border rounded-xl">
-              <div>
+              <div className="min-w-0 flex-1 mr-4">
                 <p className="text-sm font-semibold text-content-primary">{s.label}</p>
                 <p className="text-xs text-content-muted mt-0.5">{s.desc}</p>
               </div>
@@ -366,7 +366,7 @@ function SettingsContent() {
           ))}
         </div>
         <div className="flex flex-wrap justify-end">
-          <button onClick={() => saveSettings('/settings/exam', examSettings, 'Exam settings')} className={btnPrimary}>
+          <button onClick={() => saveSettings('/settings/exam', examSettings, 'Exam settings')} className={`${btnPrimary} w-full sm:w-auto`}>
             Save Exam Settings
           </button>
         </div>
@@ -379,7 +379,7 @@ function SettingsContent() {
         <h2 className="text-lg font-bold text-content-primary mb-6">Appearance</h2>
 
         <div className="flex items-center justify-between p-4 border border-border rounded-xl mb-6">
-          <div>
+          <div className="min-w-0 flex-1 mr-4">
             <p className="text-sm font-semibold text-content-primary">Dark Mode</p>
             <p className="text-xs text-content-muted mt-0.5">Switch to dark theme (coming soon)</p>
           </div>
@@ -413,7 +413,7 @@ function SettingsContent() {
         </div>
 
         <div className="flex flex-wrap justify-end">
-          <button onClick={() => saveSettings('/settings/appearance', appearanceSettings, 'Appearance settings')} className={btnPrimary}>
+          <button onClick={() => saveSettings('/settings/appearance', appearanceSettings, 'Appearance settings')} className={`${btnPrimary} w-full sm:w-auto`}>
             Save Appearance
           </button>
         </div>
@@ -422,7 +422,7 @@ function SettingsContent() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto overflow-x-hidden">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-content-primary">Settings</h1>
         <p className="text-sm text-content-muted mt-1">Manage your account and preferences</p>
@@ -432,9 +432,9 @@ function SettingsContent() {
       <div className="flex flex-col lg:flex-row gap-6">
 
         {/* Tab sidebar — horizontal scroll on mobile, vertical list on desktop */}
-        <div className="lg:w-56 flex-shrink-0">
+        <div className="w-full lg:w-56 flex-shrink-0">
           {/* Mobile: horizontal pill tabs */}
-          <div className="flex lg:hidden overflow-x-auto gap-2 pb-1 scrollbar-none">
+          <div className="flex lg:hidden overflow-x-auto gap-2 pb-2 hide-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -486,7 +486,7 @@ function SettingsContent() {
       </div>
 
       {/* ── Danger Zone ── */}
-      <div className="mt-8 bg-danger-light border border-danger rounded-xl p-6">
+      <div className="mt-8 bg-danger-light border border-danger rounded-xl p-4 sm:p-6">
         <h3 className="text-base font-bold text-danger mb-3">⚠️ Danger Zone</h3>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
