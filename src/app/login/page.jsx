@@ -97,35 +97,40 @@ export default function LoginPage() {
       </AnimatePresence>
 
       {/* ── Full page dark navy gradient background ──────────── */}
+      {/* fixed inset-0 anchors to viewport — no reflow when keyboard opens  */}
       <div
-        className="min-h-screen flex items-center justify-center overflow-y-auto relative py-8"
+        className="fixed inset-0 overflow-y-auto"
         style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #1a2340 50%, #141C33 100%)' }}
       >
-        {/* Ghost logo — large decorative background element */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-          <div className="relative w-[520px] h-[520px]" style={{ opacity: 0.05 }}>
-            <Image src="/logo.png" alt="" fill className="object-contain" priority />
+        {/* Decorative layer — sits behind the scroll container */}
+        <div className="pointer-events-none select-none fixed inset-0">
+          {/* Ghost logo */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative w-[520px] h-[520px]" style={{ opacity: 0.05 }}>
+              <Image src="/logo.png" alt="" fill className="object-contain" priority />
+            </div>
           </div>
+          {/* Radial centre glow */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(ellipse 700px 500px at 50% 50%, rgba(58,79,122,0.30) 0%, transparent 70%)' }}
+          />
+          {/* Top-right corner accent */}
+          <div
+            className="absolute top-0 right-0 w-96 h-96"
+            style={{ background: 'radial-gradient(circle, rgba(58,79,122,0.20) 0%, transparent 70%)' }}
+          />
         </div>
 
-        {/* Radial centre glow */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse 700px 500px at 50% 50%, rgba(58,79,122,0.30) 0%, transparent 70%)' }}
-        />
-
-        {/* Top-right corner accent */}
-        <div
-          className="absolute top-0 right-0 w-96 h-96 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(58,79,122,0.20) 0%, transparent 70%)' }}
-        />
+        {/* Scroll inner — centers card vertically when there's room, scrolls when keyboard pushes content */}
+        <div className="min-h-full flex items-center justify-center py-8 px-4">
 
         {/* ── Form container ───────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="w-full max-w-sm px-6 py-8 relative z-10"
+          className="w-full max-w-sm relative z-10"
         >
           {/* ── Logo block ───────────────────────────────────────── */}
           <motion.div
@@ -366,7 +371,8 @@ export default function LoginPage() {
             </div>
           </motion.div>
         </motion.div>
-      </div>
+        </div>{/* end min-h-full centering wrapper */}
+      </div>{/* end fixed inset-0 scroll container */}
 
       <style jsx global>{`
         input::placeholder {

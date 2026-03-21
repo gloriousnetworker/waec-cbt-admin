@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Help() {
-  const { user } = useAuth();
+  useAuth();
   const [activeFaq, setActiveFaq] = useState(null);
   const [showContactForm, setShowContactForm] = useState(false);
   const [contactForm, setContactForm] = useState({
@@ -101,31 +101,32 @@ export default function Help() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="mb-8">
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-content-primary">Help & Support</h1>
-        <p className="text-content-secondary mt-2">Get assistance and learn how to use the platform</p>
+        <p className="text-content-secondary mt-2 text-sm">Get assistance and learn how to use the platform</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      {/* 2-col on sm, 4-col on lg so all 4 guides fit evenly */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {guides.map((guide, index) => (
           <motion.div
             key={index}
             whileHover={{ scale: 1.02 }}
-            className={`bg-gradient-to-r ${guide.color} rounded-xl p-6 text-white cursor-pointer`}
+            className={`bg-gradient-to-r ${guide.color} rounded-xl p-4 sm:p-5 text-white cursor-pointer`}
           >
-            <div className="text-3xl mb-4">{guide.icon}</div>
-            <h3 className="text-xl font-bold mb-2">{guide.title}</h3>
-            <p className="text-white/90 mb-4">{guide.description}</p>
-            <button className="px-4 py-2 bg-white text-content-primary font-medium rounded-lg hover:bg-surface-subtle transition">
+            <div className="text-2xl mb-3">{guide.icon}</div>
+            <h3 className="text-base font-bold mb-1">{guide.title}</h3>
+            <p className="text-white/90 mb-3 text-sm">{guide.description}</p>
+            <button className="px-3 py-1.5 bg-white text-content-primary font-medium rounded-lg hover:bg-surface-subtle transition text-sm">
               Learn More →
             </button>
           </motion.div>
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-border shadow-card p-6 mb-8">
-        <h2 className="text-xl font-bold text-content-primary mb-6">Frequently Asked Questions</h2>
+      <div className="bg-white rounded-xl border border-border shadow-card p-4 sm:p-6 mb-6">
+        <h2 className="text-lg font-bold text-content-primary mb-4">Frequently Asked Questions</h2>
         <div className="space-y-4">
           {faqs.map((faq) => (
             <div key={faq.id} className="border border-border rounded-lg overflow-hidden">
@@ -150,46 +151,42 @@ export default function Help() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-border shadow-card p-6">
-          <h2 className="text-xl font-bold text-content-primary mb-6">Contact Support</h2>
-          <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl border border-border shadow-card p-4 sm:p-6">
+          <h2 className="text-base font-bold text-content-primary mb-4">Contact Support</h2>
+          <div className="space-y-3">
             {contactMethods.map((method, index) => (
-              <div key={index} className="flex items-center p-4 border border-border rounded-lg hover:bg-surface-muted transition">
-                <div className="text-2xl mr-4">{method.icon}</div>
-                <div className="flex-1">
-                  <div className="font-medium text-content-primary">{method.type}</div>
-                  <div className="text-sm text-content-secondary">{method.address}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-content-muted">Response:</div>
-                  <div className="text-sm font-medium text-content-primary">{method.response}</div>
+              <div key={index} className="flex items-start gap-3 p-3 border border-border rounded-lg hover:bg-surface-muted transition">
+                <div className="text-xl flex-shrink-0 mt-0.5">{method.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-content-primary text-sm">{method.type}</div>
+                  <div className="text-xs text-content-secondary truncate">{method.address}</div>
+                  <div className="text-xs text-content-muted mt-0.5">{method.response}</div>
                 </div>
               </div>
             ))}
           </div>
-
           <button
             onClick={() => setShowContactForm(true)}
-            className="mt-6 w-full py-3 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-primary-dk transition"
+            className="mt-4 w-full py-2.5 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-primary-dk transition text-sm min-h-[44px]"
           >
             Send Message to Support
           </button>
         </div>
 
-        <div className="bg-white rounded-xl border border-border shadow-card p-6">
-          <h2 className="text-xl font-bold text-content-primary mb-6">System Information</h2>
-          <div className="space-y-4">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-medium text-blue-800 mb-2">Current Version</h3>
+        <div className="bg-white rounded-xl border border-border shadow-card p-4 sm:p-6">
+          <h2 className="text-base font-bold text-content-primary mb-4">System Information</h2>
+          <div className="space-y-3">
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <h3 className="font-medium text-blue-800 text-sm mb-1">Current Version</h3>
               <p className="text-sm text-blue-600">CBT System v2.5.0</p>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg">
-              <h3 className="font-medium text-green-800 mb-2">Last Update</h3>
+            <div className="p-3 bg-green-50 rounded-lg">
+              <h3 className="font-medium text-green-800 text-sm mb-1">Last Update</h3>
               <p className="text-sm text-green-600">March 1, 2026</p>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <h3 className="font-medium text-purple-800 mb-2">Documentation</h3>
+            <div className="p-3 bg-purple-50 rounded-lg">
+              <h3 className="font-medium text-purple-800 text-sm mb-1">Documentation</h3>
               <p className="text-sm text-purple-600 mb-2">Access detailed user guides and API documentation</p>
               <button className="text-purple-700 text-sm font-medium hover:underline">
                 View Documentation →
@@ -199,15 +196,15 @@ export default function Help() {
         </div>
       </div>
 
-      <div className="mt-8 bg-brand-primary rounded-xl p-8 text-white">
-        <div className="flex flex-col md:flex-row items-center justify-between">
-          <div className="mb-4 md:mb-0">
-            <h3 className="text-2xl font-bold mb-2">Need immediate assistance?</h3>
-            <p className="text-white/90">Our support team is available 24/7 to help you</p>
+      <div className="mt-6 bg-brand-primary rounded-xl p-5 sm:p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-bold mb-1">Need immediate assistance?</h3>
+            <p className="text-white/90 text-sm">Our support team is available 24/7 to help you</p>
           </div>
           <button
             onClick={() => setShowContactForm(true)}
-            className="px-8 py-3 bg-white text-brand-primary font-bold rounded-lg hover:bg-surface-subtle transition"
+            className="px-6 py-2.5 bg-white text-brand-primary font-bold rounded-lg hover:bg-surface-subtle transition text-sm min-h-[44px] flex-shrink-0"
           >
             Contact Support Now
           </button>

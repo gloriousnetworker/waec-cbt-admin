@@ -252,7 +252,7 @@ export default function Support({ setActiveSection, onOpenChat }) {
             <motion.div
               key={ticket.id}
               whileHover={{ y: -2 }}
-              className={`bg-white rounded-lg border ${hasUnread ? 'border-brand-primary border-2' : 'border-border'} p-6 cursor-pointer hover:shadow-md transition-all ${
+              className={`relative bg-white rounded-lg border ${hasUnread ? 'border-brand-primary border-2' : 'border-border'} p-4 sm:p-6 cursor-pointer hover:shadow-md transition-all ${
                 ticket.status === 'closed' || ticket.status === 'resolved' ? 'opacity-75' : ''
               }`}
               onClick={() => handleViewTicket(ticket)}
