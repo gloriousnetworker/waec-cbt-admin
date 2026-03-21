@@ -98,7 +98,7 @@ export default function LoginPage() {
 
       {/* ── Full page dark navy gradient background ──────────── */}
       <div
-        className="min-h-screen flex items-center justify-center overflow-hidden relative"
+        className="min-h-screen flex items-center justify-center overflow-y-auto relative py-8"
         style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #1a2340 50%, #141C33 100%)' }}
       >
         {/* Ghost logo — large decorative background element */}

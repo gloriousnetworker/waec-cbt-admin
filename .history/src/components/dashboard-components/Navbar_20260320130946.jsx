@@ -1,3 +1,4 @@
+// components/dashboard-components/Navbar.jsx
 'use client';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';

@@ -67,12 +67,15 @@
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent rubber-band bounce on iOS PWA — makes it feel native */
+    overscroll-behavior: none;
   }
 
   body {
     @apply bg-surface-muted text-content-primary;
     font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+    overscroll-behavior: none;
   }
 
   /* iOS zoom prevention — inputs must be at least 16px */

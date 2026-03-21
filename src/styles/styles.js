@@ -144,11 +144,11 @@ export const loadingText = 'ml-2 text-sm font-semibold';
 
 // ─── Dashboard Shell ──────────────────────────────────────────────────────────
 export const dashboardContainer =
-  'min-h-screen bg-surface-muted flex flex-col fixed inset-0 overflow-hidden';
-export const dashboardMain = 'flex flex-1 overflow-hidden';
+  'min-h-screen bg-surface-muted flex flex-col';
+export const dashboardMain = 'flex flex-1';
 export const dashboardContent =
-  'flex-1 overflow-y-auto bg-surface-muted';
-export const dashboardInner = 'p-4 md:p-6';
+  'flex-1 bg-surface-muted';
+export const dashboardInner = 'p-4 md:p-6 pb-safe';
 export const dashboardLoading =
   'fixed inset-0 z-50 flex items-center justify-center bg-white';
 export const dashboardLoadingInner = 'text-center';
