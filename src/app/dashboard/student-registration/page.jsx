@@ -7,20 +7,20 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../context/AuthContext';
 
-const containerClass = "min-h-screen bg-gradient-to-br from-[#F9FAFB] to-[#F3F4F6] py-12 px-4";
+const containerClass = "min-h-screen bg-surface-muted py-6 sm:py-12 px-4";
 const innerClass = "max-w-5xl mx-auto";
-const headerClass = "mb-10";
-const backButtonClass = "inline-flex items-center gap-2 text-[#10b981] hover:text-[#059669] transition-colors text-[15px] leading-[100%] font-[500] font-playfair mb-6";
-const titleClass = "text-[40px] leading-[120%] font-[700] tracking-[-0.02em] text-[#1E1E1E] font-playfair";
-const subtitleClass = "text-[18px] leading-[140%] font-[400] text-[#4B5563] mt-3 font-playfair";
-const formGridClass = "grid grid-cols-2 gap-8";
+const headerClass = "mb-8 sm:mb-10";
+const backButtonClass = "inline-flex items-center gap-2 text-brand-primary hover:text-brand-primary-dk transition-colors text-sm font-medium mb-6";
+const titleClass = "text-2xl sm:text-[40px] leading-[120%] font-bold tracking-tight text-content-primary font-playfair";
+const subtitleClass = "text-sm sm:text-base leading-relaxed text-content-secondary mt-2";
+const formGridClass = "grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6";
 const formGroupClass = "space-y-2";
-const labelClass = "block text-[15px] leading-[100%] font-[500] text-[#1E1E1E] font-playfair mb-2";
-const inputClass = "w-full px-5 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/10 text-[15px] leading-[100%] font-[400] font-playfair transition-all";
-const selectClass = "w-full px-5 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#10b981] focus:ring-4 focus:ring-[#10b981]/10 text-[15px] leading-[100%] font-[400] font-playfair transition-all";
-const secondaryButtonClass = "px-8 py-4 bg-white text-[#10b981] border-2 border-[#10b981] rounded-xl hover:bg-[#F0FDF4] transition-all font-playfair text-[15px] leading-[100%] font-[600]";
-const primaryButtonClass = "px-8 py-4 bg-[#10b981] text-white rounded-xl hover:bg-[#059669] transition-all font-playfair text-[15px] leading-[100%] font-[600] shadow-lg shadow-[#10b981]/20";
-const requiredStarClass = "text-[#DC2626] ml-1 text-lg";
+const labelClass = "block mb-2 text-sm font-medium text-content-primary";
+const inputClass = "w-full px-4 py-3 bg-white border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-sm text-content-primary transition-all min-h-[44px]";
+const selectClass = "w-full px-4 py-3 bg-white border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-sm text-content-primary transition-all min-h-[44px]";
+const secondaryButtonClass = "px-5 sm:px-8 py-3 bg-white text-brand-primary border-2 border-brand-primary rounded-lg hover:bg-brand-primary-lt transition-all text-sm font-semibold min-h-[44px]";
+const primaryButtonClass = "px-5 sm:px-8 py-3 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dk transition-all text-sm font-semibold shadow-brand min-h-[44px]";
+const requiredStarClass = "text-danger ml-1";
 
 function StudentRegistrationContent() {
   const router = useRouter();
@@ -203,9 +203,9 @@ function StudentRegistrationContent() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-6 bg-gradient-to-r from-[#10b981] to-[#059669] rounded-2xl text-white"
+            className="mb-8 p-5 sm:p-6 bg-gradient-to-r from-brand-primary to-brand-primary-dk rounded-xl text-white shadow-brand"
           >
-            <h3 className="text-[20px] leading-[120%] font-[700] mb-4">Student Registered Successfully! 🎉</h3>
+            <h3 className="text-base sm:text-lg font-bold mb-4">Student Registered Successfully!</h3>
             <div className="space-y-2">
               <p><strong>Login ID:</strong> {generatedCredentials.loginId}</p>
               <p><strong>Email:</strong> {generatedCredentials.email}</p>
@@ -221,6 +221,7 @@ function StudentRegistrationContent() {
           animate={{ opacity: 1, y: 0 }}
           onSubmit={handleSubmit}
         >
+          <div className="bg-white rounded-xl border border-border shadow-card p-5 sm:p-8">
           <div className={formGridClass}>
             <div className={formGroupClass}>
               <label className={labelClass}>
@@ -271,14 +272,12 @@ function StudentRegistrationContent() {
                 name="nin"
                 value={formData.nin}
                 onChange={handleInputChange}
-                className={`${inputClass} ${ninError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : ''}`}
+                className={`${inputClass} ${ninError ? '!border-danger focus:!border-danger' : ''}`}
                 placeholder="Enter 11-digit NIN (optional)"
                 maxLength="11"
               />
               {ninError && (
-                <p className="text-[13px] leading-[140%] font-[400] text-red-500 font-playfair mt-1">
-                  {ninError}
-                </p>
+                <p className="text-xs text-danger mt-1">{ninError}</p>
               )}
             </div>
 
@@ -335,13 +334,13 @@ function StudentRegistrationContent() {
                 className={inputClass}
                 disabled
               />
-              <p className="text-[13px] leading-[140%] font-[400] text-[#6B7280] font-playfair mt-2">
+              <p className="text-xs text-content-muted mt-1">
                 Student can change this after first login
               </p>
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 mt-10">
+          <div className="flex flex-wrap justify-end gap-3 mt-8 pt-6 border-t border-border">
             <button
               type="button"
               onClick={() => router.back()}
@@ -367,8 +366,10 @@ function StudentRegistrationContent() {
             </button>
           </div>
 
+          </div>{/* end card */}
+
           {!isEdit && (
-            <p className="text-[13px] leading-[140%] font-[400] text-[#6B7280] font-playfair text-right mt-4">
+            <p className="text-xs text-content-muted text-right mt-3">
               Fields marked with <span className={requiredStarClass}>*</span> are required
             </p>
           )}

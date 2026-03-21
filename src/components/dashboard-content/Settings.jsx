@@ -31,6 +31,7 @@ function SettingsContent() {
   const [twoFAQRCode, setTwoFAQRCode] = useState('');
   const [twoFASecret, setTwoFASecret] = useState('');
   const [twoFAToken, setTwoFAToken] = useState(['', '', '', '', '', '']);
+  const [disableToken, setDisableToken] = useState(['', '', '', '', '', '']);
   const [loading2FA, setLoading2FA] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -139,13 +140,22 @@ function SettingsContent() {
   };
 
   const handleDisable2FA = async () => {
+    const token = disableToken.join('');
+    if (token.length !== 6) {
+      toast.error('Please enter your 6-digit authenticator code');
+      return;
+    }
     const toastId = toast.loading('Disabling 2FA...');
     try {
-      const response = await fetchWithAuth('/auth/disable-2fa', { method: 'POST' });
+      const response = await fetchWithAuth('/auth/disable-2fa', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      });
       const data = await response.json();
       if (response.ok) {
         toast.success('2FA disabled successfully', { id: toastId });
         setShowDisable2FAModal(false);
+        setDisableToken(['', '', '', '', '', '']);
         await refreshUser();
       } else {
         toast.error(data.message || 'Failed to disable 2FA', { id: toastId });
@@ -635,12 +645,50 @@ function SettingsContent() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-content-primary mb-2">Disable Two-Factor Authentication</h3>
-              <p className="text-sm text-content-muted mb-6">
+              <p className="text-sm text-content-muted mb-4">
                 Are you sure? This will make your account less secure.
               </p>
+              <p className="text-xs text-content-secondary mb-3">
+                Enter the 6-digit code from your authenticator app to confirm:
+              </p>
+              <div className="flex gap-2 justify-center mb-6">
+                {disableToken.map((digit, i) => (
+                  <input
+                    key={i}
+                    id={`disable-2fa-${i}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (isNaN(val)) return;
+                      const updated = [...disableToken];
+                      updated[i] = val.slice(-1);
+                      setDisableToken(updated);
+                      if (val && i < 5) document.getElementById(`disable-2fa-${i + 1}`)?.focus();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace' && !disableToken[i] && i > 0) {
+                        document.getElementById(`disable-2fa-${i - 1}`)?.focus();
+                      }
+                    }}
+                    className="w-11 h-12 text-center text-lg font-bold border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-content-primary transition-all"
+                  />
+                ))}
+              </div>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setShowDisable2FAModal(false)} className={btnSecondary}>Cancel</button>
-                <button onClick={handleDisable2FA} className="px-5 py-2.5 bg-danger text-white rounded-lg hover:bg-danger-dark transition-colors text-sm font-semibold min-h-[40px]">
+                <button
+                  onClick={() => { setShowDisable2FAModal(false); setDisableToken(['', '', '', '', '', '']); }}
+                  className={btnSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDisable2FA}
+                  disabled={disableToken.join('').length !== 6}
+                  className="px-5 py-2.5 bg-danger text-white rounded-lg hover:bg-danger-dark transition-colors text-sm font-semibold min-h-[40px] disabled:opacity-50"
+                >
                   Disable 2FA
                 </button>
               </div>

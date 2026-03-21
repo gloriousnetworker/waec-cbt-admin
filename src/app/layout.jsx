@@ -107,6 +107,10 @@ export default function RootLayout({ children }) {
         <script src="/sw-register.js" defer></script>
       </head>
       <body className="bg-surface-muted min-h-screen antialiased">
+        {/* Subtle brand watermark — decorative, non-interactive */}
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none select-none z-0" aria-hidden="true">
+          <img src="/logo.png" alt="" className="w-[min(50vw,420px)] opacity-[0.04]" />
+        </div>
         <AuthProvider>
           <Toaster 
             position="top-center" 
