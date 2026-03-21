@@ -433,36 +433,18 @@ function SettingsContent() {
 
         {/* Tab sidebar — horizontal scroll on mobile, vertical list on desktop */}
         <div className="w-full lg:w-56 flex-shrink-0">
-          {/* Mobile: horizontal pill tabs */}
-          <div className="flex lg:hidden overflow-x-auto gap-2 pb-2 hide-scrollbar">
+          <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap min-h-[44px] ${
+                className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors border-l-4 ${
                   activeTab === tab.id
-                    ? 'bg-brand-primary text-white font-semibold'
-                    : 'bg-white border border-border text-content-secondary hover:bg-surface-subtle'
+                    ? 'bg-brand-primary-lt text-brand-primary border-brand-primary font-semibold'
+                    : 'hover:bg-surface-subtle text-content-secondary border-transparent'
                 }`}
               >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-          {/* Desktop: vertical list */}
-          <div className="hidden lg:block bg-white rounded-xl border border-border shadow-card overflow-hidden">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors ${
-                  activeTab === tab.id
-                    ? 'bg-brand-primary-lt text-brand-primary border-l-4 border-brand-primary font-semibold'
-                    : 'hover:bg-surface-subtle text-content-secondary border-l-4 border-transparent'
-                }`}
-              >
-                <span className="text-lg">{tab.icon}</span>
+                <span className="text-base">{tab.icon}</span>
                 <span className="text-sm">{tab.label}</span>
               </button>
             ))}
