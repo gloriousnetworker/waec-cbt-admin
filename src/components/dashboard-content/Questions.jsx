@@ -1,6 +1,6 @@
 // components/dashboard-content/Questions.jsx
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -38,6 +38,11 @@ export default function Questions({ setActiveSection }) {
   const [filterSubject, setFilterSubject] = useState('all');
   const [filterMode, setFilterMode] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
+  const [selectedQuestions, setSelectedQuestions] = useState(new Set());
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [subjectSearch, setSubjectSearch] = useState('');
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const subjectDropdownRef = useRef(null);
   const [bulkImportData, setBulkImportData] = useState('');
   const [bulkImportFile, setBulkImportFile] = useState(null);
   const [formData, setFormData] = useState({
@@ -86,7 +91,18 @@ export default function Questions({ setActiveSection }) {
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     setPaginatedQuestions(filtered.slice(indexOfFirstItem, indexOfLastItem));
+    setSelectedQuestions(new Set());
   }, [questions, searchTerm, filterSubject, filterMode, filterDifficulty, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (subjectDropdownRef.current && !subjectDropdownRef.current.contains(e.target)) {
+        setShowSubjectDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -394,6 +410,32 @@ export default function Questions({ setActiveSection }) {
     }
   };
 
+  const handleBulkDelete = async () => {
+    const ids = [...selectedQuestions];
+    const toastId = toast.loading(`Deleting ${ids.length} question(s)...`);
+
+    try {
+      const response = await fetchWithAuth('/admin/questions/bulk-delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+
+      if (response.ok) {
+        toast.success(`${ids.length} question(s) deleted successfully!`, { id: toastId });
+        setShowBulkDeleteModal(false);
+        setSelectedQuestions(new Set());
+        fetchData();
+        setCurrentPage(1);
+      } else {
+        const data = await response.json();
+        toast.error(data.message || 'Failed to delete questions', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error', { id: toastId });
+    }
+  };
+
   const handleBulkImport = async () => {
     if (!selectedSubject) {
       toast.error('Please select a subject from the filter');
@@ -589,24 +631,53 @@ export default function Questions({ setActiveSection }) {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <select
-            value={filterSubject}
-            onChange={(e) => {
-              setFilterSubject(e.target.value);
-              setCurrentPage(1);
-              const subject = subjects.find(s => s.id === e.target.value);
-              setSelectedSubject(subject);
-              if (subject) {
-                setFormData(prev => ({ ...prev, subjectId: subject.id, class: subject.class || 'General' }));
-              }
-            }}
-            className="px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px]"
-          >
-            <option value="all">All Subjects</option>
-            {subjects.map(subject => (
-              <option key={subject.id} value={subject.id}>{subject.name}</option>
-            ))}
-          </select>
+          <div className="relative" ref={subjectDropdownRef}>
+            <input
+              type="text"
+              value={showSubjectDropdown ? subjectSearch : (selectedSubject?.name || '')}
+              onChange={(e) => setSubjectSearch(e.target.value)}
+              onFocus={() => { setSubjectSearch(''); setShowSubjectDropdown(true); }}
+              placeholder="All Subjects"
+              className="w-52 px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary text-[13px] cursor-pointer"
+            />
+            {showSubjectDropdown && (
+              <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <button
+                  className={`w-full text-left px-4 py-2 text-[13px] hover:bg-surface-subtle transition-colors ${filterSubject === 'all' ? 'bg-brand-primary-lt text-brand-primary font-[600]' : 'text-content-primary'}`}
+                  onClick={() => {
+                    setFilterSubject('all');
+                    setSelectedSubject(null);
+                    setSubjectSearch('');
+                    setShowSubjectDropdown(false);
+                    setCurrentPage(1);
+                  }}
+                >
+                  All Subjects
+                </button>
+                {subjects
+                  .filter(s => s.name.toLowerCase().includes(subjectSearch.toLowerCase()))
+                  .map(subject => (
+                    <button
+                      key={subject.id}
+                      className={`w-full text-left px-4 py-2 text-[13px] hover:bg-surface-subtle transition-colors ${filterSubject === subject.id ? 'bg-brand-primary-lt text-brand-primary font-[600]' : 'text-content-primary'}`}
+                      onClick={() => {
+                        setFilterSubject(subject.id);
+                        setSelectedSubject(subject);
+                        setFormData(prev => ({ ...prev, subjectId: subject.id, class: subject.class || 'General' }));
+                        setSubjectSearch('');
+                        setShowSubjectDropdown(false);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {subject.name}
+                    </button>
+                  ))}
+                {subjects.filter(s => s.name.toLowerCase().includes(subjectSearch.toLowerCase())).length === 0 && (
+                  <p className="px-4 py-2 text-[13px] text-content-muted">No subjects found</p>
+                )}
+              </div>
+            )}
+          </div>
           <select
             value={filterMode}
             onChange={(e) => {
@@ -654,6 +725,42 @@ export default function Questions({ setActiveSection }) {
             )}
           </div>
 
+          {paginatedQuestions.length > 0 && (
+            <div className="mb-3 flex items-center justify-between bg-surface-subtle border border-border rounded-md px-4 py-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-[13px] text-content-secondary font-[500]">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-brand-primary cursor-pointer"
+                  checked={paginatedQuestions.length > 0 && paginatedQuestions.every(q => selectedQuestions.has(q.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedQuestions(prev => {
+                        const next = new Set(prev);
+                        paginatedQuestions.forEach(q => next.add(q.id));
+                        return next;
+                      });
+                    } else {
+                      setSelectedQuestions(prev => {
+                        const next = new Set(prev);
+                        paginatedQuestions.forEach(q => next.delete(q.id));
+                        return next;
+                      });
+                    }
+                  }}
+                />
+                Select all on this page ({paginatedQuestions.length})
+              </label>
+              {selectedQuestions.size > 0 && (
+                <button
+                  onClick={() => setShowBulkDeleteModal(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#DC2626] text-white rounded-md text-[13px] font-[600] hover:bg-[#B91C1C] transition-colors"
+                >
+                  🗑️ Delete Selected ({selectedQuestions.size})
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="space-y-4">
             {paginatedQuestions.map((question, i) => (
               <motion.div
@@ -662,6 +769,19 @@ export default function Questions({ setActiveSection }) {
                 className="bg-white rounded-lg border border-border p-6 hover:shadow-card-md transition-all"
               >
                 <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <input
+                      type="checkbox"
+                      className="mt-1 w-4 h-4 accent-brand-primary cursor-pointer flex-shrink-0"
+                      checked={selectedQuestions.has(question.id)}
+                      onChange={(e) => {
+                        setSelectedQuestions(prev => {
+                          const next = new Set(prev);
+                          e.target.checked ? next.add(question.id) : next.delete(question.id);
+                          return next;
+                        });
+                      }}
+                    />
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-[16px] leading-[120%] font-[600] text-content-primary">
@@ -701,6 +821,7 @@ export default function Questions({ setActiveSection }) {
                         <span className="font-[600]">Explanation:</span> {question.explanation}
                       </div>
                     )}
+                  </div>
                   </div>
                   <div className="flex gap-2 ml-4">
                     <button
@@ -1290,6 +1411,42 @@ export default function Questions({ setActiveSection }) {
                   className={modalButtonDanger}
                 >
                   Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+        {showBulkDeleteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+            onClick={() => setShowBulkDeleteModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className={modalContainer}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className={modalTitle}>Delete {selectedQuestions.size} Question{selectedQuestions.size > 1 ? 's' : ''}</h3>
+              <p className={modalText}>
+                Are you sure you want to delete {selectedQuestions.size} selected question{selectedQuestions.size > 1 ? 's' : ''}? This action cannot be undone.
+              </p>
+              <div className={modalActions}>
+                <button
+                  onClick={() => setShowBulkDeleteModal(false)}
+                  className={modalButtonSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className={modalButtonDanger}
+                >
+                  Delete {selectedQuestions.size} Question{selectedQuestions.size > 1 ? 's' : ''}
                 </button>
               </div>
             </motion.div>
