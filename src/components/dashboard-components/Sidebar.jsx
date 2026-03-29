@@ -21,6 +21,7 @@ import {
   Settings,
   Lightbulb,
   Headphones,
+  MessageSquare,
 } from 'lucide-react';
 import {
   sidebarContainer,
@@ -62,10 +63,11 @@ const navGroups = [
   {
     label: 'ACCOUNT',
     items: [
-      { icon: CreditCard,  label: 'Subscription',    id: 'subscription' },
-      { icon: Ticket,      label: 'Support Tickets', id: 'support' },
-      { icon: Settings,    label: 'Settings',        id: 'settings' },
-      { icon: Lightbulb,   label: 'Help & Resources', id: 'help' },
+      { icon: CreditCard,    label: 'Subscription',    id: 'subscription' },
+      { icon: MessageSquare, label: 'Student Feedback', id: 'feedback' },
+      { icon: Ticket,        label: 'Support Tickets', id: 'support' },
+      { icon: Settings,      label: 'Settings',        id: 'settings' },
+      { icon: Lightbulb,     label: 'Help & Resources', id: 'help' },
     ],
   },
 ];

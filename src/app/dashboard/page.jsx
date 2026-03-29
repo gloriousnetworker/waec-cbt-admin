@@ -20,6 +20,7 @@ import Help from '../../components/dashboard-content/Help';
 import Subscription from '../../components/dashboard-content/Subscription';
 import Exams from '../../components/dashboard-content/Exams';
 import SupportChat from '../../components/SupportChat';
+import Feedback from '../../components/dashboard-content/Feedback';
 import {
   dashboardContainer,
   dashboardMain,
@@ -116,6 +117,7 @@ function DashboardContent() {
       case 'questions':   return <Questions setActiveSection={handleNavigation} />;
       case 'performance': return <Performance setActiveSection={handleNavigation} />;
       case 'results':     return <Results setActiveSection={handleNavigation} />;
+      case 'feedback':    return <Feedback setActiveSection={handleNavigation} />;
       case 'support':     return <Support setActiveSection={handleNavigation} onOpenChat={handleOpenChat} />;
       case 'settings':    return <Settings setActiveSection={handleNavigation} />;
       case 'help':        return <Help setActiveSection={handleNavigation} />;
