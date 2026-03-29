@@ -76,9 +76,9 @@ module.exports = {
 
       // ─── Typography ───────────────────────────────────────────────────
       fontFamily: {
-        inter:    ['Inter', 'system-ui', 'sans-serif'],
-        playfair: ['"Playfair Display"', 'Georgia', 'serif'],
-        mono:     ['"JetBrains Mono"', 'Menlo', 'monospace'],
+        inter:    ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        playfair: ['var(--font-playfair)', 'Georgia', 'serif'],
+        mono:     ['var(--font-mono)', 'Menlo', 'monospace'],
       },
 
       // ─── Font size scale ─────────────────────────────────────────────
