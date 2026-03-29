@@ -1,190 +1,304 @@
-# UI/UX Consistency Plan
-## Einstein's CBT Admin — Component Polish Pass
+# CBT-WAEC Simulation App — Master Plan
+
+> **Project:** Einstein's CBT — WAEC Exam Simulation Platform
+> **Stack:** Node.js/Express + Firebase Firestore (backend) · Next.js 15 + React 19 (frontends)
+> **Portals:** Super Admin · Admin (School) · Student · Marketing Website
+> **Last updated:** 2026-03-28
 
 ---
 
-## SCOPE
+## Completed Work
 
-Five components need a design/font consistency pass, plus dashboard-wide animations.
-
-- `Questions.jsx`
-- `Subjects.jsx`
-- `Exams.jsx`
-- `Subscription.jsx`
-- `Settings.jsx`
-- `dashboard/page.jsx` (animations only)
+### ✅ Questions Module — Admin Portal
+- **Searchable subject dropdown** — replaced plain `<select>` with a combobox that filters subjects as you type; click-outside closes dropdown
+- **Multi-select checkboxes** — per-question checkbox + select-all-on-page checkbox in toolbar
+- **Bulk delete** — select multiple questions and delete in one action with confirmation modal
+- **Backend:** `DELETE /api/admin/questions/bulk-delete` endpoint added to `questionController.js` and `adminRoutes.js`
 
 ---
 
-## GLOBAL RULES (applied to every component)
+## Active Backlog
 
-| Problem | Fix |
-|---|---|
-| `font-playfair` on any non-H1/H2 heading | Remove — body text inherits `font-inter` |
-| `#10b981` / `#059669` green as "brand" | Replace with `brand-primary` (#1F2A49 navy) / `brand-primary-dk` |
-| `#626060`, `text-[#1E1E1E]`, `text-gray-*` | Replace with `text-content-primary/secondary/muted` tokens |
-| `bg-gray-50/100/200`, `border-gray-200/300` | Replace with `bg-surface-muted/subtle`, `border-border` |
-| `text-[13px] leading-[140%] font-[600]` inline | Replace with Tailwind semantic classes (`text-sm font-semibold`) |
-| `focus:border-[#10b981]` on inputs | Replace with `focus:ring-brand-primary focus:border-brand-primary` |
-| Loading spinners `border-[#10b981]` | Replace with `border-brand-primary-lt border-t-brand-primary` |
-| Empty-state buttons `bg-[#10b981]` | Replace with `bg-brand-primary hover:bg-brand-primary-dk` |
+Items are ordered by priority. Work through them top-to-bottom.
 
 ---
 
-## COMPONENT-BY-COMPONENT PLAN
+### 🔒 SECURITY — HIGH PRIORITY
+
+#### [SEC-1] B2 — Strip `correctAnswer` from exam API responses ✅ ALREADY DONE
+Both `startStudentExam` (examSetupController.js) and `getExamById` (examController.js) already strip
+`correctAnswer` and `explanation` from questions before sending to the client. Verified 2026-03-28.
+
+#### [SEC-2] B7 — Firebase service account file exposed in repo
+- **File:** `cbt-simulator-backend/firebase-service-account.json`
+- **Fix:** Add to `.gitignore`. Use env vars in all environments (already done for production — fix dev too).
+- **Status:** TODO
+
+#### [SEC-3] B8 — Missing HTTP security headers
+- **Fix:** Install `helmet` package in backend. Add `app.use(helmet())` to `server.js`.
+- **Status:** TODO
+
+#### [SEC-4] B9 — Exam `getExamById` missing school-level authorization
+- Currently only checks `exam.studentId === req.student.id`. Should also verify `exam.schoolId === req.student.schoolId`.
+- **Status:** TODO
 
 ---
 
-### 1. `Questions.jsx` (~1296 lines)
+### 🎯 FEATURE — Calculator
 
-**Issues found:**
-- `font-playfair` on 100+ labels, badges, button text, table text
-- `#10b981` green on filter/search inputs focus ring, action buttons, badges, spinner
-- `bg-gray-50/100`, `border-gray-200`, `text-gray-*` throughout
-- Inline `text-[13px] leading-[100%] font-[600]` patterns on every element
-- No entrance animation on question cards list
-
-**Specific fixes:**
-1. All form labels → `text-sm font-medium text-content-secondary` (remove font-playfair)
-2. All input fields → `focus:ring-brand-primary focus:border-brand-primary` + remove font-playfair
-3. Difficulty badges (easy/medium/hard) → keep colour logic, remove font-playfair
-4. Action buttons (Add Question, Import, Export) → `bg-brand-primary hover:bg-brand-primary-dk`
-5. Question cards → `bg-white border-border shadow-card` (remove bg-gray-50 + gray borders)
-6. Loading spinner → brand colours
-7. Empty state button → brand primary
-8. Add staggered entrance animation on the question card list
+#### [FEAT-1] In-exam & Practice Calculator
+- **Component:** `waec-cbt-simulator/src/components/Calculator.jsx`
+  - Floating, draggable widget (drag handle on title bar)
+  - Supports: digits, `+` `−` `×` `÷` `%` `√` `x²` decimal, clear, backspace, equals
+  - Toggle via 🧮 button in exam toolbar
+  - Works offline — pure React state, zero external dependencies
+  - Respects `prefers-reduced-motion` — no animations on reduced-motion devices
+- **Files modified:**
+  - `exam-room/page.jsx` — import Calculator, add toggle button in toolbar
+  - `practice-room/page.jsx` — same
+- **Status:** TODO
 
 ---
 
-### 2. `Subjects.jsx` (~147 lines — smallest, quickest)
+### 💬 FEATURE — Exam Feedback System
 
-**Issues found:**
-- `font-playfair` on labels, stats, button text
-- `#10b981` on action button and subject count badge
-- `bg-gray-50`, `border-gray-200`, `text-gray-600/400`
-
-**Specific fixes:**
-1. "Add Subject" button → `bg-brand-primary hover:bg-brand-primary-dk`
-2. Subject card active border → `border-brand-primary` (remove `border-[#10b981]`)
-3. Subject count pill → `bg-brand-primary-lt text-brand-primary`
-4. All labels/text → semantic Tailwind classes, remove font-playfair
-5. Card hover → `hover:border-brand-primary hover:shadow-card-md`
-6. Add staggered fadeInUp entrance animation on subject grid cards
-
----
-
-### 3. `Exams.jsx` (~1524 lines — largest)
-
-**Issues found:**
-- Widespread `font-playfair` on all text elements
-- `#10b981` green on tabs, buttons, badges, active states, focus rings
-- `#8B5CF6` purple on practice exam type (inconsistent secondary colour)
-- `bg-gray-50/100/200`, `text-gray-*`, `border-gray-*` throughout
-- Student assignment modal has hardcoded colours
-
-**Specific fixes:**
-1. Exam type tabs (WAEC/NECO/Practice) → active: `bg-brand-primary text-white`, inactive: `bg-surface-muted text-content-secondary`
-2. Practice type purple → replace with `bg-brand-accent` (#3A4F7A) to stay on-brand
-3. "Create Exam" button → `bg-brand-primary hover:bg-brand-primary-dk`
-4. Exam status badges → use `success-light/success`, `warning-light/warning-dark`, `danger-light/danger` tokens
-5. Student selection modal → clean all gray/green to brand tokens
-6. All form inputs → brand focus rings
-7. Loading spinner → brand colours
-8. Stagger animation on exam cards list
+#### [FEAT-2] Post-exam Feedback (Student → Admin → Super Admin)
+- **Trigger:** After a student submits a real exam (exam-room only, not mock/practice), show an
+  optional feedback modal before redirecting. Student can skip.
+- **Feedback fields:** exam difficulty (1–5), interface rating (1–5), free-text comment,
+  technical issues checkbox
+- **Backend:**
+  - New Firestore collection: `feedbacks`
+  - New model: `cbt-simulator-backend/models/Feedback.js`
+  - New controller: `cbt-simulator-backend/controllers/feedbackController.js`
+  - `POST /api/student/feedback` → studentRoutes.js
+  - `GET /api/admin/feedbacks` → adminRoutes.js
+  - `GET /api/super-admin/feedbacks` → superAdminRoutes.js (filterable by school)
+- **Frontend:**
+  - `waec-cbt-simulator/exam-room/page.jsx` — FeedbackModal component shown post-submit
+  - `waec-cbt-admin/dashboard-content/Feedback.jsx` — new dashboard section
+  - `mts-waec-super-admin/dashboard-content/` — add Feedback tab, filterable by school
+- **Status:** TODO
 
 ---
 
-### 4. `Subscription.jsx` (~618 lines)
+### 👑 FEATURE — Super Admin: Full Admin/School Drill-Down
 
-**Issues found:**
-- `#8B5CF6` / `#7C3AED` purple as "Pro plan" accent — outside brand palette
-- `#10b981` on Basic plan elements
-- `font-playfair` on pricing text, descriptions, feature lists, buttons
-- `bg-gray-50/100`, `text-gray-*` throughout
-- Hardcoded gradient `linear-gradient(135deg, #8B5CF6, #7C3AED)` on Pro card
-
-**Decision on purple:** Replace with `brand-gold` (#FFB300) — signals "premium/Best Value" within the existing brand palette without introducing an off-brand accent.
-
-**Specific fixes:**
-1. Pro plan card → replace purple gradient with gold (`linear-gradient(135deg, #FFB300, #D97706)`)
-2. "Best Value" badge → `bg-brand-gold text-white`
-3. Basic plan button → `bg-brand-primary text-white`
-4. Pro plan button → `bg-brand-gold hover:bg-warning-dark text-white`
-5. All body text → remove font-playfair, use semantic classes
-6. Payment history table → `border-border`, `text-content-*` tokens
-7. Status badges → `success-light/success`, `warning-light/warning` tokens
-8. Add entrance animation on plan cards (staggered scale-in from bottom)
-
----
-
-### 5. `Settings.jsx` (~818 lines)
-
-**Issues found:**
-- `font-playfair` on form labels, input hints, section titles, tab labels
-- `#10b981` green on active tab indicator, save buttons, toggle switches
-- `bg-gray-50/100`, `border-gray-200` throughout
-- Toggle switches use inline `#10b981` background
-- Danger zone uses `#DC2626` directly instead of `text-danger`
-
-**Specific fixes:**
-1. Active tab → `border-b-2 border-brand-primary text-brand-primary`
-2. Save button → `bg-brand-primary hover:bg-brand-primary-dk`
-3. Toggle switches → active state `bg-brand-primary`
-4. All form labels → `text-sm font-medium text-content-secondary` (remove font-playfair)
-5. All input fields → brand focus rings, remove font-playfair
-6. Section headings → `text-base font-bold text-content-primary`
-7. Danger zone → `text-danger`, `bg-danger-light`, `border-danger-light` tokens
-8. Dividers → `border-border` token
-9. Add fade-in animation on tab content panel switch
+#### [FEAT-3] Super Admin View — Admin Details, Students & Performance
+- Super admin can select any admin/school and see a full drill-down:
+  - School profile + admin details
+  - All students of that school (list with status, class, subscription-remaining info)
+  - Individual student performance — exam history, scores, subject breakdown
+  - Best performing students leaderboard per school
+  - Worst performing students (for intervention)
+- **Export capability:**
+  - Export students list (CSV/PDF)
+  - Export results/performance report (CSV/PDF)
+  - Export analytics (aggregated stats per school)
+- **Backend:**
+  - `GET /api/super-admin/admins/:adminId/students` — all students for a school
+  - `GET /api/super-admin/admins/:adminId/students/:studentId/performance` — individual performance
+  - `GET /api/super-admin/admins/:adminId/analytics` — school-level analytics
+  - `GET /api/super-admin/admins/:adminId/leaderboard` — top/bottom students
+  - `POST /api/super-admin/reports/export` — generate exportable CSV/PDF
+- **Frontend (`mts-waec-super-admin`):**
+  - Admins list page → click any admin → drill-down panel
+  - Student table with performance columns
+  - Charts (Recharts) for subject performance
+  - Export buttons (CSV download in-browser, PDF via print API)
+- **Status:** TODO
 
 ---
 
-### 6. `dashboard/page.jsx` — Section Transition Animations
+### 🏆 FEATURE — Student Achievements & Rewards System
 
-**Current state:** Sections swap instantly — hard cut when clicking sidebar items.
+#### [FEAT-4] Achievements (Earned by Performance)
+Achievements are earned automatically based on exam/practice results. Each achievement
+has a badge, title, description, and point value.
 
-**Plan:** Wrap rendered section in `AnimatePresence` + `motion.div` keyed by `activeSection`.
+**Achievement Triggers:**
 
-```jsx
-import { AnimatePresence, motion } from 'framer-motion';
+| Badge | Trigger | Points |
+|---|---|---|
+| 🌟 First Exam | Complete first exam | 50 |
+| 🔥 On Fire | Score ≥ 90% on any exam | 100 |
+| 🎯 Sharpshooter | Answer 10 questions in a row correctly | 75 |
+| 📚 Practice Makes Perfect | Complete 10 practice sessions | 80 |
+| 💎 Diamond Scholar | Score ≥ 90% on 5 consecutive exams | 300 |
+| 🏅 Subject Master | Score ≥ 85% in a subject 3 times | 150 |
+| ⚡ Speed Demon | Complete exam in under half the allotted time with ≥ 80% | 120 |
+| 🎓 All-Rounder | Score ≥ 70% in 5 different subjects | 200 |
+| 👑 Top of Class | Rank #1 in any school exam | 250 |
+| 🔁 Comeback Kid | Improve score by ≥ 20% over previous attempt | 100 |
 
-// Replace:
-<div>{renderSection()}</div>
+**Backend:**
+- New Firestore collection: `achievements` (per-student records)
+- New model: `cbt-simulator-backend/models/Achievement.js`
+- Achievement evaluation runs in `examController.submitExam` and `practiceController.savePracticeResult`
+  after scoring — awards new badges if criteria met
+- `GET /api/student/achievements` — returns earned achievements + total points
+- `GET /api/student/achievements/leaderboard` — top students by points in same school
 
-// With:
-<AnimatePresence mode="wait">
-  <motion.div
-    key={activeSection}
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -8 }}
-    transition={{ duration: 0.2, ease: 'easeOut' }}
-  >
-    {renderSection()}
-  </motion.div>
-</AnimatePresence>
+**Frontend (`waec-cbt-simulator`):**
+- `Achievements.jsx` dashboard section — currently static, make fully dynamic
+  - Grid of earned badges (glowing/active) and locked badges (greyed out)
+  - Total points display
+  - Achievement unlock animation (confetti/glow on first earn)
+  - School leaderboard tab
+
+#### [FEAT-5] Rewards & Points System
+- **Earning points:** Points are awarded when achievements are unlocked (see table above)
+- **Point accumulation:** Cumulative — never expire
+- **Leaderboard:** School-wide ranking by total points
+
+**Rewards (Redeemable):**
+- The rewards system is built now but payout is gated:
+  - Digital rewards (available immediately): Extra practice questions unlock, profile badge, certificate download
+  - Monetary rewards (COMING SOON): Withdraw via Paystack — infrastructure is prepared but disabled until admin enables it per school
+
+**Monetary Withdrawal Flow (Prepared, Not Yet Live):**
+- Admin can set a "reward budget" per term from the school's admin dashboard
+- Students with ≥ threshold points see a "Claim Reward" button
+- Withdrawal goes to student's bank via Paystack Transfer API (test mode uses Paystack test credentials)
+- Super admin can view and approve reward disbursements
+
+**Backend:**
+- New Firestore collection: `rewards` (withdrawal requests)
+- `GET /api/student/rewards/balance` — current redeemable points + status
+- `POST /api/student/rewards/redeem` — request reward (queued for approval)
+- `GET /api/admin/rewards` — view all reward requests for school
+- `POST /api/admin/rewards/:id/approve` — approve/reject a reward
+- `GET /api/super-admin/rewards` — platform-wide reward overview
+
+**Frontend (`waec-cbt-simulator`):**
+- New `Rewards.jsx` dashboard section — reachable from Achievements page via "Redeem Points" button
+  - Points balance card
+  - Available rewards grid (digital unlockable + monetary with "Coming Soon" badge)
+  - Redemption history
+  - Withdrawal form (bank name, account number) — submits to Paystack (test mode)
+
+**Status:** TODO (Achievement backend first, then Rewards)
+
+---
+
+### 📱 FEATURE — All Student Dashboard Pages: Fully Dynamic
+
+Currently static pages that need live data:
+
+#### [FEAT-6] Dynamic Dashboard Pages
+| Page | Current State | What To Build |
+|---|---|---|
+| `Achievements.jsx` | Static mock data | Live from `GET /api/student/achievements` |
+| `StudyGroups.jsx` | Static | Phase 1: Coming soon page. Phase 2: Group creation, invite by loginId, shared practice sessions |
+| `TimedTests.jsx` | Static | Live timed tests — student picks subject + time limit, server returns randomized questions, scores are saved and shown in performance |
+| `PastQuestions.jsx` | Static | Pull from questions bank filtered by `mode: practice`, paginated, searchable by topic/subject/year |
+| `Home.jsx` | Mostly dynamic | Add upcoming exams widget, recent practice scores, achievement notification strip |
+| `Performance.jsx` | Partially dynamic | Add subject-by-subject radar chart, improvement trend line, predicted grade |
+
+**New endpoints needed:**
+- `GET /api/student/timed-tests/start` — same as practice but with strict timer
+- `GET /api/student/past-questions` — paginated past questions (practice mode)
+- `GET /api/student/dashboard/summary` — single endpoint for Home widgets (upcoming exams, recent scores, latest achievement)
+
+---
+
+### 🖥️ COMPATIBILITY — Old Monitors & Offline
+
+#### [COMPAT-1] Self-host Google Fonts (Offline Requirement)
+- **Problem:** Inter font loads from Google Fonts CDN — fails when no internet
+- **Fix:** Download Inter font files → place in `waec-cbt-simulator/public/fonts/` → update CSS `@font-face` declarations
+- Apply to all 3 portals (student, admin, super-admin)
+- **Status:** TODO
+
+#### [COMPAT-2] Respect `prefers-reduced-motion`
+- **Problem:** Framer Motion animations + GSAP can cause jank on old Pentium/Celeron PCs
+- **Fix:** Add CSS `@media (prefers-reduced-motion: reduce)` rules to disable transitions;
+  wrap framer-motion variants with motion check
+- **Status:** TODO
+
+#### [COMPAT-3] Minimum viewport width for exam room
+- **Problem:** Exam room can collapse on 1024×768 monitors
+- **Fix:** Add `min-width: 1024px` to exam-room layout + ensure horizontal scroll never hides answer options
+- **Status:** TODO
+
+#### [COMPAT-4] PWA / Offline Exam Mode
+- **Problem:** Service worker caches shell only — if internet drops mid-exam after page reload, questions won't load
+- **Fix (Option C — Offline-First Exam):**
+  1. When student opens exam-instructions page, ALL questions for the exam are fetched and
+     stored in `localStorage` under key `exam_questions_{examId}`
+  2. `exam-room/page.jsx` reads questions from localStorage first, falls back to API
+  3. Answers continue to be saved to localStorage every 30s (already done ✓)
+  4. On submit: if network unavailable, store result in localStorage under `pending_submission_{examId}`,
+     service worker Background Sync retries when connectivity returns
+  5. Update `sw.js` to handle Background Sync (`sync` event)
+- **Status:** TODO
+
+---
+
+### 🏫 DEPLOYMENT — School Server (Fully Local / Offline)
+
+#### [DEPLOY-1] Local School Server Deployment Guide
+
+**Architecture for offline school use:**
+
+```
+School Server PC (Windows/Linux)
+├── Firebase Emulator (port 8080 — local Firestore)
+├── Node.js Backend (port 5000)
+├── Student Portal — Next.js (port 3000)
+├── Admin Portal — Next.js (port 3001)
+└── Super Admin Portal — Next.js (port 3002)
+
+Student PCs (30–60 computers)
+└── Browser → http://[server-ip]:3000
 ```
 
-Every section click gets a smooth fade-up entrance and fade-up exit. No per-component changes needed.
+**Prerequisites on server PC:**
+- Node.js 18+
+- Java 11+ (required by Firebase Emulator)
+- Firebase CLI: `npm install -g firebase-tools`
+
+**Setup steps:**
+1. `firebase login` (one-time, requires internet)
+2. `firebase emulators:start --only firestore --project einstein-cbt`
+3. Set backend env: `FIRESTORE_EMULATOR_HOST=localhost:8080`
+4. Seed exam data (students, questions, subjects) via admin portal
+5. `npm run build && npm start` for all three portals
+6. School network: configure router to allow LAN access to server IP
+
+**Before each exam session:**
+- Ensure Firebase Emulator is running
+- Seed current students + exam setup
+- All students connect via local IP — no internet required
+
+**Backup:** Export Firestore emulator data after each session:
+`firebase emulators:export ./backup/session-$(date +%Y%m%d)`
 
 ---
 
-## EXECUTION ORDER
+## Testing Strategy
 
-| Step | File | Effort |
+### Backend Tests (`cbt-simulator-backend/tests/`)
+- `unit/helpers.test.js` — shuffleArray, score calculation
+- `unit/tokenService.test.js` — JWT sign/verify/expire
+- `unit/validation.test.js` — input validation rules
+- `unit/subscriptionService.test.js` — plan limits, expiry dates
+- `integration/auth.test.js` — register, login, 2FA flow (requires Firebase Emulator)
+- `integration/questions.test.js` — CRUD + bulk delete
+- `integration/exam.test.js` — start, save answer, submit, score calculation
+
+### Frontend Tests
+- Build pass check: `npm run build` on all three portals
+- No TypeScript/ESLint errors on build
+
+---
+
+## Changelog
+
+| Date | Version | Changes |
 |---|---|---|
-| 1 | `dashboard/page.jsx` | 5 lines — instant payoff |
-| 2 | `Subjects.jsx` | ~30 edits — smallest file |
-| 3 | `Settings.jsx` | ~80 edits — self-contained tabs |
-| 4 | `Subscription.jsx` | ~70 edits — pricing card rebrand |
-| 5 | `Questions.jsx` | ~150 edits — large but repetitive |
-| 6 | `Exams.jsx` | ~200 edits — largest, saved last |
-
----
-
-## WHAT WON'T CHANGE
-
-- Component logic, API calls, state management — zero functional changes
-- Subscription purple→gold rebrand: visual only, plan structure unchanged
-- Pagination logic (already fixed in previous pass)
-- Performance.jsx, Home.jsx, Students.jsx, Results.jsx, Navbar.jsx, Sidebar.jsx (already done)
+| 2026-03-28 | 1.0.0 | Initial plan created |
+| 2026-03-28 | 1.0.1 | Bulk delete questions (admin portal) |
+| 2026-03-28 | 1.0.2 | Searchable subject dropdown (admin portal) |
+| 2026-03-28 | 1.0.3 | Confirmed SEC-1 (B2) already fixed in codebase |
+| 2026-03-28 | 1.0.4 | Plan.md created, .gitignore added, unit tests written |
