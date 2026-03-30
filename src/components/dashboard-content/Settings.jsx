@@ -1,6 +1,6 @@
 // components/dashboard-content/Settings.jsx
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -34,6 +34,8 @@ function SettingsContent() {
   const [disableToken, setDisableToken] = useState(['', '', '', '', '', '']);
   const [loading2FA, setLoading2FA] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef(null);
 
   const [profileData, setProfileData] = useState({ name: '', email: '', role: '', school: '', phone: '', address: '' });
   const [passwordData, setPasswordData] = useState({ current: '', new: '', confirm: '' });
@@ -198,6 +200,28 @@ function SettingsContent() {
     } catch { toast.error('Network error', { id: toastId }); }
   };
 
+  const handlePhotoUpload = async (file) => {
+    if (!file) return;
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) { toast.error('Only JPEG, PNG or WebP images allowed'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Photo must be under 5 MB'); return; }
+    setPhotoUploading(true);
+    const toastId = toast.loading('Uploading photo...');
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      const response = await fetchWithAuth('/admin/profile/photo', { method: 'POST', body: formData, headers: {} });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('Photo updated!', { id: toastId });
+        await refreshUser();
+      } else {
+        toast.error(data.message || 'Upload failed', { id: toastId });
+      }
+    } catch { toast.error('Network error', { id: toastId }); }
+    finally { setPhotoUploading(false); }
+  };
+
   const initials = profileData.name
     ? profileData.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
     : 'AD';
@@ -218,11 +242,33 @@ function SettingsContent() {
 
         {/* Avatar row */}
         <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #141C33 100%)' }}
-          >
-            {initials}
+          <div className="relative flex-shrink-0">
+            {user?.photoUrl ? (
+              <img src={user.photoUrl} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2 border-border" />
+            ) : (
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold"
+                style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #141C33 100%)' }}
+              >
+                {initials}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={photoUploading}
+              className="absolute bottom-0 right-0 w-6 h-6 bg-brand-primary text-white rounded-full flex items-center justify-center text-xs hover:bg-brand-primary-dk transition-colors shadow-card disabled:opacity-60"
+              title="Change photo"
+            >
+              {photoUploading ? '…' : '✎'}
+            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => handlePhotoUpload(e.target.files?.[0])}
+            />
           </div>
           <div>
             <p className="text-base font-bold text-content-primary">{profileData.name}</p>

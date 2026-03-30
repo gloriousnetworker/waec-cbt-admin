@@ -34,6 +34,10 @@ export default function Students({ setActiveSection }) {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const LIMIT = 50;
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkActivate, setBulkActivate] = useState(true);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     fetchSubjects();
@@ -200,6 +204,42 @@ export default function Students({ setActiveSection }) {
     }
   };
 
+  const handleBulkExamMode = async () => {
+    if (selectedStudentIds.length === 0) return;
+    setBulkLoading(true);
+    const toastId = toast.loading(`${bulkActivate ? 'Enabling' : 'Disabling'} exam mode for ${selectedStudentIds.length} student(s)...`);
+    try {
+      const response = await fetchWithAuth('/admin/students/bulk-exam-mode', {
+        method: 'PATCH',
+        body: JSON.stringify({ studentIds: selectedStudentIds, activate: bulkActivate }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message, { id: toastId });
+        setSelectedStudentIds([]);
+        setShowBulkModal(false);
+        fetchStudents();
+      } else {
+        toast.error(data.message || 'Bulk update failed', { id: toastId });
+      }
+    } catch { toast.error('Network error', { id: toastId }); }
+    finally { setBulkLoading(false); }
+  };
+
+  const toggleSelectStudent = (id) => {
+    setSelectedStudentIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStudentIds.length === filteredStudents.length) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(filteredStudents.map(s => s.id));
+    }
+  };
+
   const filteredStudents = students.filter(s => 
     `${s.firstName} ${s.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (s.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -259,7 +299,45 @@ export default function Students({ setActiveSection }) {
         </button>
       </div>
 
+      {/* ── Bulk action toolbar ───────────────────────────────── */}
+      {selectedStudentIds.length > 0 && (
+        <div className="mb-3 flex items-center gap-3 px-4 py-3 bg-brand-primary-lt border border-brand-primary/20 rounded-xl">
+          <span className="text-xs font-semibold text-brand-primary">{selectedStudentIds.length} selected</span>
+          <div className="flex gap-2 ml-auto">
+            <button
+              onClick={() => { setBulkActivate(true); setShowBulkModal(true); }}
+              className="px-3 py-1.5 bg-success text-white rounded-lg text-xs font-semibold hover:bg-success-dk transition-colors min-h-[32px]"
+            >
+              Enable Exam Mode
+            </button>
+            <button
+              onClick={() => { setBulkActivate(false); setShowBulkModal(true); }}
+              className="px-3 py-1.5 bg-danger text-white rounded-lg text-xs font-semibold hover:bg-danger-dark transition-colors min-h-[32px]"
+            >
+              Disable Exam Mode
+            </button>
+            <button
+              onClick={() => setSelectedStudentIds([])}
+              className="px-3 py-1.5 border border-border rounded-lg text-xs font-medium text-content-secondary hover:bg-surface-subtle transition-colors min-h-[32px]"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Unified card list — all screen sizes ─────────────── */}
+      {filteredStudents.length > 0 && (
+        <div className="flex items-center gap-2 px-1 mb-2">
+          <input
+            type="checkbox"
+            checked={selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0}
+            onChange={toggleSelectAll}
+            className="w-4 h-4 text-brand-primary rounded cursor-pointer"
+          />
+          <span className="text-xs text-content-muted">Select all ({filteredStudents.length})</span>
+        </div>
+      )}
       {filteredStudents.length === 0 ? (
         <div className="bg-white rounded-xl border border-border shadow-card p-12 text-center">
           <p className="text-2xl mb-3">👥</p>
@@ -271,13 +349,30 @@ export default function Students({ setActiveSection }) {
             <div key={student.id} className="bg-white rounded-xl border border-border shadow-card p-4 hover:border-brand-primary transition-colors">
               <div className="flex items-start gap-3">
 
+                {/* Row checkbox */}
+                <input
+                  type="checkbox"
+                  checked={selectedStudentIds.includes(student.id)}
+                  onChange={(e) => { e.stopPropagation(); toggleSelectStudent(student.id); }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-4 h-4 text-brand-primary rounded cursor-pointer flex-shrink-0 mt-1"
+                />
+
                 {/* Avatar */}
-                <div
-                  className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold mt-0.5"
-                  style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #141C33 100%)' }}
-                >
-                  {getInitials(student)}
-                </div>
+                {student.photoUrl ? (
+                  <img
+                    src={student.photoUrl}
+                    alt={`${student.firstName} ${student.lastName}`}
+                    className="w-10 h-10 rounded-full flex-shrink-0 object-cover mt-0.5 border border-border"
+                  />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold mt-0.5"
+                    style={{ background: 'linear-gradient(135deg, #1F2A49 0%, #141C33 100%)' }}
+                  >
+                    {getInitials(student)}
+                  </div>
+                )}
 
                 {/* Main info */}
                 <div className="flex-1 min-w-0">
@@ -447,6 +542,40 @@ export default function Students({ setActiveSection }) {
                   className={`px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-sm font-semibold ${(!selectedSubject || addingSubject) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {addingSubject ? 'Adding...' : 'Add Subject'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showBulkModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={modalOverlay}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className={modalContainer}
+            >
+              <h3 className={modalTitle}>{bulkActivate ? 'Enable' : 'Disable'} Exam Mode</h3>
+              <p className={modalText}>
+                {bulkActivate ? 'Enable' : 'Disable'} exam mode for <strong>{selectedStudentIds.length}</strong> selected student(s)?
+                {bulkActivate
+                  ? ' Students will be able to access their assigned exams.'
+                  : ' Students will not be able to access any exams until exam mode is re-enabled.'}
+              </p>
+              <div className={modalActions}>
+                <button onClick={() => setShowBulkModal(false)} className={modalButtonSecondary}>Cancel</button>
+                <button
+                  onClick={handleBulkExamMode}
+                  disabled={bulkLoading}
+                  className={`px-4 py-2 ${bulkActivate ? 'bg-success hover:bg-success-dk' : 'bg-danger hover:bg-danger-dark'} text-white rounded-md transition-colors text-sm font-semibold disabled:opacity-50`}
+                >
+                  {bulkLoading ? 'Updating...' : 'Confirm'}
                 </button>
               </div>
             </motion.div>

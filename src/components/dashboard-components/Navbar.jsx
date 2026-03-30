@@ -1,8 +1,9 @@
 'use client';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { useNotifications } from '../../hooks/useNotifications';
 import {
   navbarContainer,
   navbarInner,
@@ -58,10 +59,13 @@ const navSections = [
 ];
 
 export default function DashboardNavbar({ activeSection, setActiveSection, onMenuClick, onSupportClick }) {
-  const { user, logout } = useAuth();
+  const { user, logout, fetchWithAuth } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [liveUser, setLiveUser] = useState(null);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const notifRef = useRef(null);
+  const { notifications, unreadCount, permissionState, requestPermission, markRead, markAllRead } = useNotifications(fetchWithAuth, '/admin');
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -90,6 +94,17 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showDropdown]);
 
+  useEffect(() => {
+    if (!showNotifDropdown) return;
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifDropdown]);
+
   const displayUser = liveUser || user;
 
   const getInitials = (name) => {
@@ -100,6 +115,16 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
   const handleLogout = () => {
     logout();
     setShowLogoutConfirm(false);
+  };
+
+  const formatNotifTime = (ts) => {
+    if (!ts) return '';
+    const d = ts._seconds ? new Date(ts._seconds * 1000) : new Date(ts);
+    const diff = Date.now() - d.getTime();
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return d.toLocaleDateString();
   };
 
   return (
@@ -169,12 +194,84 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
               </div>
 
               {/* Notification bell */}
-              <button className={navbarNotification} aria-label="Notifications">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span className={navbarNotificationBadge} />
-              </button>
+              <div ref={notifRef} className="relative">
+                <button
+                  className={navbarNotification}
+                  aria-label="Notifications"
+                  onClick={() => setShowNotifDropdown(prev => !prev)}
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-danger text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {showNotifDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-border shadow-card-lg z-50 overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                      <p className="text-sm font-bold text-content-primary">Notifications</p>
+                      <div className="flex items-center gap-2">
+                        {permissionState !== 'granted' && (
+                          <button
+                            onClick={requestPermission}
+                            className="text-xs text-brand-primary hover:underline font-medium"
+                          >
+                            Enable push
+                          </button>
+                        )}
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllRead}
+                            className="text-xs text-content-muted hover:text-brand-primary transition-colors"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* List */}
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="py-10 text-center">
+                          <p className="text-2xl mb-2">🔔</p>
+                          <p className="text-xs text-content-muted">No notifications yet</p>
+                        </div>
+                      ) : (
+                        notifications.map((notif) => (
+                          <button
+                            key={notif.id}
+                            onClick={() => markRead(notif.id)}
+                            className={`w-full text-left px-4 py-3 border-b border-border last:border-0 hover:bg-surface-subtle transition-colors ${!notif.read ? 'bg-brand-primary-lt/40' : ''}`}
+                          >
+                            <div className="flex items-start gap-2">
+                              {!notif.read && (
+                                <span className="w-2 h-2 bg-brand-primary rounded-full flex-shrink-0 mt-1.5" />
+                              )}
+                              <div className={`flex-1 min-w-0 ${notif.read ? 'pl-4' : ''}`}>
+                                <p className="text-xs font-semibold text-content-primary truncate">{notif.title}</p>
+                                <p className="text-xs text-content-muted mt-0.5 line-clamp-2">{notif.body}</p>
+                                <p className="text-[10px] text-content-muted mt-1">{formatNotifTime(notif.createdAt)}</p>
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </div>
 
               {/* Profile dropdown — state-controlled, no CSS visibility tricks */}
               <div className="profile-container relative">

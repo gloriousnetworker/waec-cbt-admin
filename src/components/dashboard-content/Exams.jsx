@@ -39,6 +39,8 @@ export default function Exams({ setActiveSection }) {
   const [showActivateModal, setShowActivateModal] = useState(false);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showStudentSelectModal, setShowStudentSelectModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [selectedExam, setSelectedExam] = useState(null);
@@ -64,7 +66,8 @@ export default function Exams({ setActiveSection }) {
     allowRetake: false,
     shuffleQuestions: true,
     showResults: true,
-    questionSelection: 'random'
+    questionSelection: 'random',
+    multiSubject: false
   });
   // Removed totalMarks from formData since backend calculates it
 
@@ -261,7 +264,8 @@ export default function Exams({ setActiveSection }) {
           allowRetake: false,
           shuffleQuestions: true,
           showResults: true,
-          questionSelection: 'random'
+          questionSelection: 'random',
+          multiSubject: false
         });
         fetchData();
       } else {
@@ -425,6 +429,38 @@ export default function Exams({ setActiveSection }) {
     }
   };
 
+  const handleArchiveExam = async () => {
+    if (!selectedExam) return;
+    const toastId = toast.loading('Archiving exam...');
+    try {
+      const response = await fetchWithAuth(`/admin/exam-setups/${selectedExam.id}/archive`, { method: 'POST' });
+      if (response.ok) {
+        toast.success('Exam archived successfully!', { id: toastId });
+        setShowArchiveModal(false);
+        fetchData();
+      } else {
+        const data = await response.json();
+        toast.error(data.message || 'Failed to archive exam', { id: toastId });
+      }
+    } catch { toast.error('Network error', { id: toastId }); }
+  };
+
+  const handleRestoreExam = async () => {
+    if (!selectedExam) return;
+    const toastId = toast.loading('Restoring exam...');
+    try {
+      const response = await fetchWithAuth(`/admin/exam-setups/${selectedExam.id}/restore`, { method: 'POST' });
+      if (response.ok) {
+        toast.success('Exam restored successfully!', { id: toastId });
+        setShowRestoreModal(false);
+        fetchData();
+      } else {
+        const data = await response.json();
+        toast.error(data.message || 'Failed to restore exam', { id: toastId });
+      }
+    } catch { toast.error('Network error', { id: toastId }); }
+  };
+
   const handleSelectAllInClass = () => {
     if (selectAllInClass) {
       setSelectedStudents([]);
@@ -467,6 +503,7 @@ export default function Exams({ setActiveSection }) {
       case 'active': return 'bg-success-light text-success';
       case 'draft': return 'bg-surface-subtle text-content-secondary';
       case 'completed': return 'bg-blue-100 text-blue-600';
+      case 'archived': return 'bg-amber-100 text-amber-700';
       default: return 'bg-surface-subtle text-content-secondary';
     }
   };
@@ -479,10 +516,11 @@ export default function Exams({ setActiveSection }) {
   });
 
   const stats = {
-    total: exams.length,
+    total: exams.filter(e => e.status !== 'archived').length,
     active: exams.filter(e => e.status === 'active').length,
     draft: exams.filter(e => e.status === 'draft').length,
-    completed: exams.filter(e => e.status === 'completed').length
+    completed: exams.filter(e => e.status === 'completed').length,
+    archived: exams.filter(e => e.status === 'archived').length,
   };
 
   return (
@@ -554,6 +592,7 @@ export default function Exams({ setActiveSection }) {
               <option value="draft">Draft</option>
               <option value="active">Active</option>
               <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -595,6 +634,11 @@ export default function Exams({ setActiveSection }) {
                     <span className="px-2 py-1 bg-purple-100 text-purple-600 rounded-full text-[10px] leading-[100%] font-[500]">
                       {exam.class}
                     </span>
+                    {exam.multiSubject && (
+                      <span className="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-full text-[10px] leading-[100%] font-[500]">
+                        JAMB-style
+                      </span>
+                    )}
                   </div>
                   <p className="text-[12px] leading-[100%] font-[400] text-content-muted mb-1">
                     {exam.subjects?.length || 0} subject(s) • {exam.subjects?.reduce((sum, s) => sum + (s.questionCount || 0), 0)} questions
@@ -613,53 +657,62 @@ export default function Exams({ setActiveSection }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 text-[11px] leading-[100%] font-[400] text-content-muted">
+              <div className="flex items-center gap-4 text-[11px] leading-[100%] font-[400] text-content-muted flex-wrap">
                 <span>📊 Total Marks: {exam.totalMarks}</span>
                 <span>✅ Pass Mark: {exam.passMark}%</span>
                 <span>👥 {exam.assignedStudents?.length || 0} students</span>
-                {exam.status === 'active' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      fetchExamResults(exam.id);
-                    }}
-                    className="ml-auto px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-[10px] font-[600] hover:bg-blue-200"
-                  >
-                    View Results
-                  </button>
-                )}
-                {exam.status === 'draft' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedExam(exam);
-                      setFormData({
-                        title: exam.title,
-                        description: exam.description || '',
-                        class: exam.class,
-                        subjects: exam.subjects.map(s => ({
-                          subjectId: s.subjectId,
-                          questionCount: s.questionCount
-                        })),
-                        duration: exam.duration,
-                        passMark: exam.passMark,
-                        startDate: '',
-                        startTime: '',
-                        endDate: '',
-                        endTime: '',
-                        instructions: exam.instructions || '',
-                        allowRetake: exam.allowRetake || false,
-                        shuffleQuestions: exam.shuffleQuestions !== false,
-                        showResults: exam.showResults !== false,
-                        questionSelection: exam.questionSelection || 'random'
-                      });
-                      setShowEditModal(true);
-                    }}
-                    className="ml-2 px-3 py-1 bg-warning-light text-warning-dark rounded-md text-[10px] font-[600] hover:bg-yellow-200"
-                  >
-                    Edit
-                  </button>
-                )}
+                <div className="ml-auto flex items-center gap-1.5">
+                  {(exam.status === 'active' || exam.status === 'completed') && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); fetchExamResults(exam.id); }}
+                      className="px-3 py-1 bg-blue-100 text-blue-600 rounded-md text-[10px] font-[600] hover:bg-blue-200"
+                    >
+                      Results
+                    </button>
+                  )}
+                  {exam.status === 'draft' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedExam(exam);
+                        setFormData({
+                          title: exam.title,
+                          description: exam.description || '',
+                          class: exam.class,
+                          subjects: exam.subjects.map(s => ({ subjectId: s.subjectId, questionCount: s.questionCount })),
+                          duration: exam.duration,
+                          passMark: exam.passMark,
+                          startDate: '', startTime: '', endDate: '', endTime: '',
+                          instructions: exam.instructions || '',
+                          allowRetake: exam.allowRetake || false,
+                          shuffleQuestions: exam.shuffleQuestions !== false,
+                          showResults: exam.showResults !== false,
+                          questionSelection: exam.questionSelection || 'random'
+                        });
+                        setShowEditModal(true);
+                      }}
+                      className="px-3 py-1 bg-warning-light text-warning-dark rounded-md text-[10px] font-[600] hover:bg-yellow-200"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {(exam.status === 'draft' || exam.status === 'completed') && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSelectedExam(exam); setShowArchiveModal(true); }}
+                      className="px-3 py-1 bg-amber-100 text-amber-700 rounded-md text-[10px] font-[600] hover:bg-amber-200"
+                    >
+                      Archive
+                    </button>
+                  )}
+                  {exam.status === 'archived' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSelectedExam(exam); setShowRestoreModal(true); }}
+                      className="px-3 py-1 bg-success-light text-success rounded-md text-[10px] font-[600] hover:bg-green-200"
+                    >
+                      Restore
+                    </button>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
@@ -937,6 +990,21 @@ export default function Exams({ setActiveSection }) {
                     />
                     <span className="text-[13px] text-content-primary">Allow retake</span>
                   </label>
+                  {formData.subjects.length > 1 && (
+                    <label className="flex items-center gap-2 p-3 rounded-lg border border-purple-200 bg-purple-50 cursor-pointer hover:bg-purple-100 transition-colors">
+                      <input
+                        type="checkbox"
+                        name="multiSubject"
+                        checked={formData.multiSubject}
+                        onChange={handleInputChange}
+                        className="w-4 h-4 text-brand-primary"
+                      />
+                      <div>
+                        <span className="text-[13px] text-content-primary font-semibold">JAMB-style (show subject tabs)</span>
+                        <p className="text-[11px] text-content-muted mt-0.5">Students navigate subjects separately with one shared timer</p>
+                      </div>
+                    </label>
+                  )}
                 </div>
               </div>
 
@@ -1155,6 +1223,20 @@ export default function Exams({ setActiveSection }) {
                 
                 {selectedExam.status === 'draft' && (
                   <>
+                    {/* ACT-1: Step indicator */}
+                    <div className="w-full mb-2 p-3 bg-surface-muted rounded-xl border border-border">
+                      <p className="text-[11px] font-semibold text-content-secondary uppercase tracking-wide mb-2">Activation Checklist</p>
+                      <div className="flex flex-col gap-1.5">
+                        <div className={`flex items-center gap-2 text-xs ${(selectedExam.assignedStudents?.length || 0) > 0 ? 'text-success' : 'text-content-muted'}`}>
+                          <span>{(selectedExam.assignedStudents?.length || 0) > 0 ? '✓' : '○'}</span>
+                          <span>Step 1 — Assign students {(selectedExam.assignedStudents?.length || 0) > 0 ? `(${selectedExam.assignedStudents.length} assigned)` : '(none yet)'}</span>
+                        </div>
+                        <div className={`flex items-center gap-2 text-xs ${(selectedExam.assignedStudents?.length || 0) > 0 ? 'text-content-primary' : 'text-content-muted'}`}>
+                          <span>{(selectedExam.assignedStudents?.length || 0) > 0 ? '○' : '○'}</span>
+                          <span>Step 2 — Activate exam {(selectedExam.assignedStudents?.length || 0) === 0 ? '(assign students first)' : ''}</span>
+                        </div>
+                      </div>
+                    </div>
                     <button
                       onClick={() => {
                         setShowDetailsModal(false);
@@ -1166,13 +1248,20 @@ export default function Exams({ setActiveSection }) {
                     </button>
                     <button
                       onClick={() => {
+                        if ((selectedExam.assignedStudents?.length || 0) === 0) return;
                         setShowDetailsModal(false);
                         setSelectedStudents([]);
                         setShowActivateModal(true);
                       }}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-[13px] leading-[100%] font-[600]"
+                      disabled={(selectedExam.assignedStudents?.length || 0) === 0}
+                      title={(selectedExam.assignedStudents?.length || 0) === 0 ? 'Assign at least one student first' : 'Activate exam for assigned students'}
+                      className={`px-4 py-2 text-white rounded-md transition-colors text-[13px] leading-[100%] font-[600] ${
+                        (selectedExam.assignedStudents?.length || 0) === 0
+                          ? 'bg-purple-300 cursor-not-allowed opacity-60'
+                          : 'bg-purple-600 hover:bg-purple-700'
+                      }`}
                     >
-                      Activate for All
+                      Activate Exam
                     </button>
                     <button
                       onClick={() => {
@@ -1276,6 +1365,13 @@ export default function Exams({ setActiveSection }) {
                         Class: {student.class} • Login ID: {student.loginId}
                       </p>
                     </div>
+                    <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                      student.examMode
+                        ? 'bg-success-light text-success'
+                        : 'bg-danger-light text-danger'
+                    }`}>
+                      {student.examMode ? 'Exam: On' : 'Exam: Off'}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -1527,6 +1623,35 @@ export default function Exams({ setActiveSection }) {
                 >
                   Close
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+        {showArchiveModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay}>
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className={modalContainer}>
+              <h3 className={modalTitle}>Archive Exam</h3>
+              <p className={modalText}>
+                Archive <strong>{selectedExam?.title}</strong>? The exam and all its results will be preserved but hidden from the active list. You can restore it anytime.
+              </p>
+              <div className={modalActions}>
+                <button onClick={() => setShowArchiveModal(false)} className={modalButtonSecondary}>Cancel</button>
+                <button onClick={handleArchiveExam} className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors text-sm font-semibold">Archive</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showRestoreModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={modalOverlay}>
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className={modalContainer}>
+              <h3 className={modalTitle}>Restore Exam</h3>
+              <p className={modalText}>
+                Restore <strong>{selectedExam?.title}</strong> from the archive? It will return to its previous status.
+              </p>
+              <div className={modalActions}>
+                <button onClick={() => setShowRestoreModal(false)} className={modalButtonSecondary}>Cancel</button>
+                <button onClick={handleRestoreExam} className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-dk transition-colors text-sm font-semibold">Restore</button>
               </div>
             </motion.div>
           </motion.div>
