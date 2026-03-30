@@ -65,7 +65,7 @@ export default function DashboardNavbar({ activeSection, setActiveSection, onMen
   const [liveUser, setLiveUser] = useState(null);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const notifRef = useRef(null);
-  const { notifications, unreadCount, permissionState, requestPermission, markRead, markAllRead } = useNotifications(fetchWithAuth, '/admin');
+  const { notifications, unreadCount, permissionState, requestPermission, markRead, markAllRead } = useNotifications(fetchWithAuth, '/admin', user?.id);
 
   useEffect(() => {
     const fetchMe = async () => {
