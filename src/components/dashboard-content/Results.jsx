@@ -98,13 +98,19 @@ export default function Results({ setActiveSection }) {
     }
   };
 
-  // Derive subject columns from all results — union of unique subjects in this exam
+  // Derive subject columns — prefer exam.subjects (always present) over aggregating
+  // from result.subjectBreakdown (only present on results submitted after the feature landed)
   const subjectCols = examResults
-    ? [...new Map(
-        examResults.results.flatMap(r =>
-          (r.subjectBreakdown || []).map(sb => [sb.subjectId, sb.subjectName])
-        )
-      ).entries()].map(([subjectId, subjectName]) => ({ subjectId, subjectName }))
+    ? (examResults.exam.subjects?.length > 0
+        ? examResults.exam.subjects
+            .filter(s => s.subjectId && s.subjectName)
+            .map(s => ({ subjectId: s.subjectId, subjectName: s.subjectName }))
+        : [...new Map(
+            examResults.results.flatMap(r =>
+              (r.subjectBreakdown || []).map(sb => [sb.subjectId, sb.subjectName])
+            )
+          ).entries()].map(([subjectId, subjectName]) => ({ subjectId, subjectName }))
+      )
     : [];
 
   const getSubjectData = (result, subjectId) =>
