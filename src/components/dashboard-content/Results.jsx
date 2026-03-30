@@ -35,8 +35,6 @@ export default function Results({ setActiveSection }) {
     averageScore: 0,
     passRate: 0
   });
-  const [expandedRow, setExpandedRow] = useState(null);
-
   const classes = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3'];
 
   useEffect(() => {
@@ -100,26 +98,41 @@ export default function Results({ setActiveSection }) {
     }
   };
 
+  // Derive subject columns from all results — union of unique subjects in this exam
+  const subjectCols = examResults
+    ? [...new Map(
+        examResults.results.flatMap(r =>
+          (r.subjectBreakdown || []).map(sb => [sb.subjectId, sb.subjectName])
+        )
+      ).entries()].map(([subjectId, subjectName]) => ({ subjectId, subjectName }))
+    : [];
+
+  const getSubjectData = (result, subjectId) =>
+    (result.subjectBreakdown || []).find(sb => sb.subjectId === subjectId);
+
   const exportToCSV = () => {
     if (!examResults) return;
-    
-    const headers = ['Student Name', 'Class', 'Score', 'Total Marks', 'Percentage', 'Correct Answers', 'Wrong Answers', 'Submitted Date'];
-    const rows = examResults.results.map(r => [
-      r.studentName,
-      r.studentClass,
-      r.score,
-      r.totalMarks,
-      `${r.percentage}%`,
-      r.correctAnswers || 0,
-      r.wrongAnswers || 0,
-      r.submittedAt ? new Date(r.submittedAt._seconds * 1000).toLocaleDateString() : 'N/A'
+
+    const subjectHeaders = subjectCols.flatMap(s => [
+      `${s.subjectName} Score`, `${s.subjectName} %`, `${s.subjectName} Correct`, `${s.subjectName} Wrong`
     ]);
-    
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-    
+    const headers = ['Student Name', 'Class', ...subjectHeaders, 'Total Score', 'Total Marks', 'Total %', 'Correct', 'Wrong', 'Date'];
+
+    const rows = examResults.results.map(r => {
+      const subjectCells = subjectCols.flatMap(s => {
+        const sd = getSubjectData(r, s.subjectId);
+        return sd ? [`${sd.score}/${sd.totalMarks}`, `${sd.percentage}%`, sd.correct, sd.wrong] : ['—', '—', '—', '—'];
+      });
+      return [
+        r.studentName, r.studentClass,
+        ...subjectCells,
+        r.score, r.totalMarks, `${r.percentage}%`,
+        r.correctAnswers || 0, r.wrongAnswers || 0,
+        r.submittedAt ? formatDate(r.submittedAt) : 'N/A',
+      ];
+    });
+
+    const csvContent = [headers, ...rows].map(row => row.map(c => `"${c}"`).join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -129,171 +142,71 @@ export default function Results({ setActiveSection }) {
     window.URL.revokeObjectURL(url);
   };
 
-  const exportToPDF = () => {
-    if (!examResults) return;
-    
-    const printWindow = window.open('', '_blank');
+  const buildExportHTML = (forPrint) => {
     const title = examResults.exam.title;
     const date = new Date().toLocaleDateString();
-    
-    let html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${title} - Results</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; }
-          h1 { color: #1F2A49; }
-          .header { margin-bottom: 30px; }
-          .summary { display: flex; gap: 20px; margin-bottom: 30px; }
-          .summary-item { background: #f3f4f6; padding: 15px; border-radius: 8px; flex: 1; }
-          .summary-item h3 { margin: 0 0 5px; font-size: 12px; color: #666; }
-          .summary-item p { margin: 0; font-size: 24px; font-weight: bold; color: #1e1e1e; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #1F2A49; color: white; padding: 12px; text-align: left; font-size: 12px; }
-          td { padding: 10px; border-bottom: 1px solid #ddd; font-size: 12px; }
-          tr:nth-child(even) { background: #f9f9f9; }
-          .percentage { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
-          .high { background: #d1fae5; color: #059669; }
-          .medium { background: #fef3c7; color: #d97706; }
-          .low { background: #fee2e2; color: #dc2626; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>${title}</h1>
-          <p>Generated: ${date}</p>
-        </div>
-        
-        <div class="summary">
-          <div class="summary-item">
-            <h3>Total Students</h3>
-            <p>${examResults.summary.totalStudents}</p>
-          </div>
-          <div class="summary-item">
-            <h3>Submitted</h3>
-            <p>${examResults.summary.submittedCount}</p>
-          </div>
-          <div class="summary-item">
-            <h3>Average Score</h3>
-            <p>${Math.round(examResults.summary.averageScore)}%</p>
-          </div>
-          <div class="summary-item">
-            <h3>Pass Rate</h3>
-            <p>${Math.round(examResults.summary.passRate)}%</p>
-          </div>
-        </div>
-        
-        <table>
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th>Class</th>
-              <th>Score</th>
-              <th>Percentage</th>
-              <th>Correct</th>
-              <th>Wrong</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    
-    examResults.results.forEach(r => {
-      const percentageClass = r.percentage >= 75 ? 'high' : r.percentage >= 50 ? 'medium' : 'low';
-      html += `
-        <tr>
-          <td>${r.studentName}</td>
-          <td>${r.studentClass}</td>
-          <td>${r.score}/${r.totalMarks}</td>
-          <td><span class="percentage ${percentageClass}">${Math.round(r.percentage)}%</span></td>
-          <td>${r.correctAnswers || 0}</td>
-          <td>${r.wrongAnswers || 0}</td>
-          <td>${r.submittedAt ? new Date(r.submittedAt._seconds * 1000).toLocaleDateString() : 'N/A'}</td>
-        </tr>
-      `;
-    });
-    
-    html += `
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `;
-    
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.print();
+    const subjectThs = subjectCols.map(s => `<th>${s.subjectName}</th>`).join('');
+    const rows = examResults.results.map(r => {
+      const pctClass = r.percentage >= 75 ? 'high' : r.percentage >= 50 ? 'medium' : 'low';
+      const subjectTds = subjectCols.map(s => {
+        const sd = getSubjectData(r, s.subjectId);
+        if (!sd) return '<td>—</td>';
+        const c = sd.percentage >= 75 ? 'high' : sd.percentage >= 50 ? 'medium' : 'low';
+        return `<td><span class="percentage ${c}">${sd.percentage}%</span><br/><small>${sd.score}/${sd.totalMarks} &nbsp;✓${sd.correct} ✗${sd.wrong}</small></td>`;
+      }).join('');
+      return `<tr>
+        <td>${r.studentName}</td>
+        <td>${r.studentClass}</td>
+        ${subjectTds}
+        <td><span class="percentage ${pctClass}">${Math.round(r.percentage)}%</span><br/><small>${r.score}/${r.totalMarks}</small></td>
+        <td>${r.correctAnswers || 0}</td><td>${r.wrongAnswers || 0}</td>
+        <td>${r.submittedAt ? formatDate(r.submittedAt) : 'N/A'}</td>
+      </tr>`;
+    }).join('');
+
+    return `<!DOCTYPE html><html><head><title>${title} - Results</title>
+      <style>
+        body{font-family:Arial,sans-serif;margin:40px}
+        h1{color:#1F2A49}
+        .summary{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+        .summary-item{background:#f3f4f6;padding:12px 16px;border-radius:8px;min-width:100px}
+        .summary-item h3{margin:0 0 4px;font-size:11px;color:#666}
+        .summary-item p{margin:0;font-size:20px;font-weight:bold;color:#1e1e1e}
+        table{width:100%;border-collapse:collapse;margin-top:16px;font-size:11px}
+        th{background:#1F2A49;color:#fff;padding:10px 8px;text-align:left}
+        td{padding:8px;border-bottom:1px solid #ddd;vertical-align:top}
+        tr:nth-child(even){background:#f9f9f9}
+        small{color:#888;font-size:10px}
+        .percentage{padding:2px 6px;border-radius:4px;font-weight:bold;font-size:11px}
+        .high{background:#d1fae5;color:#059669}
+        .medium{background:#fef3c7;color:#d97706}
+        .low{background:#fee2e2;color:#dc2626}
+      </style></head><body>
+      <h1>${title}</h1><p>Generated: ${date}</p>
+      <div class="summary">
+        <div class="summary-item"><h3>Total Students</h3><p>${examResults.summary.totalStudents}</p></div>
+        <div class="summary-item"><h3>Submitted</h3><p>${examResults.summary.submittedCount}</p></div>
+        <div class="summary-item"><h3>Average Score</h3><p>${Math.round(examResults.summary.averageScore)}%</p></div>
+        <div class="summary-item"><h3>Pass Rate</h3><p>${Math.round(examResults.summary.passRate)}%</p></div>
+      </div>
+      <table><thead><tr>
+        <th>Student</th><th>Class</th>${subjectThs}
+        <th>Total</th><th>Correct</th><th>Wrong</th><th>Date</th>
+      </tr></thead><tbody>${rows}</tbody></table>
+      ${forPrint ? '<script>window.onload=()=>window.print()</script>' : ''}
+    </body></html>`;
+  };
+
+  const exportToPDF = () => {
+    if (!examResults) return;
+    const w = window.open('', '_blank');
+    w.document.write(buildExportHTML(true));
+    w.document.close();
   };
 
   const exportToWord = () => {
     if (!examResults) return;
-    
-    const title = examResults.exam.title;
-    const date = new Date().toLocaleDateString();
-    
-    let html = `
-      <html>
-      <head>
-        <title>${title} - Results</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; }
-          h1 { color: #1F2A49; }
-          .summary { display: flex; gap: 20px; margin-bottom: 30px; }
-          .summary-item { background: #f3f4f6; padding: 15px; border-radius: 8px; flex: 1; }
-          .summary-item h3 { margin: 0 0 5px; font-size: 12px; color: #666; }
-          .summary-item p { margin: 0; font-size: 24px; font-weight: bold; color: #1e1e1e; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #1F2A49; color: white; padding: 12px; text-align: left; font-size: 12px; }
-          td { padding: 10px; border-bottom: 1px solid #ddd; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <h1>${title}</h1>
-        <p>Generated: ${date}</p>
-        <div class="summary">
-          <div class="summary-item"><h3>Total Students</h3><p>${examResults.summary.totalStudents}</p></div>
-          <div class="summary-item"><h3>Submitted</h3><p>${examResults.summary.submittedCount}</p></div>
-          <div class="summary-item"><h3>Average Score</h3><p>${Math.round(examResults.summary.averageScore)}%</p></div>
-          <div class="summary-item"><h3>Pass Rate</h3><p>${Math.round(examResults.summary.passRate)}%</p></div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th>Class</th>
-              <th>Score</th>
-              <th>Percentage</th>
-              <th>Correct</th>
-              <th>Wrong</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-    
-    examResults.results.forEach(r => {
-      html += `
-        <tr>
-          <td>${r.studentName}</td>
-          <td>${r.studentClass}</td>
-          <td>${r.score}/${r.totalMarks}</td>
-          <td>${Math.round(r.percentage)}%</td>
-          <td>${r.correctAnswers || 0}</td>
-          <td>${r.wrongAnswers || 0}</td>
-          <td>${r.submittedAt ? new Date(r.submittedAt._seconds * 1000).toLocaleDateString() : 'N/A'}</td>
-        </tr>
-      `;
-    });
-    
-    html += `
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `;
-    
-    const blob = new Blob([html], { type: 'application/msword' });
+    const blob = new Blob([buildExportHTML(false)], { type: 'application/msword' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -491,102 +404,82 @@ export default function Results({ setActiveSection }) {
               <table className="w-full">
                 <thead className="bg-surface-muted border-b border-border">
                   <tr>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Student</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Class</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Score</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Percentage</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Correct</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Wrong</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Unanswered</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Date</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Details</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Student</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Class</th>
+                    {subjectCols.map(s => (
+                      <th key={s.subjectId} className="px-4 py-3 text-left text-[11px] font-semibold text-brand-primary whitespace-nowrap">
+                        {s.subjectName}
+                      </th>
+                    ))}
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Total</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Correct</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Wrong</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Unanswered</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {examResults.results.map((result, index) => {
                     const percentage = result.percentage || 0;
-                    const percentageClass = percentage >= 75 ? 'bg-green-100 text-green-600' :
-                                          percentage >= 60 ? 'bg-blue-100 text-blue-600' :
-                                          percentage >= 50 ? 'bg-yellow-100 text-yellow-600' :
-                                          'bg-red-100 text-red-600';
-                    const isExpanded = expandedRow === index;
-                    const hasSubjects = result.subjectBreakdown && result.subjectBreakdown.length > 0;
+                    const totalPctClass = percentage >= 75 ? 'bg-green-100 text-green-700'
+                      : percentage >= 50 ? 'bg-yellow-100 text-yellow-700'
+                      : 'bg-red-100 text-red-600';
 
                     return (
-                      <>
-                        <tr key={index} className="border-b border-border hover:bg-surface-muted">
-                          <td className="px-4 py-3">
-                            <span className="text-xs font-medium text-content-primary">{result.studentName}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-xs text-content-muted">{result.studentClass}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-xs font-medium">{result.score}/{result.totalMarks}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${percentageClass}`}>
-                              {Math.round(percentage)}%
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-[12px] text-green-600">{result.correctAnswers || 0}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-[12px] text-red-600">{result.wrongAnswers || 0}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-xs text-content-muted">{result.totalQuestions - ((result.correctAnswers || 0) + (result.wrongAnswers || 0))}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-[11px] text-content-muted">
-                              {result.submittedAt ? formatDate(result.submittedAt) : 'N/A'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            {hasSubjects ? (
-                              <button
-                                onClick={() => setExpandedRow(isExpanded ? null : index)}
-                                className="flex items-center gap-1 text-[11px] font-semibold text-brand-primary hover:text-brand-primary-dk transition-colors"
-                              >
-                                {isExpanded ? 'Hide' : 'Breakdown'}
-                                <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▾</span>
-                              </button>
-                            ) : (
-                              <span className="text-[11px] text-content-muted">—</span>
-                            )}
-                          </td>
-                        </tr>
-                        {isExpanded && hasSubjects && (
-                          <tr key={`${index}-breakdown`} className="bg-brand-primary-lt/20 border-b border-border">
-                            <td colSpan={9} className="px-4 py-4">
-                              <p className="text-[11px] font-semibold text-content-muted mb-3 uppercase tracking-wide">Subject Breakdown</p>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                                {result.subjectBreakdown.map((sb, si) => {
-                                  const sbPct = sb.percentage || 0;
-                                  const sbColor = sbPct >= 75 ? 'text-green-600 bg-green-50 border-green-200'
-                                    : sbPct >= 50 ? 'text-yellow-600 bg-yellow-50 border-yellow-200'
-                                    : 'text-red-600 bg-red-50 border-red-200';
-                                  return (
-                                    <div key={si} className={`rounded-lg border p-3 ${sbColor}`}>
-                                      <p className="text-[12px] font-bold mb-2 truncate">{sb.subjectName}</p>
-                                      <div className="flex items-baseline gap-1 mb-1">
-                                        <span className="text-[20px] font-extrabold leading-none">{sbPct}%</span>
-                                        <span className="text-[10px] opacity-70">{sb.score}/{sb.totalMarks} marks</span>
-                                      </div>
-                                      <div className="flex gap-3 text-[11px] mt-1.5">
-                                        <span className="text-green-700">✓ {sb.correct} correct</span>
-                                        <span className="text-red-600">✗ {sb.wrong} wrong</span>
-                                        {sb.unanswered > 0 && <span className="opacity-60">— {sb.unanswered} skipped</span>}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                      <tr key={index} className="border-b border-border hover:bg-surface-muted">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-xs font-medium text-content-primary">{result.studentName}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-xs text-content-muted">{result.studentClass}</span>
+                        </td>
+                        {subjectCols.map(s => {
+                          const sd = getSubjectData(result, s.subjectId);
+                          if (!sd) return (
+                            <td key={s.subjectId} className="px-4 py-3 whitespace-nowrap">
+                              <span className="text-xs text-content-muted">—</span>
+                            </td>
+                          );
+                          const spct = sd.percentage || 0;
+                          const spctClass = spct >= 75 ? 'bg-green-100 text-green-700'
+                            : spct >= 50 ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-red-100 text-red-600';
+                          return (
+                            <td key={s.subjectId} className="px-4 py-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${spctClass}`}>
+                                {spct}%
+                              </span>
+                              <div className="text-[10px] text-content-muted mt-0.5 whitespace-nowrap">
+                                {sd.score}/{sd.totalMarks} &nbsp;
+                                <span className="text-green-600">✓{sd.correct}</span>&nbsp;
+                                <span className="text-red-500">✗{sd.wrong}</span>
                               </div>
                             </td>
-                          </tr>
-                        )}
-                      </>
+                          );
+                        })}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${totalPctClass}`}>
+                            {Math.round(percentage)}%
+                          </span>
+                          <div className="text-[10px] text-content-muted mt-0.5">{result.score}/{result.totalMarks}</div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-[12px] text-green-600">{result.correctAnswers || 0}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-[12px] text-red-600">{result.wrongAnswers || 0}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-xs text-content-muted">
+                            {result.totalQuestions - ((result.correctAnswers || 0) + (result.wrongAnswers || 0))}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-[11px] text-content-muted">
+                            {result.submittedAt ? formatDate(result.submittedAt) : 'N/A'}
+                          </span>
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
