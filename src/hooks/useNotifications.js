@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 const POLL_INTERVAL = 30_000; // 30-second polling fallback
 
-// Type → display config for richer toasts
 const NOTIF_ICON = {
   exam_started:       '🚀',
   exam_submitted:     '📋',
@@ -30,7 +29,7 @@ export function useNotifications(fetchWithAuth, baseEndpoint = '/admin', userId 
   const isInitialSnapshotRef = useRef(true);
   const knownIdsRef = useRef(new Set());
 
-  // ── Fetch in-app notifications from backend (polling fallback) ────────────
+  // ── Fetch from backend API ────────────────────────────────────────────────
   const fetchNotifications = useCallback(async () => {
     if (!fetchWithAuth) return;
     try {
@@ -55,7 +54,7 @@ export function useNotifications(fetchWithAuth, baseEndpoint = '/admin', userId 
     } catch (_) {}
   }, [fetchWithAuth, baseEndpoint]);
 
-  // ── Show an in-app toast for a new notification ───────────────────────────
+  // ── Show toast for a new notification ────────────────────────────────────
   const showToast = useCallback((notif) => {
     const icon = NOTIF_ICON[notif.type] || NOTIF_ICON.default;
     const url = notif.data?.url || (notif.data?.section ? `/dashboard?section=${notif.data.section}` : null);
@@ -106,15 +105,24 @@ export function useNotifications(fetchWithAuth, baseEndpoint = '/admin', userId 
           };
         });
 
-        setNotifications(docs);
-        setUnreadCount(docs.filter(n => !n.read).length);
-
         if (isInitialSnapshotRef.current) {
+          // FIX: only overwrite polling results if Firestore actually has data.
+          // An empty initial snapshot means either no notifications exist yet
+          // or the index is missing — don't wipe what polling already loaded.
+          if (docs.length > 0) {
+            setNotifications(docs);
+            setUnreadCount(docs.filter(n => !n.read).length);
+          }
           docs.forEach(d => knownIdsRef.current.add(d.id));
           isInitialSnapshotRef.current = false;
           return;
         }
 
+        // Subsequent snapshots are always authoritative
+        setNotifications(docs);
+        setUnreadCount(docs.filter(n => !n.read).length);
+
+        // Toast only for genuinely new unread docs
         snapshot.docChanges().forEach(change => {
           if (change.type === 'added') {
             const notif = { id: change.doc.id, ...change.doc.data() };
@@ -125,6 +133,7 @@ export function useNotifications(fetchWithAuth, baseEndpoint = '/admin', userId 
           }
         });
       }, (err) => {
+        // Index missing or permission error — polling will keep the UI updated
         console.warn('Firestore listener error (falling back to polling):', err.message);
       });
 
@@ -134,7 +143,7 @@ export function useNotifications(fetchWithAuth, baseEndpoint = '/admin', userId 
     }
   }, [showToast]);
 
-  // ── Request browser permission + init FCM ────────────────────────────────
+  // ── Request browser push permission + init FCM ────────────────────────────
   const requestPermission = useCallback(async () => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
     try {
@@ -152,32 +161,35 @@ export function useNotifications(fetchWithAuth, baseEndpoint = '/admin', userId 
       const token = await getToken(messaging, { vapidKey: VAPID_KEY });
       if (token) await saveToken(token);
 
-      // Foreground FCM — Firestore listener handles list refresh automatically
-      onMessage(messaging, (payload) => {
-        const { title, body } = payload.notification || {};
-        const data = payload.data || {};
-        if (title) showToast({ title, body, type: data.type, data });
+      // FIX: do NOT call showToast here — the Firestore onSnapshot docChanges()
+      // already shows a toast when the notification doc is created. Calling
+      // showToast here too is what caused the double-notification.
+      onMessage(messaging, () => {
+        // Firestore listener handles list updates and toasts automatically.
       });
     } catch (err) {
       console.error('Notification setup error:', err.message);
     }
-  }, [saveToken, showToast]);
+  }, [saveToken]);
 
   // ── Mark one notification as read ─────────────────────────────────────────
   const markRead = useCallback(async (notificationId) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === notificationId ? { ...n, read: true } : n);
+      setUnreadCount(updated.filter(n => !n.read).length);
+      return updated;
+    });
     try {
       await fetchWithAuth?.(`${baseEndpoint}/notifications/${notificationId}/read`, { method: 'PATCH' });
-      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (_) {}
   }, [fetchWithAuth, baseEndpoint]);
 
   // ── Mark all notifications as read ────────────────────────────────────────
   const markAllRead = useCallback(async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
     try {
       await fetchWithAuth?.(`${baseEndpoint}/notifications/read-all`, { method: 'PATCH' });
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
     } catch (_) {}
   }, [fetchWithAuth, baseEndpoint]);
 
