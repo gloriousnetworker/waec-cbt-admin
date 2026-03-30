@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "generate-sw": "node scripts/generate-firebase-sw.js",
+    "predev": "node scripts/generate-firebase-sw.js",
+    "prebuild": "node scripts/generate-firebase-sw.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
