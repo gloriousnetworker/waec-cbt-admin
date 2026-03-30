@@ -160,8 +160,9 @@ function StudentRegistrationContent() {
   };
 
   // ── Upload photo to backend after student is created/updated ─
+  // Returns true on success, false on failure.
   const uploadPhotoForStudent = async (sid) => {
-    if (!photoFile) return;
+    if (!photoFile) return false;
     setPhotoUploading(true);
     try {
       const form = new FormData();
@@ -169,15 +170,16 @@ function StudentRegistrationContent() {
       const res = await fetchWithAuth(`/admin/students/${sid}/photo`, {
         method: 'POST',
         body: form,
-        // Do NOT set Content-Type — browser sets it with boundary automatically
-        headers: {},
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         toast.error(`Photo upload failed: ${err.message || 'Unknown error'}`);
+        return false;
       }
+      return true;
     } catch (_) {
       toast.error('Photo upload failed');
+      return false;
     } finally {
       setPhotoUploading(false);
     }
@@ -187,6 +189,10 @@ function StudentRegistrationContent() {
     e.preventDefault();
     if (!formData.firstName || !formData.lastName || !formData.class) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    if (!isEdit && !photoFile) {
+      toast.error('Student photo is required');
       return;
     }
     if (formData.nin && !validateNIN(formData.nin)) {
@@ -214,9 +220,15 @@ function StudentRegistrationContent() {
 
       const resolvedStudentId = isEdit ? studentId : data.student?.id || data.id;
 
-      // Upload photo if one was selected
+      // For new students, photo is required — abort and delete the record if upload fails
       if (photoFile && resolvedStudentId) {
-        await uploadPhotoForStudent(resolvedStudentId);
+        const uploaded = await uploadPhotoForStudent(resolvedStudentId);
+        if (!uploaded && !isEdit) {
+          // Roll back: delete the just-created student record
+          await fetchWithAuth(`/admin/students/${resolvedStudentId}`, { method: 'DELETE' }).catch(() => {});
+          toast.error('Registration failed: could not upload student photo. Please try again.');
+          return;
+        }
       }
 
       if (isEdit) {
@@ -287,7 +299,7 @@ function StudentRegistrationContent() {
             {/* ── IMG-1: Photo Section ─────────────────────────────── */}
             <div>
               <h3 className="text-sm font-semibold text-content-primary mb-4 pb-2 border-b border-border flex items-center gap-2">
-                <User size={15} className="text-brand-primary" /> Student Photo <span className="text-content-muted font-normal">(optional)</span>
+                <User size={15} className="text-brand-primary" /> Student Photo {!isEdit && <span className={requiredStarClass}>*</span>}
               </h3>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                 {/* Preview circle */}

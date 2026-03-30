@@ -220,13 +220,15 @@ export function AuthProvider({ children }) {
 
     const executeFetch = async () => {
       try {
+        // Don't set Content-Type when body is FormData — browser sets
+        // multipart/form-data with the correct boundary automatically.
+        const isFormData = options.body instanceof FormData;
         const response = await fetch(url, {
           ...options,
           credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(options.headers || {}),
-          },
+          headers: isFormData
+            ? (options.headers || {})
+            : { 'Content-Type': 'application/json', ...(options.headers || {}) },
         });
 
         if (response.status === 401 && retryCount < maxRetries) {

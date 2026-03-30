@@ -48,6 +48,7 @@ export default function Exams({ setActiveSection }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterClass, setFilterClass] = useState('all');
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [selectAllInClass, setSelectAllInClass] = useState(false);
   const [selectedClass, setSelectedClass] = useState('');
@@ -508,11 +509,20 @@ export default function Exams({ setActiveSection }) {
     }
   };
 
+  // Archived exams never appear in the main list — they live in the separate archive view
   const filteredExams = exams.filter(exam => {
+    if (exam.status === 'archived') return false;
     const matchesSearch = exam.title?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || exam.status === filterStatus;
     const matchesClass = filterClass === 'all' || exam.class === filterClass;
     return matchesSearch && matchesStatus && matchesClass;
+  });
+
+  const archivedExams = exams.filter(exam => {
+    if (exam.status !== 'archived') return false;
+    const matchesSearch = exam.title?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesClass = filterClass === 'all' || exam.class === filterClass;
+    return matchesSearch && matchesClass;
   });
 
   const stats = {
@@ -592,7 +602,6 @@ export default function Exams({ setActiveSection }) {
               <option value="draft">Draft</option>
               <option value="active">Active</option>
               <option value="completed">Completed</option>
-              <option value="archived">Archived</option>
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -604,12 +613,75 @@ export default function Exams({ setActiveSection }) {
         </div>
       </div>
 
-      {loading ? (
+      {/* ── Archive view ────────────────────────────────────────── */}
+      {showArchived && (
+        <div>
+          <div className="flex items-center gap-3 mb-5">
+            <button
+              onClick={() => setShowArchived(false)}
+              className="inline-flex items-center gap-2 text-brand-primary hover:text-brand-primary-dk text-sm font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Exams
+            </button>
+            <span className="text-content-muted text-sm">|</span>
+            <h2 className="text-sm font-semibold text-content-primary">Archived Exams</h2>
+            {archivedExams.length > 0 && (
+              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">{archivedExams.length}</span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            {archivedExams.map((exam, i) => (
+              <motion.div
+                key={exam.id}
+                custom={i} variants={cardVariants} initial="hidden" animate="visible"
+                className="bg-white rounded-xl border border-border p-6 opacity-80"
+              >
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className="text-[16px] leading-[120%] font-[600] text-content-primary">{exam.title}</h3>
+                      <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-[500]">archived</span>
+                      <span className="px-2 py-1 bg-purple-100 text-purple-600 rounded-full text-[10px] font-[500]">{exam.class}</span>
+                    </div>
+                    <p className="text-[13px] leading-[140%] font-[400] text-content-muted line-clamp-2">
+                      {exam.description || 'No description provided'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-[11px] text-content-muted flex-wrap">
+                  <span>📊 Total Marks: {exam.totalMarks}</span>
+                  <span>✅ Pass Mark: {exam.passMark}%</span>
+                  <span>👥 {exam.assignedStudents?.length || 0} students</span>
+                  <div className="ml-auto">
+                    <button
+                      onClick={() => { setSelectedExam(exam); setShowRestoreModal(true); }}
+                      className="px-3 py-1 bg-success-light text-success rounded-md text-[10px] font-[600] hover:bg-green-200"
+                    >
+                      Restore
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+            {archivedExams.length === 0 && (
+              <div className="bg-white rounded-xl border border-border p-12 text-center">
+                <p className="text-[14px] text-content-muted">No archived exams</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Main exam list ───────────────────────────────────────── */}
+      {!showArchived && loading ? (
         <div className="bg-white rounded-xl border border-border p-12 text-center">
           <div className="w-12 h-12 border-4 border-brand-primary-lt border-t-brand-primary rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-[14px] text-content-muted">Loading exams...</p>
         </div>
-      ) : (
+      ) : !showArchived ? (
         <div className="grid grid-cols-1 gap-4">
           {filteredExams.map((exam, i) => (
             <motion.div
@@ -704,14 +776,6 @@ export default function Exams({ setActiveSection }) {
                       Archive
                     </button>
                   )}
-                  {exam.status === 'archived' && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setSelectedExam(exam); setShowRestoreModal(true); }}
-                      className="px-3 py-1 bg-success-light text-success rounded-md text-[10px] font-[600] hover:bg-green-200"
-                    >
-                      Restore
-                    </button>
-                  )}
                 </div>
               </div>
             </motion.div>
@@ -721,8 +785,24 @@ export default function Exams({ setActiveSection }) {
               <p className="text-[14px] text-content-muted">No exams found</p>
             </div>
           )}
+          {/* ── Archived entry point (like WhatsApp) ─────────────── */}
+          {stats.archived > 0 && (
+            <button
+              onClick={() => setShowArchived(true)}
+              className="w-full flex items-center justify-between px-5 py-4 bg-white rounded-xl border border-border hover:border-amber-300 hover:bg-amber-50 transition-all text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🗃️</span>
+                <span className="text-sm font-medium text-content-secondary group-hover:text-amber-700">Archived</span>
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">{stats.archived}</span>
+              </div>
+              <svg className="w-4 h-4 text-content-muted group-hover:text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
         </div>
-      )}
+      ) : null}
 
       {examsTotalCount > 0 && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-4 border-t border-border gap-3">
