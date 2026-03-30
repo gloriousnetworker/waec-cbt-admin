@@ -35,6 +35,7 @@ export default function Results({ setActiveSection }) {
     averageScore: 0,
     passRate: 0
   });
+  const [expandedRow, setExpandedRow] = useState(null);
 
   const classes = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3'];
 
@@ -498,6 +499,7 @@ export default function Results({ setActiveSection }) {
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Wrong</th>
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Unanswered</th>
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Date</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted">Details</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -507,38 +509,84 @@ export default function Results({ setActiveSection }) {
                                           percentage >= 60 ? 'bg-blue-100 text-blue-600' :
                                           percentage >= 50 ? 'bg-yellow-100 text-yellow-600' :
                                           'bg-red-100 text-red-600';
-                    
+                    const isExpanded = expandedRow === index;
+                    const hasSubjects = result.subjectBreakdown && result.subjectBreakdown.length > 0;
+
                     return (
-                      <tr key={index} className="border-b border-border hover:bg-surface-muted">
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-medium text-content-primary">{result.studentName}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs text-content-muted">{result.studentClass}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-medium">{result.score}/{result.totalMarks}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${percentageClass}`}>
-                            {Math.round(percentage)}%
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-[12px] text-green-600">{result.correctAnswers || 0}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-[12px] text-red-600">{result.wrongAnswers || 0}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs text-content-muted">{result.totalQuestions - (result.correctAnswers + result.wrongAnswers)}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-[11px] text-content-muted">
-                            {result.submittedAt ? formatDate(result.submittedAt) : 'N/A'}
-                          </span>
-                        </td>
-                      </tr>
+                      <>
+                        <tr key={index} className="border-b border-border hover:bg-surface-muted">
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-medium text-content-primary">{result.studentName}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-content-muted">{result.studentClass}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs font-medium">{result.score}/{result.totalMarks}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${percentageClass}`}>
+                              {Math.round(percentage)}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-[12px] text-green-600">{result.correctAnswers || 0}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-[12px] text-red-600">{result.wrongAnswers || 0}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-content-muted">{result.totalQuestions - ((result.correctAnswers || 0) + (result.wrongAnswers || 0))}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-[11px] text-content-muted">
+                              {result.submittedAt ? formatDate(result.submittedAt) : 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {hasSubjects ? (
+                              <button
+                                onClick={() => setExpandedRow(isExpanded ? null : index)}
+                                className="flex items-center gap-1 text-[11px] font-semibold text-brand-primary hover:text-brand-primary-dk transition-colors"
+                              >
+                                {isExpanded ? 'Hide' : 'Breakdown'}
+                                <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▾</span>
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-content-muted">—</span>
+                            )}
+                          </td>
+                        </tr>
+                        {isExpanded && hasSubjects && (
+                          <tr key={`${index}-breakdown`} className="bg-brand-primary-lt/20 border-b border-border">
+                            <td colSpan={9} className="px-4 py-4">
+                              <p className="text-[11px] font-semibold text-content-muted mb-3 uppercase tracking-wide">Subject Breakdown</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                {result.subjectBreakdown.map((sb, si) => {
+                                  const sbPct = sb.percentage || 0;
+                                  const sbColor = sbPct >= 75 ? 'text-green-600 bg-green-50 border-green-200'
+                                    : sbPct >= 50 ? 'text-yellow-600 bg-yellow-50 border-yellow-200'
+                                    : 'text-red-600 bg-red-50 border-red-200';
+                                  return (
+                                    <div key={si} className={`rounded-lg border p-3 ${sbColor}`}>
+                                      <p className="text-[12px] font-bold mb-2 truncate">{sb.subjectName}</p>
+                                      <div className="flex items-baseline gap-1 mb-1">
+                                        <span className="text-[20px] font-extrabold leading-none">{sbPct}%</span>
+                                        <span className="text-[10px] opacity-70">{sb.score}/{sb.totalMarks} marks</span>
+                                      </div>
+                                      <div className="flex gap-3 text-[11px] mt-1.5">
+                                        <span className="text-green-700">✓ {sb.correct} correct</span>
+                                        <span className="text-red-600">✗ {sb.wrong} wrong</span>
+                                        {sb.unanswered > 0 && <span className="opacity-60">— {sb.unanswered} skipped</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     );
                   })}
                 </tbody>

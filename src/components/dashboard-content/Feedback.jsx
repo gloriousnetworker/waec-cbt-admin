@@ -187,7 +187,11 @@ export default function Feedback() {
                   <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                     <span className="text-[14px] font-bold text-content-primary">{f.studentName || 'Student'}</span>
                     {f.studentClass && <span className="text-[11px] px-2 py-0.5 bg-surface-muted rounded-full text-content-secondary">{f.studentClass}</span>}
-                    {f.subjectName && <span className="text-[11px] px-2 py-0.5 bg-brand-primary-lt text-brand-primary rounded-full font-medium">{f.subjectName}</span>}
+                    {f.subjectName && (
+                      <span className="text-[11px] px-2 py-0.5 bg-brand-primary-lt text-brand-primary rounded-full font-medium flex items-center gap-1">
+                        <span className="opacity-60">Exam:</span> {f.subjectName}
+                      </span>
+                    )}
                     {!f.read && <span className="text-[10px] px-2 py-0.5 bg-brand-primary text-white rounded-full font-bold">NEW</span>}
                   </div>
                   <div className="flex items-center gap-2 mb-2">
