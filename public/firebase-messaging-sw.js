@@ -12,10 +12,12 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const { title, body } = payload.notification || {};
+  const data = payload.data || {};
+  // Data-only push: title/body are in payload.data (no top-level notification field)
+  const title = data.title || payload.notification?.title;
+  const body  = data.body  || payload.notification?.body;
   if (!title) return;
 
-  const data = payload.data || {};
   const url = data.url || (data.section ? `/dashboard?section=${data.section}` : '/dashboard');
 
   self.registration.showNotification(title, {
