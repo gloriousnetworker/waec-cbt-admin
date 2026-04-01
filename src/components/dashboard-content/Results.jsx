@@ -29,6 +29,10 @@ export default function Results({ setActiveSection }) {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const LIMIT = 50;
+  const [selectedExamIds, setSelectedExamIds] = useState(new Set());
+  const [showExtendModal, setShowExtendModal] = useState(false);
+  const [extraMinutes, setExtraMinutes] = useState(30);
+  const [extending, setExtending] = useState(false);
   const [stats, setStats] = useState({
     totalExams: 0,
     totalResults: 0,
@@ -84,6 +88,7 @@ export default function Results({ setActiveSection }) {
   };
 
   const fetchExamResults = async (examId) => {
+    setSelectedExamIds(new Set());
     try {
       const response = await fetchWithAuth(`/admin/exam-setups/${examId}/results`);
       if (response.ok) {
@@ -95,6 +100,51 @@ export default function Results({ setActiveSection }) {
       }
     } catch (error) {
       toast.error('Network error');
+    }
+  };
+
+  const toggleSelect = (examId) => {
+    if (!examId) return;
+    setSelectedExamIds(prev => {
+      const next = new Set(prev);
+      if (next.has(examId)) next.delete(examId);
+      else next.add(examId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (!examResults) return;
+    const allIds = examResults.results.map(r => r.examId).filter(Boolean);
+    if (selectedExamIds.size === allIds.length) {
+      setSelectedExamIds(new Set());
+    } else {
+      setSelectedExamIds(new Set(allIds));
+    }
+  };
+
+  const handleExtend = async () => {
+    if (!selectedExamIds.size || !selectedExam) return;
+    setExtending(true);
+    let successCount = 0;
+    for (const examId of selectedExamIds) {
+      try {
+        const res = await fetchWithAuth(`/admin/exams/${examId}/extend`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ extraMinutes }),
+        });
+        if (res.ok) successCount++;
+      } catch (_) {}
+    }
+    setExtending(false);
+    setShowExtendModal(false);
+    setSelectedExamIds(new Set());
+    if (successCount > 0) {
+      toast.success(`Extended ${successCount} exam(s) by ${extraMinutes} minutes`);
+      fetchExamResults(selectedExam.id);
+    } else {
+      toast.error('Failed to extend — check that the exam IDs are valid');
     }
   };
 
@@ -305,7 +355,7 @@ export default function Results({ setActiveSection }) {
             key={exam.id}
             whileHover={{ y: -2 }}
             className="bg-white rounded-xl border border-border p-4 sm:p-6 cursor-pointer hover:shadow-card-md hover:border-brand-primary transition-all"
-            onClick={() => fetchExamResults(exam.id)}
+            onClick={() => { setSelectedExam(exam); fetchExamResults(exam.id); }}
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
@@ -380,11 +430,19 @@ export default function Results({ setActiveSection }) {
                 <p className="text-[13px] text-[#626060] mt-1">Total Marks: {examResults.exam.totalMarks} • Pass Mark: {examResults.exam.passMark}%</p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
+                {selectedExamIds.size > 0 && (
+                  <button
+                    onClick={() => setShowExtendModal(true)}
+                    className="px-3 py-1.5 bg-brand-primary text-white rounded-lg text-xs font-semibold hover:opacity-80 transition-opacity min-h-[36px]"
+                  >
+                    Extend/Reopen ({selectedExamIds.size})
+                  </button>
+                )}
                 <button onClick={exportToCSV} className="px-3 py-1.5 bg-success-light text-success-dark rounded-lg text-xs font-semibold hover:opacity-80 transition-opacity min-h-[36px]">CSV</button>
                 <button onClick={exportToPDF} className="px-3 py-1.5 bg-danger-light text-danger-dark rounded-lg text-xs font-semibold hover:opacity-80 transition-opacity min-h-[36px]">PDF</button>
                 <button onClick={exportToWord} className="px-3 py-1.5 bg-info-light text-info-dark rounded-lg text-xs font-semibold hover:opacity-80 transition-opacity min-h-[36px]">Word</button>
                 <button
-                  onClick={() => { setShowResultsModal(false); setExamResults(null); }}
+                  onClick={() => { setShowResultsModal(false); setExamResults(null); setSelectedExamIds(new Set()); }}
                   className="p-1.5 text-content-muted hover:text-content-primary hover:bg-surface-subtle rounded-lg transition-colors ml-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-lg"
                   aria-label="Close"
                 >×</button>
@@ -410,8 +468,17 @@ export default function Results({ setActiveSection }) {
               <table className="w-full">
                 <thead className="bg-surface-muted border-b border-border">
                   <tr>
+                    <th className="px-3 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        checked={examResults.results.filter(r => r.examId).length > 0 && selectedExamIds.size === examResults.results.filter(r => r.examId).length}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 rounded border-border cursor-pointer accent-brand-primary"
+                      />
+                    </th>
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Student</th>
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Class</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-content-muted whitespace-nowrap">Status</th>
                     {subjectCols.map(s => (
                       <th key={s.subjectId} className="px-4 py-3 text-left text-[11px] font-semibold text-brand-primary whitespace-nowrap">
                         {s.subjectName}
@@ -430,14 +497,33 @@ export default function Results({ setActiveSection }) {
                     const totalPctClass = percentage >= 75 ? 'bg-green-100 text-green-700'
                       : percentage >= 50 ? 'bg-yellow-100 text-yellow-700'
                       : 'bg-red-100 text-red-600';
+                    const isSelected = result.examId && selectedExamIds.has(result.examId);
+                    const statusLabel = result.status === 'in_progress' ? 'In Progress'
+                      : result.status === 'auto_submitted' ? 'Auto-Submit'
+                      : 'Submitted';
+                    const statusClass = result.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700'
+                      : result.status === 'auto_submitted' ? 'bg-red-100 text-red-600'
+                      : 'bg-green-100 text-green-700';
 
                     return (
-                      <tr key={index} className="border-b border-border hover:bg-surface-muted">
+                      <tr key={index} className={`border-b border-border hover:bg-surface-muted ${isSelected ? 'bg-brand-primary-lt' : ''}`}>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={!result.examId}
+                            onChange={() => toggleSelect(result.examId)}
+                            className="w-4 h-4 rounded border-border cursor-pointer accent-brand-primary disabled:opacity-30"
+                          />
+                        </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="text-xs font-medium text-content-primary">{result.studentName}</span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="text-xs text-content-muted">{result.studentClass}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusClass}`}>{statusLabel}</span>
                         </td>
                         {subjectCols.map(s => {
                           const sd = getSubjectData(result, s.subjectId);
@@ -497,10 +583,52 @@ export default function Results({ setActiveSection }) {
                 onClick={() => {
                   setShowResultsModal(false);
                   setExamResults(null);
+                  setSelectedExamIds(new Set());
                 }}
                 className={modalButtonSecondary}
               >
                 Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {showExtendModal && (
+        <div className={modalOverlay} onClick={() => setShowExtendModal(false)}>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-lg p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-content-primary mb-1">Extend / Reopen Exam</h3>
+            <p className="text-xs text-content-muted mb-4">
+              Add extra time to {selectedExamIds.size} selected exam{selectedExamIds.size > 1 ? 's' : ''}. Existing answers are preserved and the student can continue from where they left off.
+            </p>
+            <label className="block text-xs font-semibold text-content-secondary mb-1">Extra time (minutes)</label>
+            <input
+              type="number"
+              min={1}
+              max={180}
+              value={extraMinutes}
+              onChange={(e) => setExtraMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm text-content-primary mb-4 min-h-[44px]"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowExtendModal(false)}
+                className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-surface-subtle transition-colors min-h-[40px]"
+                disabled={extending}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExtend}
+                disabled={extending}
+                className="px-4 py-2 text-sm font-semibold bg-brand-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60 min-h-[40px]"
+              >
+                {extending ? 'Extending...' : `Extend +${extraMinutes} min`}
               </button>
             </div>
           </motion.div>
