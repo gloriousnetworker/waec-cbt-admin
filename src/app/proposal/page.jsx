@@ -315,7 +315,7 @@ export default function ProposalPage() {
 
       {/* Download bar — hidden on print */}
       <div className="download-bar">
-        <span>CBT WAEC Simulation Platform — Proposal for Etinan LGA | Code Pyramid Globals</span>
+        <span>CBT WAEC Simulation Platform — Proposal for Etinan LGA | Code Pyramid Global</span>
         <button className="download-btn" onClick={handleDownload}>
           ⬇ Download as PDF
         </button>
@@ -332,8 +332,8 @@ export default function ProposalPage() {
               <img src="/cpg-logo.png" alt="CPG Logo" />
             </div>
             <div className="org-name">
-              <h1>Code Pyramid Globals</h1>
-              <p>Code Pyramid Globals · Innovative Educational Technology | CBT Examination Systems</p>
+              <h1>Code Pyramid Global</h1>
+              <p>Code Pyramid Global · Innovative Educational Technology | CBT Examination Systems</p>
             </div>
             <div className="contact-area">
               <div>Email: iniubongudofot2000@gmail.com</div>
@@ -373,7 +373,7 @@ export default function ProposalPage() {
             </p>
             <p>
               It is with great honour and a deep sense of commitment to educational excellence in Akwa Ibom State
-              that we, Code Pyramid Globals, submit this formal proposal for your esteemed consideration. We
+              that we, Code Pyramid Global, submit this formal proposal for your esteemed consideration. We
               respectfully request the adoption and full deployment of our <strong>Einstein CBT WAEC Simulation
               Platform</strong> across secondary schools within the Etinan Local Government Area.
             </p>
@@ -437,7 +437,7 @@ export default function ProposalPage() {
           </div>
 
           <div className="doc-footer">
-            Code Pyramid Globals · Confidential Proposal · Etinan LGA CBT Initiative · Page 1 of 3
+            Code Pyramid Global · Confidential Proposal · Etinan LGA CBT Initiative · Page 1 of 3
           </div>
         </div>
 
@@ -449,7 +449,7 @@ export default function ProposalPage() {
               <img src="/cpg-logo.png" alt="CPG Logo" />
             </div>
             <div className="org-name">
-              <h1>Code Pyramid Globals</h1>
+              <h1>Code Pyramid Global</h1>
               <p>CBT WAEC Simulation Platform — Etinan LGA Proposal</p>
             </div>
             <div className="contact-area">
@@ -547,7 +547,7 @@ export default function ProposalPage() {
                 <li><strong>Internet Connectivity:</strong> A basic mobile data or Wi-Fi connection (minimum 1 Mbps) per examination session is sufficient; the platform's PWA offline capability reduces dependency on constant connectivity</li>
                 <li><strong>Devices:</strong> Any smartphone, tablet, laptop, or desktop computer with a modern web browser (Chrome, Firefox, Safari) can run the platform — no software installation required</li>
                 <li><strong>Computer Labs:</strong> Existing school computer labs can be immediately leveraged; where computer labs are absent, smartphone-based sessions are fully supported</li>
-                <li><strong>Server Infrastructure:</strong> All server infrastructure is cloud-hosted and fully managed by Code Pyramid Globals — the LGA bears no hosting or server maintenance cost</li>
+                <li><strong>Server Infrastructure:</strong> All server infrastructure is cloud-hosted and fully managed by Code Pyramid Global — the LGA bears no hosting or server maintenance cost</li>
                 <li><strong>Electricity:</strong> Device battery life is sufficient for most sessions; minimal power infrastructure needed compared to traditional CBT centre setups</li>
               </ul>
             </div>
@@ -569,7 +569,7 @@ export default function ProposalPage() {
           </div>
 
           <div className="doc-footer">
-            Code Pyramid Globals · Confidential Proposal · Etinan LGA CBT Initiative · Page 2 of 3
+            Code Pyramid Global · Confidential Proposal · Etinan LGA CBT Initiative · Page 2 of 3
           </div>
         </div>
 
@@ -581,7 +581,7 @@ export default function ProposalPage() {
               <img src="/cpg-logo.png" alt="CPG Logo" />
             </div>
             <div className="org-name">
-              <h1>Code Pyramid Globals</h1>
+              <h1>Code Pyramid Global</h1>
               <p>CBT WAEC Simulation Platform — Etinan LGA Proposal</p>
             </div>
             <div className="contact-area">
@@ -595,7 +595,7 @@ export default function ProposalPage() {
             <div className="section">
               <div className="section-title">7. Pricing and Partnership Models</div>
               <p>
-                Code Pyramid Globals offers flexible partnership models tailored to the financial realities of
+                Code Pyramid Global offers flexible partnership models tailored to the financial realities of
                 Local Government Area education budgets. We are open to the following arrangements:
               </p>
               <table className="proposal-table">
@@ -647,14 +647,14 @@ export default function ProposalPage() {
                 <li>Student NIN and personal data are stored securely; no third-party data sharing occurs</li>
                 <li>Role-based access control ensures that school admins only access their own school's data</li>
                 <li>Automated session management prevents unauthorised access to ongoing examinations</li>
-                <li>Regular platform security audits and updates are conducted by the Code Pyramid Globals engineering team</li>
+                <li>Regular platform security audits and updates are conducted by the Code Pyramid Global engineering team</li>
               </ul>
             </div>
 
             <div className="section">
               <div className="section-title">9. Our Commitment to Etinan LGA</div>
               <p>
-                Code Pyramid Globals is not merely a software vendor — we are an educational technology partner
+                Code Pyramid Global is not merely a software vendor — we are an educational technology partner
                 with a vested interest in the academic success of every secondary school student in Etinan
                 Local Government Area. We commit to:
               </p>
@@ -703,14 +703,14 @@ export default function ProposalPage() {
                   <div className="sig-line"></div>
                   <strong>Iniubong Udofot</strong><br />
                   Founder &amp; Lead Developer<br />
-                  Code Pyramid Globals<br />
+                  Code Pyramid Global<br />
                   Email: iniubongudofot2000@gmail.com<br />
                   Date: ________________
                 </div>
                 <div className="sig-block">
                   <div className="sig-line"></div>
                   <strong>Authorised Representative</strong><br />
-                  Code Pyramid Globals<br />
+                  Code Pyramid Global<br />
                   Date: ________________
                 </div>
               </div>
@@ -719,7 +719,7 @@ export default function ProposalPage() {
           </div>
 
           <div className="doc-footer">
-            Code Pyramid Globals · Confidential Proposal · Etinan LGA CBT Initiative · Page 3 of 3<br />
+            Code Pyramid Global · Confidential Proposal · Etinan LGA CBT Initiative · Page 3 of 3<br />
             <em>This proposal is confidential and intended solely for the addressee named herein.</em>
           </div>
         </div>
